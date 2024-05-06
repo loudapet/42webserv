@@ -18,10 +18,16 @@ int main() {
   sockaddr.sin_addr.s_addr = INADDR_ANY;
   sockaddr.sin_port = htons(9999); // htons is necessary to convert a number to
                                    // network byte order
-  if (bind(sockfd, (struct sockaddr*)&sockaddr, sizeof(sockaddr)) < 0) {
-    std::cout << "Failed to bind to port 9999. errno: " << errno << std::endl;
-    exit(EXIT_FAILURE);
-  }
+ if (bind(sockfd, (struct sockaddr*)&sockaddr, sizeof(sockaddr)) < 0) {
+   std::cout << "Failed to bind to port 9999. errno: " << errno << std::endl;
+   exit(EXIT_FAILURE);
+ }
+ // int yes = 1;
+ // if (setsockopt(sockfd, SOL_SOCKET,SO_REUSEADDR, &yes, sizeof yes) == -1)
+ // {
+ //   std::cout << "setsockopt" << errno << std::endl;
+ //   exit(EXIT_FAILURE);
+ // }
 
   // Start listening. Hold at most 10 connections in the queue
   if (listen(sockfd, 10) < 0) {
