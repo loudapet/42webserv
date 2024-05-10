@@ -6,14 +6,14 @@
 #    By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/01/13 11:40:54 by aulicna           #+#    #+#              #
-#    Updated: 2024/05/07 10:00:56 by aulicna          ###   ########.fr        #
+#    Updated: 2024/05/10 11:32:58 by aulicna          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME = webserv
 
 SRC = main.cpp \
-	src/Server.cpp
+	Server.cpp
 
 OBJ = $(SRC:.cpp=.o)
 

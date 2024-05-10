@@ -1,33 +1,37 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Server.cpp                                         :+:      :+:    :+:   */
+/*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/05/07 10:07:33 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/07 10:14:22 by aulicna          ###   ########.fr       */
+/*   Created: 2024/05/10 12:01:17 by aulicna           #+#    #+#             */
+/*   Updated: 2024/05/10 13:56:24 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../incl/Server.hpp"
+#ifndef SERVER_HPP
+#define SERVER_HPP
 
-Server::Server(void)
+# include "webserv.hpp"
+
+class Server
 {
-	return ;
-}
+	public:
+		Server(int port);
+		~Server();
 
-//Server::Server(const Server& copy)
-//{
-//	return ;
-//}
-//
-//Server	&Server::operator = (const Server &src)
-//{
-//
-//}
+		void start(void);
+		void stop(void);
 
-Server::~Server(void)
-{
+	private:
+		int		createSocket(void);
+		void	bindSocket(int fdSocket, int port);
+		void	listenForConnections(int fdSocket);
 
-}
+		int					_port;
+		int					_serverSocket;
+		std::vector<int>	_clientSockets;
+};
+
+#endif
