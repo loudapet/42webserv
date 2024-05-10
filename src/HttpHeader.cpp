@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/05/10 10:09:18 by plouda           ###   ########.fr       */
+/*   Updated: 2024/05/10 10:28:15 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,12 +35,19 @@ HttpHeader::~HttpHeader()
 
 void	HttpHeader::parseStartLine(octets_t startLine)
 {
-	std::vector<octets_t>			splitTokens;
-	std::vector<uint8_t>::iterator	space = std::find(startLine.begin(), startLine.end(), SP);
+	std::vector<octets_t>	splitTokens;
+	octets_t::iterator		space = std::find(startLine.begin(), startLine.end(), SP);
+	octets_t::iterator		nl = std::find(startLine.begin(), startLine.end(), '\n');
 
+	while (nl != startLine.end())
+	{
+		octets_t line(startLine.begin(), nl);
+		if ((line.size() == 1 && line[0] == '\r') || line.size() == 0) // indicates the end of field section
+			break ;
+	}
 
 	while (space != startLine.end() || startLine.size() != 0)
-	{
+	{	
 		octets_t token(startLine.begin(), space);
 		splitTokens.push_back(token);
 		while (isspace(*space))
@@ -53,6 +60,7 @@ void	HttpHeader::parseStartLine(octets_t startLine)
 
 // needs to check for bare CR
 // also needs to check for no SP between first line and first field
+// "In the interest of robustness, a server that is expecting to receive and parse a request-line SHOULD ignore at least one empty line (CRLF) received prior to the request-line."
 void	HttpHeader::parseHeader(octets_t header)
 {
 	std::vector<octets_t>			splitLines;
@@ -72,6 +80,8 @@ void	HttpHeader::parseHeader(octets_t header)
 		nl = std::find(header.begin(), header.end(), '\n');
 		startLine = false;
 	}
+	// if (startLine)
+	//	empty header
 	std::cout << splitLines << std::flush;
 }
 
