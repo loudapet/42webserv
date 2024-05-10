@@ -6,18 +6,20 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/05/10 10:00:04 by plouda           ###   ########.fr       */
+/*   Updated: 2024/05/10 12:24:50 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef HTTPHEADER_HPP
 #define HTTPHEADER_HPP
 #include <iostream>
+#include <fstream>
 #include <algorithm>
 #include <vector>
 #include <map>
 #include <stdint.h>
 #include <unistd.h>
+#include <exception>
 #define CR '\r'
 #define SP ' '
 #define CRLF "\r\n"
