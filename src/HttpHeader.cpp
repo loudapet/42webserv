@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/05/09 16:14:05 by plouda           ###   ########.fr       */
+/*   Updated: 2024/05/10 10:09:18 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,28 +53,24 @@ void	HttpHeader::parseStartLine(octets_t startLine)
 
 // needs to check for bare CR
 // also needs to check for no SP between first line and first field
-void	HttpHeader::parseHeader(octets_t fullHeader)
+void	HttpHeader::parseHeader(octets_t header)
 {
 	std::vector<octets_t>			splitLines;
-	std::vector<uint8_t>::iterator	nl = std::find(fullHeader.begin(), fullHeader.end(), '\n');
+	octets_t::iterator				nl = std::find(header.begin(), header.end(), '\n');
 	bool	startLine = true;
 
-	while (nl != fullHeader.end())
+	while (nl != header.end())
 	{
-		octets_t line(fullHeader.begin(), nl);
-		if (startLine)
-		{
-			this->parseStartLine(line);
-			fullHeader.erase(fullHeader.begin(), nl + 1);
-			nl = std::find(fullHeader.begin(), fullHeader.end(), '\n');
-			startLine = false;
-			continue ;
-		}
-		if ((line.size() == 1 && line[0] == '\r') || line.size() == 0)
+		octets_t line(header.begin(), nl);
+		if ((line.size() == 1 && line[0] == '\r') || line.size() == 0) // indicates the end of field section
 			break ;
-		splitLines.push_back(line);
-		fullHeader.erase(fullHeader.begin(), nl + 1);
-		nl = std::find(fullHeader.begin(), fullHeader.end(), '\n');
+		if (startLine)
+			this->parseStartLine(line);
+		if (!startLine)
+			splitLines.push_back(line);
+		header.erase(header.begin(), nl + 1);
+		nl = std::find(header.begin(), header.end(), '\n');
+		startLine = false;
 	}
 	std::cout << splitLines << std::flush;
 }
@@ -82,7 +78,7 @@ void	HttpHeader::parseHeader(octets_t fullHeader)
 
 std::ostream &operator<<(std::ostream &os, octets_t &vec)
 {
-	for (std::vector<uint8_t>::iterator it = vec.begin(); it != vec.end(); it++)
+	for (octets_t::iterator it = vec.begin(); it != vec.end(); it++)
 			os << *it;
 		return os;
 }

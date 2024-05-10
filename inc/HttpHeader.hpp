@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/05/09 16:12:29 by plouda           ###   ########.fr       */
+/*   Updated: 2024/05/10 10:00:04 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,7 +58,7 @@ class HttpHeader
 		virtual ~HttpHeader();
 
 		void	parseStartLine(octets_t startLine);
-		void	parseHeader(octets_t fullHeader);
+		void	parseHeader(octets_t header);
 };
 
 /* class HttpRequest : public HttpHeader
