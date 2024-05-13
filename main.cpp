@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 10:01:22 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/10 16:18:47 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/13 17:57:06 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@ int main(void)
 {
 	try
 	{
-		Server	server(8000);
+		Server	server(PORT_SERVER);
 
 		server.start();
 		server.stop();

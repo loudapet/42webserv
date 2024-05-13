@@ -4,16 +4,6 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <cstring>
-#include "webserv.hpp"
-
-//"\n\r\n\n\r\nGET /index.html HTTP/1.1\r\nHost: www.example.com\r\nUser-Agent: Mozilla/5.0\nAccept: text/html, */*\r\nAccept-Language: en-us\nAccept-Charset: ISO-8859-1,utf-8\nConnection: keep-alive\r\n\n";
-//GET / HTTP/1.1
-//Host: www.example.com
-//User-Agent: Mozilla/5.0
-//Accept: text/html, */*
-//Accept-Language: en-us
-//Accept-Charset: ISO-8859-1,utf-8\n
-//Connection: keep-alive
 
 int main(void)
 {
@@ -31,7 +21,7 @@ int main(void)
 	struct sockaddr_in serverAddr;
 
 	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(PORT_SERVER); // Port number of the server
+	serverAddr.sin_port = htons(4242); // Port number of the server
 	serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1"); // IP address of the server
 
 	// Connect to the server
