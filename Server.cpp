@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 11:38:03 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/14 18:28:07 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/14 19:24:02 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,23 +80,22 @@ void	Server::listenForConnections(int fdSocket)
 	const char	*confirmReceived = "Well received!\n";
 	fd_set		master; // master fds list
 	fd_set		readFds; // temp fds list for select()
-	int			fdMax; // maximum fd number
 	
 	
 	if (listen(fdSocket, SOMAXCONN) == -1)
 		throw(std::runtime_error("Socket listening failed."));
 	std::cout << "Server listening on port " << this->_port << std::endl;
 	FD_SET(fdSocket, &master); // add the listener to the master set
-	fdMax = fdSocket; // keep track of the biggest fd which so far is the only one we have
+	this->_fdMax = fdSocket; // keep track of the biggest fd which so far is the only one we have
 	// main listening loop
 	while(42)
 	{
 		readFds = master; // copy whole fds master list in the fds list for select (only listener socket in the first run)
-		if (select(fdMax + 1, &readFds, NULL, NULL, NULL) == -1)
+		if (select(this->_fdMax + 1, &readFds, NULL, NULL, NULL) == -1)
 			throw(std::runtime_error("Select failed."));
 
 		// run through the existing connections looking for data to read
-		for (int i = 0; i <= fdMax; i++)
+		for (int i = 0; i <= this->_fdMax; i++)
 		{
 			if (FD_ISSET(i, &readFds)) // finds a socket with data to read
 			{
@@ -107,12 +106,13 @@ void	Server::listenForConnections(int fdSocket)
 					socklen_t			lenClientAddr;
 					int					clientSocket;
 
+					lenClientAddr = sizeof(clientAddr);
 					clientSocket = accept(fdSocket, (struct sockaddr *)&clientAddr, &lenClientAddr);
 					if (clientSocket == -1)
 						throw(std::runtime_error("Accepting connection failed."));
 					FD_SET(clientSocket, &master); // add to master set
-					if (clientSocket > fdMax) // keep track of the max fd
-						fdMax = clientSocket;
+					if (clientSocket > this->_fdMax) // keep track of the max fd
+						this->_fdMax = clientSocket;
 					std::cout << "New connection accepted from "
 						<< inet_ntop(AF_INET, &clientAddr, buf, INET_ADDRSTRLEN)
 						<< ". Assigned socket " << clientSocket << '.' << std::endl;
@@ -135,26 +135,18 @@ void	Server::listenForConnections(int fdSocket)
 					}
 					else
 					{
-					//	recvbuf[bytesReceived] = 'a';
-						std::cout << "Received from client on socket " << i << ": " << recvbuf;
 						// got some data from client
-						for (int j = 0; j <= fdMax; j++)
+						std::cout << "Received from client on socket " << i << ": " << recvbuf;
+						for (int j = 0; j <= this->_fdMax; j++)
 						{
-							// send acknowledgement
+							// send acknowledgement (only to the socket that sent the data)
 							if (FD_ISSET(j, &master))
 							{
-								// not to the listener
 								if (j == i)
 								{
 									if (send(i, confirmReceived, strlen(confirmReceived), 0) == -1)
 										std::cerr << "Error sending acknowledgement to client." << std::endl;
 								}
-							//	// except the listener and ourselves
-							//	if (j != fdSocket && j != i)
-							//	{
-							//		if (send(j, recvbuf, bytesReceived, 0) == -1)
-							//			std::cerr << "Error sending." << std::endl;
-							//	}
 							}
 						}
 					}

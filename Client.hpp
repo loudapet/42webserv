@@ -1,38 +1,36 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Server.hpp                                         :+:      :+:    :+:   */
+/*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/05/10 12:01:17 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/14 19:11:40 by aulicna          ###   ########.fr       */
+/*   Created: 2024/05/14 19:17:59 by aulicna           #+#    #+#             */
+/*   Updated: 2024/05/14 19:29:51 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef SERVER_HPP
-#define SERVER_HPP
+#ifndef CLIENT_HPP
+# define CLIENT_HPP
 
 # include "webserv.hpp"
 
-class Server
+class Client
 {
 	public:
-		Server(int port);
-		~Server();
+		Client(void);
+		Client(const Client& copy);
+		Client	&operator=(const Client &src);
+		~Client(void);
 
-		void start(void);
-		void stop(void);
+		void	setClientAddr(struct sockaddr_in clientAddr);
+		void	setClientSocket(int clientSocket);
+		void	updateTimeLastMessage();
 
 	private:
-		int		createSocket(void);
-		void	bindSocket(int fdSocket, int port);
-		void	listenForConnections(int fdSocket);
-
-		int					_port;
-		int					_serverSocket;
-		std::vector<int>	_clientSockets;
-		int					_fdMax; // maximum fd number
+		struct sockaddr_in	_clientAddr;
+		int					_clientSocket;
+		time_t				_timeLastMessage;
 };
 
 #endif
