@@ -41,9 +41,9 @@ int main(void)
 		close(clientSocket);
 		return (1);
 	}
-
 	// Send data to the server
-	const char *message = "\nGET / HTTP/1.0\nHost: example.com\nConnection: close\n\n";
+	//const char *message = "\nGET / HTTP/1.0\nHost: example.com\nConnection: close\n\n";
+	const char *message = "GET /index.html HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n";
 	if (send(clientSocket, message, strlen(message), 0) == -1)
 	{
 		std::cerr << "Error: Failed to send data\n";
