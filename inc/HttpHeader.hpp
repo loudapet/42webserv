@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/05/10 12:24:50 by plouda           ###   ########.fr       */
+/*   Updated: 2024/05/15 11:04:40 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,17 +14,24 @@
 #define HTTPHEADER_HPP
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <algorithm>
 #include <vector>
 #include <map>
 #include <stdint.h>
 #include <unistd.h>
 #include <exception>
+#include <stdlib.h>
 #define CR '\r'
 #define SP ' '
 #define CRLF "\r\n"
+#define UNRESERVED "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPRSTUVWXYZ1234567890-._~"
+#define HEXDIGITS "1234567890ABCDEF"
+#define PCHAR_EXTRA ":@/"
+#define SUBDELIMS "!$&'()*+,;="
 
 typedef std::vector<uint8_t> octets_t;
+octets_t	convertStringToOctets(std::string& str);
 
 enum	MessageType
 {
@@ -32,13 +39,19 @@ enum	MessageType
 	RESPONSE = 2
 };
 
+typedef struct RequestTarget
+{
+	std::string	absolutePath;
+	std::string	query;
+} request_target_t;
+
 typedef struct startLine
 {
-	octets_t	method; // GET, POST, DELETE
-	octets_t	requestTarget; // origin-form / absolute-form
-	octets_t 	httpVersion; // "HTTP/" DIGIT "." DIGIT
-	octets_t	statusCode; // 1xx/2xx/3xx/4xx/5xx
-	octets_t	reasonPhrase; // optional
+	std::string			method; // GET, POST, DELETE
+	request_target_t	requestTarget; // origin-form
+	std::string 		httpVersion; // "HTTP/" DIGIT "." DIGIT
+	std::string			statusCode; // 1xx/2xx/3xx/4xx/5xx
+	std::string			reasonPhrase; // optional
 } startLine_t;
 
 class HttpHeader
@@ -46,34 +59,28 @@ class HttpHeader
 	protected:
 		startLine_t						startLine;
 		std::map<octets_t, octets_t>	headerFields;
-/* 
-		virtual void	parseMethod();
-		virtual void	parseRequestTarget();
-		virtual void	parseHttpVersion();
-		virtual void	parseStatusCode();
-		virtual void	parseReasonPhrase();
- */
+		void	parseStartLine(std::string startLine);
+		void	parseMethod(std::string& token);
+		void	parseRequestTarget(std::string& token);
+		void	validatePath(std::string& absolutePath);
+		//void	parseScheme(std::string& uri);
+		void	parseHttpVersion(std::string& token);
+
 	public:
 		HttpHeader();
 		HttpHeader(const HttpHeader& refObj);
 		HttpHeader& operator = (const HttpHeader& refObj);
-		virtual ~HttpHeader();
+		~HttpHeader();
 
-		void	parseStartLine(octets_t startLine);
 		void	parseHeader(octets_t header);
 };
 
-/* class HttpRequest : public HttpHeader
-{
-	public:
-		HttpRequest();
-		HttpRequest(const HttpRequest& refObj);
-		HttpRequest& operator = (const HttpRequest& refObj);
-		~HttpRequest();
-}; */
-
 std::ostream &operator<<(std::ostream &os, octets_t &vec);
 std::ostream &operator<<(std::ostream &os, std::vector<octets_t> &vec);
+std::ostream &operator<<(std::ostream &os, std::vector<std::string> &vec);
+std::ostream &operator<<(std::ostream &os, startLine_t &startLine);
 
+
+typedef void(HttpHeader::*ParseToken)(std::string&);
 
 #endif  // HTTPHEADER_HPP
