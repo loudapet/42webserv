@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:01:17 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/14 19:11:40 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/15 15:11:12 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 #define SERVER_HPP
 
 # include "webserv.hpp"
+# include "Client.hpp"
 
 class Server
 {
@@ -28,11 +29,15 @@ class Server
 		int		createSocket(void);
 		void	bindSocket(int fdSocket, int port);
 		void	listenForConnections(int fdSocket);
+		void	checkForTimeout(void);
+		void	acceptConnection();
 
 		int					_port;
 		int					_serverSocket;
 		std::vector<int>	_clientSockets;
+		std::map<int, Client>	_clients;
 		int					_fdMax; // maximum fd number
+		fd_set				_master; // master fds list
 };
 
 #endif
