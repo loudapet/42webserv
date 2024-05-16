@@ -31,7 +31,7 @@ int main(void)
 	struct sockaddr_in serverAddr;
 
 	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(8002); // Port number of the server
+	serverAddr.sin_port = htons(PORT_SERVER); // Port number of the server
 	serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1"); // IP address of the server
 
 	// Connect to the server

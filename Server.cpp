@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 11:38:03 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/16 11:39:08 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/16 12:52:08 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -121,7 +121,6 @@ void	Server::listenForConnections(int fdSocket)
 					{
 						// got some data from client
 						this->_clients.find(i)->second.updateTimeLastMessage();
-						std::cout << "Time last (just set): " << this->_clients.find(i)->second.getTimeLastMessage() << std::endl;
 						std::cout << "Received from client on socket " << i << ": " << recvbuf;
 						for (int j = 0; j <= this->_fdMax; j++)
 						{
@@ -147,9 +146,6 @@ void	Server::checkForTimeout(void)
 {
 	for (std::map<int, Client>::iterator it = this->_clients.begin(); it != this->_clients.end(); it++)
 	{
-		std::cout << "Checking client " << it->first << std::endl;
-		std::cout << "Time now " << time(NULL) << std::endl;
-		std::cout << "Time last " << it->second.getTimeLastMessage() << std::endl;
 		if (time(NULL) - it->second.getTimeLastMessage() > CONNECTION_TIMEOUT)
 		{
 			std::cout << "Client " << it->second.getClientSocket() << " timeout. Closing connection now." << std::endl;
@@ -172,8 +168,6 @@ void	Server::acceptConnection(void)
 	socklen_t			lenClientAddr;
 	int					clientSocket;
 
-	std::cout << "New client just got created. Time: " << newClient.getTimeLastMessage() << std::endl;
-	std::cout << "Time now: " << time(NULL) << std::endl;
 	lenClientAddr = sizeof(clientAddr);
 	clientSocket = accept(this->_serverSocket, (struct sockaddr *)&clientAddr, &lenClientAddr);
 	if (clientSocket == -1)
