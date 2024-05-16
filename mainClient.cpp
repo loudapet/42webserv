@@ -31,7 +31,7 @@ int main(void)
 	struct sockaddr_in serverAddr;
 
 	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(PORT_SERVER); // Port number of the server
+	serverAddr.sin_port = htons(8002); // Port number of the server
 	serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1"); // IP address of the server
 
 	// Connect to the server
@@ -43,7 +43,7 @@ int main(void)
 	}
 	// Send data to the server
 	//const char *message = "\nGET / HTTP/1.0\nHost: example.com\nConnection: close\n\n";
-	const char *message = "GET /index.html HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n";
+	const char *message = "GET /index.html?q=key#now HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
 	if (send(clientSocket, message, strlen(message), 0) == -1)
 	{
 		std::cerr << "Error: Failed to send data\n";

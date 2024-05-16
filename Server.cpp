@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 11:38:03 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/15 17:32:43 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/16 11:39:08 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,7 @@ void Server::start(void)
 	std::cout << "Server started on port " << _port << std::endl;
 }
 
+// @warning not setup for the clients map yet
 void Server::stop(void)
 {
 	int	tmpClientSocket;
@@ -75,9 +76,10 @@ void Server::bindSocket(int fdSocket, int port)
 */
 void	Server::listenForConnections(int fdSocket)
 {
-	char		recvbuf[1024];
-	const char	*confirmReceived = "Well received!\n";
-	fd_set		readFds; // temp fds list for select()
+	char			recvbuf[1024];
+	const char		*confirmReceived = "Well received!\n";
+	fd_set			readFds; // temp fds list for select()
+	struct timeval	selectTimer;
 	
 	
 	if (listen(fdSocket, SOMAXCONN) == -1)
@@ -88,8 +90,9 @@ void	Server::listenForConnections(int fdSocket)
 	// main listening loop
 	while(42)
 	{
+		selectTimer.tv_sec = 1;
 		readFds = this->_master; // copy whole fds master list in the fds list for select (only listener socket in the first run)
-		if (select(this->_fdMax + 1, &readFds, NULL, NULL, NULL) == -1)
+		if (select(this->_fdMax + 1, &readFds, NULL, NULL, &selectTimer) == -1)
 			throw(std::runtime_error("Select failed."));
 
 		// run through the existing connections looking for data to read
@@ -98,28 +101,7 @@ void	Server::listenForConnections(int fdSocket)
 			if (FD_ISSET(i, &readFds)) // finds a socket with data to read
 			{
 				if (i == fdSocket) // indicates that the server socket is ready to read which means that a client is attempting to connect
-				{
 					acceptConnection();
-//					// handle new connections
-//					Client				newClient;
-//					newClient.updateTimeLastMessage();
-//					struct sockaddr_in	clientAddr;
-//					socklen_t			lenClientAddr;
-//					int					clientSocket;
-//
-//					lenClientAddr = sizeof(clientAddr);
-//					clientSocket = accept(fdSocket, (struct sockaddr *)&clientAddr, &lenClientAddr);
-//					if (clientSocket == -1)
-//						throw(std::runtime_error("Accepting connection failed."));
-//					FD_SET(clientSocket, &this->_master); // add to master set
-//					if (clientSocket > this->_fdMax) // keep track of the max fd
-//						this->_fdMax = clientSocket;
-//					newClient.setClientSocket(clientSocket);
-//					this->_clients.insert(std::make_pair(clientSocket, newClient));
-//					std::cout << "New connection accepted from "
-//						<< inet_ntop(AF_INET, &clientAddr, buf, INET_ADDRSTRLEN)
-//						<< ". Assigned socket " << clientSocket << '.' << std::endl;
-				}
 				else
 				{
 					// handle data from a client
@@ -133,8 +115,7 @@ void	Server::listenForConnections(int fdSocket)
 							std::cout << "Socket " << i << " hung up." << std::endl;
 						else if (bytesReceived == -1)
 							std::cerr << "Error receiving data from client!!!" << std::endl;
-						close(i); // close the socket
-						FD_CLR(i, &this->_master); // remove from master set
+						closeConnection(i);
 					}
 					else
 					{
@@ -172,9 +153,8 @@ void	Server::checkForTimeout(void)
 		if (time(NULL) - it->second.getTimeLastMessage() > CONNECTION_TIMEOUT)
 		{
 			std::cout << "Client " << it->second.getClientSocket() << " timeout. Closing connection now." << std::endl;
-			close(it->first);
-			FD_CLR(it->first, &this->_master);
-			//return ;
+			closeConnection(it->first);
+			return ;
 		}
 	}
 }
@@ -184,7 +164,7 @@ void	Server::checkForTimeout(void)
  * to the inet_ntop function, which converts a network address structure
  * to a string.
 */
-void	Server::acceptConnection()
+void	Server::acceptConnection(void)
 {
 	char		buf[INET_ADDRSTRLEN];
 	Client				newClient;
@@ -207,4 +187,16 @@ void	Server::acceptConnection()
 	std::cout << "New connection accepted from "
 		<< inet_ntop(AF_INET, &clientAddr, buf, INET_ADDRSTRLEN)
 		<< ". Assigned socket " << clientSocket << '.' << std::endl;
+}
+
+void	Server::closeConnection(const int socket)
+{
+	if (FD_ISSET(socket, &this->_master))
+	{
+		FD_CLR(socket, &this->_master); // remove from master set
+		if (socket == this->_fdMax)
+			this->_fdMax -= 1;
+	}
+	close(socket); // close the socket	
+	this->_clients.erase(socket); // remove from clients map
 }

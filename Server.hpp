@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:01:17 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/15 15:11:12 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/16 10:57:29 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,8 @@ class Server
 		void	bindSocket(int fdSocket, int port);
 		void	listenForConnections(int fdSocket);
 		void	checkForTimeout(void);
-		void	acceptConnection();
+		void	acceptConnection(void);
+		void	closeConnection(const int socket);
 
 		int					_port;
 		int					_serverSocket;
