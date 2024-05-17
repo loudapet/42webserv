@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 11:38:03 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/16 12:52:08 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/17 14:34:26 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,14 +69,10 @@ void Server::bindSocket(int fdSocket, int port)
 		throw (std::runtime_error("Socket binding failed."));
 }
 
-/**
- * inet_ntop(AF_INET, &clientAddr, buf, INET_ADDRSTRLEN) is a call
- * to the inet_ntop function, which converts a network address structure
- * to a string.
-*/
 void	Server::listenForConnections(int fdSocket)
 {
-	char			recvbuf[1024];
+	uint8_t			recvBuf[10]; //vector of bytes
+	octets_t		data;
 	const char		*confirmReceived = "Well received!\n";
 	fd_set			readFds; // temp fds list for select()
 	struct timeval	selectTimer;
@@ -107,8 +103,8 @@ void	Server::listenForConnections(int fdSocket)
 					// handle data from a client
 					ssize_t				bytesReceived;
 					
-					memset(recvbuf, 0, sizeof(recvbuf));
-					if ((bytesReceived = recv(i, recvbuf, sizeof(recvbuf), 0)) <= 0)
+					memset(recvBuf, 0, sizeof(recvBuf));
+					if ((bytesReceived = recv(i, recvBuf, sizeof(recvBuf), 0)) <= 0)
 					{
 						// got error or connection closed by client
 						if (bytesReceived == 0)
@@ -120,20 +116,20 @@ void	Server::listenForConnections(int fdSocket)
 					else
 					{
 						// got some data from client
-						this->_clients.find(i)->second.updateTimeLastMessage();
-						std::cout << "Received from client on socket " << i << ": " << recvbuf;
-						for (int j = 0; j <= this->_fdMax; j++)
+						Client	&clientWithData = this->_clients.find(i)->second;
+						
+						clientWithData.updateTimeLastMessage();
+						clientWithData.updateReceivedData(recvBuf, bytesReceived);
+						if (recvBuf)
 						{
-							// send acknowledgement (only to the socket that sent the data)
-							if (FD_ISSET(j, &this->_master))
-							{
-								if (j == i)
-								{
-									if (send(i, confirmReceived, strlen(confirmReceived), 0) == -1)
-										std::cerr << "Error sending acknowledgement to client." << std::endl;
-								}
-							}
+							std::cout << "Received from client on socket " << i << ": " << recvBuf;
+							std::cout << "Data: ";
+							for (octets_t::const_iterator it = clientWithData.getReceivedData().begin(); it != clientWithData.getReceivedData().end(); it++)
+								std::cout << static_cast<char>(*it);
+							std::cout << std::endl;
 						}
+						if (send(i, confirmReceived, strlen(confirmReceived), 0) == -1)
+							std::cerr << "Error sending acknowledgement to client." << std::endl;
 					}
 				}
 			}
