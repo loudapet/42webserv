@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:01:17 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/16 10:57:29 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/18 14:49:35 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,11 +31,11 @@ class Server
 		void	listenForConnections(int fdSocket);
 		void	checkForTimeout(void);
 		void	acceptConnection(void);
-		void	closeConnection(const int socket);
+		void	handleDataFromClient(const int clientSocket);
+		void	closeConnection(const int clientSocket);
 
 		int					_port;
 		int					_serverSocket;
-		std::vector<int>	_clientSockets;
 		std::map<int, Client>	_clients;
 		int					_fdMax; // maximum fd number
 		fd_set				_master; // master fds list

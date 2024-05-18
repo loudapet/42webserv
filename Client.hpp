@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/14 19:17:59 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/17 14:11:06 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/18 11:38:01 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,9 @@ class Client
 		int			getClientSocket(void) const;
 		time_t		getTimeLastMessage(void) const;
 		const octets_t	&getReceivedData(void) const;
+
+		void		printReceivedData(void) const;
+		void		clearReceivedData(void);
 
 	private:
 		int					_clientSocket;

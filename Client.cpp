@@ -6,15 +6,15 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/17 14:11:00 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/18 11:41:02 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Client.hpp"
 
-Client::Client(void)
+Client::Client(void): _timeLastMessage(time(NULL)), _receivedData()
 {
-	this->_timeLastMessage = time(NULL);
+	return ;
 }
 
 Client::Client(const Client& copy)
@@ -68,3 +68,14 @@ const octets_t	&Client::getReceivedData(void) const
 	return (this->_receivedData);
 }
 
+void		Client::printReceivedData(void) const
+{
+	for (octets_t::const_iterator it = this->_receivedData.begin(); it != this->_receivedData.end(); it++)
+		std::cout << static_cast<char>(*it);
+	std::cout << std::endl;
+}
+
+void	Client::clearReceivedData(void)
+{
+	this->_receivedData.clear();
+}
