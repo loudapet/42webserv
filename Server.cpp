@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 11:38:03 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/18 15:00:16 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/18 17:02:40 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -154,43 +154,28 @@ void	Server::handleDataFromClient(const int clientSocket)
 	std::map<int, Client>::iterator	it; // Iterator to find the client in the map
 
 	it = this->_clients.find(clientSocket);
+	memset(recvBuf, 0, sizeof(recvBuf)); // clear the receive buffer
 	if (it == this->_clients.end()) // if the client is not found, return from the function
 		return ;
 	Client &clientToHandle = it->second; // reference to the client object
-	// Infinite loop to handle data from the client
-	while(42)
+	if ((bytesReceived = recv(clientSocket, recvBuf, sizeof(recvBuf), 0)) <= 0)
 	{
-		if ((bytesReceived = recv(clientSocket, recvBuf, sizeof(recvBuf), 0)) > 0)
-		{
-			// if data is received, update the last message time and the received data for the client
-			clientToHandle.updateTimeLastMessage();
-			clientToHandle.updateReceivedData(recvBuf, bytesReceived);
-			memset(recvBuf, 0, sizeof(recvBuf)); // clear the receive buffer
-		//	std::cout << "Updated received data on socket " << clientSocket << " to: ";
-		//	clientToHandle.printReceivedData();
-		}
-		else if (bytesReceived == 0) // if the client has closed the connection
-		{
+		if (bytesReceived == 0) // if the client has closed the connection
 			std::cout << "Socket " << clientSocket << " hung up." << std::endl;
-			closeConnection(clientSocket);
-			break ;
-		}
-		else if (bytesReceived < 0 && errno != EAGAIN && errno != EWOULDBLOCK)  // if there was an error receiving data
-		{
+		else if (bytesReceived < 0)  // if there was an error receiving data
 			std::cerr << "Error receiving data from client!" << std::endl;
-			closeConnection(clientSocket);
-			break ;
-		}
-		else // if all data has been received
-		{
-			if (send(clientSocket, confirmReceived, strlen(confirmReceived), 0) == -1)
-				std::cerr << "Error sending acknowledgement to client." << std::endl;
-			std::cout << "All data received from client on socket " << clientSocket << ": ";
-			clientToHandle.printReceivedData();
-			clientToHandle.clearReceivedData();
-			std::cout << std::endl;
-			break ;
-		}
+		closeConnection(clientSocket);
+	}
+	else // if all data has been received
+	{
+		clientToHandle.updateTimeLastMessage();
+		clientToHandle.updateReceivedData(recvBuf, bytesReceived);
+		if (send(clientSocket, confirmReceived, strlen(confirmReceived), 0) == -1)
+			std::cerr << "Error sending acknowledgement to client." << std::endl;
+		std::cout << "All data received from client on socket " << clientSocket << ": ";
+		clientToHandle.printReceivedData();
+		clientToHandle.clearReceivedData();
+		std::cout << std::endl;
 	}
 }
 
