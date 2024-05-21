@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/05/15 12:03:04 by plouda           ###   ########.fr       */
+/*   Updated: 2024/05/21 10:57:18 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,57 +41,123 @@ void	HttpHeader::parseMethod(std::string& token)
 		throw(std::invalid_argument("400 Bad Request: Invalid method")); // should probably be Not implemented
 }
 
-static void resolvePercentEncoding(std::string& absolutePath, size_t pos)
+static void resolvePercentEncoding(std::string& absolutePath, size_t& pos)
 {
 	if (absolutePath[pos] == '%')
-		{
-			if (pos + 2 < absolutePath.size())
-			{	
-				std::string	hexDigit = absolutePath.substr(pos + 1, 2);
-				std::cout << "hexdigit: " << hexDigit << std::endl;
-				if (hexDigit.find_first_not_of(HEXDIGITS) != std::string::npos)
-					throw(std::invalid_argument("400 Bad Request: Invalid percent encoding"));
-				int	c = strtol(hexDigit.c_str(), NULL, 16);
-				std::cout << c << std::endl;
-				if (c >= 128)
-					throw(std::invalid_argument("400 Bad Request: Invalid percent encoding - out of range"));
-				if (isalnum(c) || std::strchr("-._~:@", c) != NULL || std::strchr(SUBDELIMS, c) != NULL)
-				{
-					absolutePath.erase(pos, 3);
-					absolutePath.insert(pos, 1, static_cast<char>(c));
-				}
-			}
-			else					
+	{
+		if (pos + 2 < absolutePath.size())
+		{	
+			std::string	hexDigit = absolutePath.substr(pos + 1, 2);
+			if (hexDigit.find_first_not_of(HEXDIGITS) != std::string::npos)
 				throw(std::invalid_argument("400 Bad Request: Invalid percent encoding"));
+			int	c = strtol(hexDigit.c_str(), NULL, 16);
+			//if (c >= 128)
+			//	throw(std::invalid_argument("400 Bad Request: Invalid percent encoding - out of range"));
+			if (c)
+			{
+				absolutePath.erase(pos, 3);
+				absolutePath.insert(pos, 1, static_cast<char>(c));
+			}
+			else
+				throw(std::invalid_argument("400 Bad Request: Zero byte insertion detected"));
+			pos++;
 		}
+		else					
+			throw(std::invalid_argument("400 Bad Request: Invalid percent encoding"));
+	}
 }
 
-void	HttpHeader::validatePath(std::string& absolutePath)
+void	HttpHeader::validateURIElements(void)
 {
-	const std::string	allowedChars(std::string(UNRESERVED) + std::string(PCHAR_EXTRA));
-	size_t pos = absolutePath.find_first_not_of(allowedChars);
-	if (pos != std::string::npos)
+	size_t			pos = 0;
+	std::string		extraAllowedChars("?#\0", 3);
+	std::string		allowedChars(std::string(UNRESERVED) + std::string(PCHAR_EXTRA)
+									+ std::string(SUBDELIMS));
+	std::string*	elements[3] = {&this->startLine.requestTarget.absolutePath,
+									&this->startLine.requestTarget.query,
+									&this->startLine.requestTarget.fragment};
+	for (size_t i = 0; i < 3; i++)
 	{
-		resolvePercentEncoding(absolutePath, pos);
+		pos = (*elements)[i].find_first_not_of(allowedChars);
+		while (pos != std::string::npos && pos < (*elements)[i].size())
+		{
+			if ((*elements)[i][pos] == '%')
+				resolvePercentEncoding((*elements)[i], pos);
+			else
+				throw(std::invalid_argument("400 Bad Request: Invalid character in URI detected (path)"));
+			pos = (*elements)[i].find_first_not_of(allowedChars, pos);
+		}
+		allowedChars.push_back(extraAllowedChars[i]);
 	}
+}
+
+void	HttpHeader::resolveDotSegments(std::string& path)
+{
+	std::stack<std::string>	segments;
+	std::stack<std::string>	output;
+	std::stringstream	input(path);
+	std::string			buffer;
+	std::string			newPath;
+	std::cout << "Unedited path: " << path << std::endl;
+	output.push("/");
+	while (std::getline(input, buffer, '/'))
+	{
+		if (buffer == "..")
+		{
+			if (output.size() > 1)
+				output.pop();
+			else
+				throw(std::invalid_argument("400 Bad Request: Invalid relative reference"));
+		}
+		else if (buffer != "." && buffer != "")
+			output.push(buffer + std::string("/"));
+	}
+	if (*(output.top().rbegin()) == '/' && *(path.rbegin()) != '/' && output.top().size() > 0)
+		output.top().erase(output.top().size() - 1, 1);
+	while (output.size() > 0)
+	{
+		newPath.insert(0, output.top());
+		output.pop();
+	}
+	
+	this->startLine.requestTarget.absolutePath = newPath;
+	return ;
 }
 
 void	HttpHeader::parseRequestTarget(std::string& uri)
 {
-	if (uri.find_first_of('/') != 0 || uri.find_first_of('#') != std::string::npos)
+	if (uri.find_first_of('/') != 0)
 		throw(std::invalid_argument("400 Bad Request: Invalid URI path"));
-	std::string::iterator	endPos = std::find(uri.begin(), uri.end(), '?');
-	if (endPos != uri.end())
+	std::string::iterator	queryPos = std::find(uri.begin(), uri.end(), '?');
+	std::string::iterator	fragmentPos = std::find(uri.begin(), uri.end(), '#');
+	if (std::distance(uri.begin(), queryPos) > std::distance(uri.begin(), fragmentPos))
+		queryPos = uri.end();
+	if (queryPos == uri.end() && fragmentPos == uri.end())
 	{
-		this->startLine.requestTarget.absolutePath = std::string(uri.begin(), endPos);
-		this->startLine.requestTarget.query = std::string(endPos, uri.end());
-	}
-	else
-	{
-		this->startLine.requestTarget.absolutePath = std::string(uri);
+		this->startLine.requestTarget.absolutePath = std::string(uri.begin(), uri.end());
 		this->startLine.requestTarget.query = std::string("");
+		this->startLine.requestTarget.fragment = std::string("");
 	}
-	validatePath(this->startLine.requestTarget.absolutePath);
+	else if (queryPos != uri.end() && fragmentPos != uri.end())
+	{
+		this->startLine.requestTarget.absolutePath = std::string(uri.begin(), queryPos);
+		this->startLine.requestTarget.query = std::string(queryPos, fragmentPos);
+		this->startLine.requestTarget.fragment = std::string(fragmentPos, uri.end());
+	}
+	else if (queryPos != uri.end() && fragmentPos == uri.end())
+	{
+		this->startLine.requestTarget.absolutePath = std::string(uri.begin(), queryPos);
+		this->startLine.requestTarget.query = std::string(queryPos, uri.end());
+		this->startLine.requestTarget.fragment = std::string("");
+	}
+	else if (queryPos == uri.end() && fragmentPos != uri.end())
+	{
+		this->startLine.requestTarget.absolutePath = std::string(uri.begin(), fragmentPos);
+		this->startLine.requestTarget.query = std::string("");
+		this->startLine.requestTarget.fragment = std::string(fragmentPos, uri.end());
+	}
+	validateURIElements();
+	resolveDotSegments(this->startLine.requestTarget.absolutePath);
 	return ;
 }
 
@@ -214,6 +280,7 @@ void	HttpHeader::parseHeader(octets_t header)
 			throw (std::invalid_argument("400 Bad Request: Missing empty CRLF"));
 		if (std::distance(header.begin(), nl) == 1 && *header.begin() != '\r')
 			throw (std::invalid_argument("400 Bad Request: Improperly terminated header-field section"));
+		
 		std::cout << splitLines << std::endl;
 	}
 	catch(const std::exception& e)
@@ -249,6 +316,7 @@ std::ostream &operator<<(std::ostream &os, startLine_t& startLine)
 	os << "method: " << startLine.method << std::endl;
 	os << "request-target path: " << startLine.requestTarget.absolutePath << std::endl;
 	os << "request-target query: " << startLine.requestTarget.query << std::endl;
+	os << "request-target fragment: " << startLine.requestTarget.fragment << std::endl;
 	os << "http-version: " << startLine.httpVersion << std::endl;
 	return os;
 }

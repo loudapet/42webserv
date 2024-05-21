@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 10:46:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/05/15 11:46:00 by plouda           ###   ########.fr       */
+/*   Updated: 2024/05/21 10:06:45 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,10 @@ std::string getFileContents(const char *filename)
 int	main()
 {
 
-	std::string	startLine("\n\r\n\n\r\nGET /wher%27e?q=now?key=value/index.ttx HTTP/1.1\r\n"); // if testing for 0-byte, add precise length to constructor
+	//std::string	startLine("\n\r\n\n\r\nGET /%E2%82%ACe/wher%22//./eyo?q=now?key=value/index.ttx#%32 HTTP/1.1\r\n"); // if testing for 0-byte, pass precise length to constructor
+	//std::string	startLine("\n\r\n\n\r\nGET /./././a/b//////.. HTTP/1.1\r\n");
+	//std::string	startLine("\n\r\n\n\r\nGET ///...////?q=key#fragment HTTP/1.1\r\n");
+	std::string	startLine("\n\r\n\n\r\nGET /./////// HTTP/1.1\r\n");
 	std::string	host("Host: www.example.com\r\n");
 	std::string userAgent("User-Agent: Mozilla/5.0\n");
 	std::string	accept("Accept: text/html, */*\r\n");

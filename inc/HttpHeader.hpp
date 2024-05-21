@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/05/15 11:04:40 by plouda           ###   ########.fr       */
+/*   Updated: 2024/05/17 12:33:16 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <vector>
 #include <map>
+#include <stack>
 #include <stdint.h>
 #include <unistd.h>
 #include <exception>
@@ -26,7 +27,7 @@
 #define SP ' '
 #define CRLF "\r\n"
 #define UNRESERVED "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPRSTUVWXYZ1234567890-._~"
-#define HEXDIGITS "1234567890ABCDEF"
+#define HEXDIGITS "1234567890ABCDEFabcdef"
 #define PCHAR_EXTRA ":@/"
 #define SUBDELIMS "!$&'()*+,;="
 
@@ -43,6 +44,7 @@ typedef struct RequestTarget
 {
 	std::string	absolutePath;
 	std::string	query;
+	std::string	fragment;
 } request_target_t;
 
 typedef struct startLine
@@ -62,9 +64,9 @@ class HttpHeader
 		void	parseStartLine(std::string startLine);
 		void	parseMethod(std::string& token);
 		void	parseRequestTarget(std::string& token);
-		void	validatePath(std::string& absolutePath);
-		//void	parseScheme(std::string& uri);
 		void	parseHttpVersion(std::string& token);
+		void	validateURIElements(void);
+		void	resolveDotSegments(std::string& path);
 
 	public:
 		HttpHeader();
