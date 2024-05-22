@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/22 14:39:53 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/22 19:55:35 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@
 # include <stdexcept>
 # include <sys/types.h>
 # include <sys/socket.h>
+# include <sys/stat.h>
 # include <netinet/in.h>
 # include <arpa/inet.h>
 # include <string.h>
@@ -27,6 +28,8 @@
 # include <fcntl.h>
 # include <algorithm>
 # include <signal.h>
+# include <fstream>
+# include <sstream>
 
 extern bool runWebserv;
 

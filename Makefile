@@ -6,7 +6,7 @@
 #    By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/01/13 11:40:54 by aulicna           #+#    #+#              #
-#    Updated: 2024/05/15 11:24:50 by aulicna          ###   ########.fr        #
+#    Updated: 2024/05/22 18:37:16 by aulicna          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -14,6 +14,7 @@ NAME = webserv
 
 SRC = main.cpp \
 	Server.cpp \
+	ServerConfig.cpp \
 	Client.cpp
 
 OBJ = $(SRC:.cpp=.o)
