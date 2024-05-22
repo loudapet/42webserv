@@ -6,11 +6,20 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 10:01:22 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/13 17:57:06 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/22 14:37:07 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
+#include "webserv.hpp"
+
+bool runWebserv = true;
+
+void	handleSigint(int sigNum)
+{
+	if (sigNum == SIGINT)
+		runWebserv = false;
+}
 
 int main(void)
 {
@@ -18,6 +27,7 @@ int main(void)
 	{
 		Server	server(PORT_SERVER);
 
+		signal(SIGINT, handleSigint);
 		server.start();
 		server.stop();
 	}

@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/14 19:17:59 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/18 11:38:01 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/22 14:53:58 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,17 +27,23 @@ class Client
 		void	updateTimeLastMessage(void);
 		void	updateReceivedData(uint8_t *recvBuf, ssize_t &bytesReceived);
 
-		int			getClientSocket(void) const;
-		time_t		getTimeLastMessage(void) const;
+		int				getClientSocket(void) const;
+		time_t			getTimeLastMessage(void) const;
 		const octets_t	&getReceivedData(void) const;
 
 		void		printReceivedData(void) const;
+		void		printDataToParse(void) const;
 		void		clearReceivedData(void);
+		void		clearDataToParse(void);
+		void		trimHeaderEmptyLines(void);
+		bool		findValidHeaderEnd(void);
 
 	private:
 		int					_clientSocket;
 		time_t				_timeLastMessage;
 		octets_t			_receivedData;
+		octets_t			_dataToParse;
+
 };
 
 #endif

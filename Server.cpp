@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 11:38:03 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/18 17:02:40 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/22 14:47:33 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,16 +28,19 @@ void Server::start(void)
 {
 	this->_serverSocket = createSocket();
 	bindSocket(this->_serverSocket, this->_port);
-	listenForConnections(this->_serverSocket);
 	std::cout << "Server started on port " << _port << std::endl;
+	listenForConnections(this->_serverSocket);
 }
 
 void Server::stop(void)
 {
-	for (std::map<int, Client>::iterator it = this->_clients.begin(); it != this->_clients.end(); it++)
+	std::map<int, Client>::iterator it = this->_clients.begin();
+	while (it != this->_clients.end())
+	{
 		closeConnection(it->first);
-    this->_clients.clear();
-    close(this->_serverSocket);
+		it = this->_clients.begin();
+	}
+	close(this->_serverSocket);
 }
 
 int Server::createSocket(void)
@@ -64,6 +67,7 @@ void Server::bindSocket(int fdSocket, int port)
 		throw (std::runtime_error("Socket binding failed."));
 }
 
+
 void	Server::listenForConnections(int fdSocket)
 {
 	fd_set			readFds; // temp fds list for select()
@@ -76,7 +80,7 @@ void	Server::listenForConnections(int fdSocket)
 	FD_SET(fdSocket, &this->_master); // add the listener to the master set
 	this->_fdMax = fdSocket; // keep track of the biggest fd which so far is the only one we have
 	// main listening loop
-	while(42)
+	while(runWebserv)
 	{
 		selectTimer.tv_sec = 1;
 		selectTimer.tv_usec = 0; // could be causing select to fail (with errno of invalid argument) if not set
@@ -92,7 +96,17 @@ void	Server::listenForConnections(int fdSocket)
 				if (i == fdSocket) // indicates that the server socket is ready to read which means that a client is attempting to connect
 					acceptConnection();
 				else
+				{
 					handleDataFromClient(i);
+					if (this->_clients.find(i)->second.findValidHeaderEnd())
+					{
+						std::cout << "This will be sent to parser: ";
+						this->_clients.find(i)->second.printDataToParse();
+						this->_clients.find(i)->second.clearDataToParse();
+						std::cout << "This is what stays in the buffer: ";
+						this->_clients.find(i)->second.printReceivedData();
+					}
+				}
 			}
 		}
 		checkForTimeout();
@@ -146,18 +160,15 @@ void	Server::acceptConnection(void)
 		<< ". Assigned socket " << clientSocket << '.' << std::endl;
 }
 
+
 void	Server::handleDataFromClient(const int clientSocket)
 {
 	uint8_t							recvBuf[CLIENT_MESSAGE_BUFF]; // Buffer to store received data
 	const char						*confirmReceived = "Well received!\n";
 	ssize_t							bytesReceived;
-	std::map<int, Client>::iterator	it; // Iterator to find the client in the map
-
-	it = this->_clients.find(clientSocket);
+	
 	memset(recvBuf, 0, sizeof(recvBuf)); // clear the receive buffer
-	if (it == this->_clients.end()) // if the client is not found, return from the function
-		return ;
-	Client &clientToHandle = it->second; // reference to the client object
+	Client &clientToHandle = this->_clients.find(clientSocket)->second; // reference to the client object
 	if ((bytesReceived = recv(clientSocket, recvBuf, sizeof(recvBuf), 0)) <= 0)
 	{
 		if (bytesReceived == 0) // if the client has closed the connection
@@ -166,16 +177,18 @@ void	Server::handleDataFromClient(const int clientSocket)
 			std::cerr << "Error receiving data from client!" << std::endl;
 		closeConnection(clientSocket);
 	}
-	else // if all data has been received
+	else // if data has been received
 	{
 		clientToHandle.updateTimeLastMessage();
 		clientToHandle.updateReceivedData(recvBuf, bytesReceived);
+		clientToHandle.trimHeaderEmptyLines();
+		std::cout << "Data from client on socket " << clientSocket << ": ";
+		clientToHandle.printReceivedData();
+		std::cout << std::endl;
+		
+		// send acknowledgement to the client 
 		if (send(clientSocket, confirmReceived, strlen(confirmReceived), 0) == -1)
 			std::cerr << "Error sending acknowledgement to client." << std::endl;
-		std::cout << "All data received from client on socket " << clientSocket << ": ";
-		clientToHandle.printReceivedData();
-		clientToHandle.clearReceivedData();
-		std::cout << std::endl;
 	}
 }
 
