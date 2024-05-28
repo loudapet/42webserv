@@ -42,8 +42,10 @@ ServerConfig::ServerConfig(std::string configFile)
 	std::cout << "CONTENT (initial)" << std::endl;
 	std::cout << this->_fileContent << std::endl;
 	removeCommentsAndEmptyLines();
-	std::cout << "CONTENT (removed comments)" << std::endl;
-	std::cout << this->_fileContent << std::endl;
+	
+	detectServerBlocks();
+	std::cout << "DETECTED SERVER BLOCKS" << std::endl;
+	printServerBlocks();
 	file.close();
 }
 
@@ -89,10 +91,12 @@ void	ServerConfig::removeCommentsAndEmptyLines(void)
 		this->_fileContent.erase(start, end - start);
 		start = this->_fileContent.find('#');
 	}
+	std::cout << "CONTENT (removed comments)" << std::endl;
+	std::cout << this->_fileContent << std::endl;
 	ss.str(this->_fileContent);
 	while (std::getline(ss, line))
 	{
-		start = line.find_first_of("\t\n\v\f\r ");
+		start = line.find_first_not_of("\t\n\v\f\r ");
 		end = line.find_last_not_of("\t\n\v\f\r ");
 		if (start != std::string::npos && end != std::string::npos) // trim whitespaces from the end of the line
 			line = line.substr(start, end - start + 1);
@@ -102,4 +106,36 @@ void	ServerConfig::removeCommentsAndEmptyLines(void)
 			newFileContent += line + '\n';
 	}
 	this->_fileContent = newFileContent;
+	std::cout << "CONTENT (removed empty lines)" << std::endl;
+	std::cout << this->_fileContent << std::endl;
+}
+
+void	ServerConfig::detectServerBlocks(void)
+{
+	size_t		serverStart;
+	size_t		serverEnd;
+	std::string	serverBlock;
+
+	serverStart = this->_fileContent.find("server");
+	if (serverStart == std::string::npos)
+		throw(std::runtime_error("Provided config file doesn't include a server block."));
+	serverEnd = this->_fileContent.find("}", serverStart);
+	while (serverStart != std::string::npos)
+	{
+		if (serverEnd == std::string::npos)
+			throw(std::runtime_error("Server block has no scope."));
+		serverBlock = this->_fileContent.substr(serverStart, serverEnd - serverStart + 1);
+		this->_serverBlocks.push_back(serverBlock);
+		serverStart = this->_fileContent.find("server", serverEnd + 1);
+		serverEnd = this->_fileContent.find("}", serverStart);
+	}
+}
+
+void	ServerConfig::printServerBlocks(void) const
+{
+	for (size_t i = 0; i < this->_serverBlocks.size(); i++)
+	{
+		std::cout << "Server block " << i << ": " << std::endl;
+		std::cout << this->_serverBlocks[i] << std::endl;
+	}
 }

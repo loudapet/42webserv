@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/22 18:28:00 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/28 10:44:30 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/28 13:35:44 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,11 +25,15 @@ class ServerConfig
 
 		std::string	getFileContent(void) const;
 
-		void		removeCommentsAndEmptyLines(void);
+		void	removeCommentsAndEmptyLines(void);
+		void	detectServerBlocks(void);
+
+		void	printServerBlocks(void) const;
 	
 	private:
 		ServerConfig(void);
-		std::string	_fileContent;
+		std::string					_fileContent;
+		std::vector<std::string>	_serverBlocks;
 
 };
 
