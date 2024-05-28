@@ -123,6 +123,8 @@ size_t	validateServerBlockStart(size_t pos, std::string &configContent)
 			throw (std::runtime_error("Config parser: Wrong formatting of the config file (character our of server scope)."));
 		i++;
 	}
+	if (!configContent[i])
+		return (pos);
 	if (configContent.compare(i, 6, "server") != 0)
 		throw(std::runtime_error("Config parser: Invalid start of the server scope."));
 	i += 6;
@@ -143,7 +145,7 @@ size_t	validateServerBlockEnd(size_t pos, std::string &configContent)
 	{
 		if (configContent[i] == '{')
 			nested++;
-		else if (configContent[i] == '}')
+		if (configContent[i] == '}')
 		{
 			if (nested == 0)
 				return(i);
@@ -163,16 +165,17 @@ void	ServerConfig::detectServerBlocks(void)
 	if (this->_configContent.find("server") == std::string::npos)
 		throw(std::runtime_error("Config parser: No server block found."));
 	serverStart = validateServerBlockStart(0, this->_configContent);
-	serverEnd = validateServerBlockEnd(serverStart, this->_configContent);
-	while (serverStart != std::string::npos)
+	serverEnd = validateServerBlockEnd(serverStart + 1, this->_configContent);
+	if (serverEnd == std::string::npos)
+		throw(std::runtime_error("Config parser: Server block has no scope."));
+	while (serverStart < this->_configContent.length() - 1 && serverEnd != serverStart)
 	{
-		if (serverEnd == std::string::npos)
+		if (serverStart == serverEnd)
 			throw(std::runtime_error("Config parser: Server block has no scope."));
 		serverBlock = this->_configContent.substr(serverStart, serverEnd - serverStart + 1);
 		this->_serverBlocks.push_back(serverBlock);
-		std::cout << "Server block: " << serverBlock << std::endl;
 		serverStart = validateServerBlockStart(serverEnd + 1, this->_configContent);
-		serverEnd = validateServerBlockEnd(serverStart, this->_configContent);
+		serverEnd = validateServerBlockEnd(serverStart + 1, this->_configContent);
 	}
 }
 
