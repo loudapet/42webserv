@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/22 18:28:00 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/28 13:35:44 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/28 15:32:52 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,7 @@ class ServerConfig
 	
 	private:
 		ServerConfig(void);
-		std::string					_fileContent;
+		std::string					_configContent;
 		std::vector<std::string>	_serverBlocks;
 
 };

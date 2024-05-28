@@ -37,10 +37,10 @@ ServerConfig::ServerConfig(std::string configFile)
 		throw(std::runtime_error("Provided config file '" + configFile + "' is empty."));
 	file.putback(c); //	putting the character back bcs it will be read again later
 	tmpFileContent << file.rdbuf();
-	this->_fileContent = tmpFileContent.str();
+	this->_configContent = tmpFileContent.str();
 
 	std::cout << "CONTENT (initial)" << std::endl;
-	std::cout << this->_fileContent << std::endl;
+	std::cout << this->_configContent << std::endl;
 	removeCommentsAndEmptyLines();
 	
 	detectServerBlocks();
@@ -73,7 +73,7 @@ ServerConfig::~ServerConfig(void)
 
 std::string	ServerConfig::getFileContent(void) const
 {
-	return (this->_fileContent);
+	return (this->_configContent);
 }
 
 void	ServerConfig::removeCommentsAndEmptyLines(void)
@@ -84,16 +84,16 @@ void	ServerConfig::removeCommentsAndEmptyLines(void)
 	std::stringstream	ss;
 	std::string			newFileContent;
 
-	start = this->_fileContent.find('#');
+	start = this->_configContent.find('#');
 	while (start != std::string::npos)
 	{
-		end = this->_fileContent.find('\n', start);
-		this->_fileContent.erase(start, end - start);
-		start = this->_fileContent.find('#');
+		end = this->_configContent.find('\n', start);
+		this->_configContent.erase(start, end - start);
+		start = this->_configContent.find('#');
 	}
 	std::cout << "CONTENT (removed comments)" << std::endl;
-	std::cout << this->_fileContent << std::endl;
-	ss.str(this->_fileContent);
+	std::cout << this->_configContent << std::endl;
+	ss.str(this->_configContent);
 	while (std::getline(ss, line))
 	{
 		start = line.find_first_not_of("\t\n\v\f\r ");
@@ -105,10 +105,54 @@ void	ServerConfig::removeCommentsAndEmptyLines(void)
 		if (!line.empty()) // if line not empty (after removing the start and end whitespaces) add to newFileContent
 			newFileContent += line + '\n';
 	}
-	this->_fileContent = newFileContent;
+	this->_configContent = newFileContent;
 	std::cout << "CONTENT (removed empty lines)" << std::endl;
-	std::cout << this->_fileContent << std::endl;
+	std::cout << this->_configContent << std::endl;
 }
+
+size_t	validateServerBlockStart(size_t pos, std::string &configContent)
+{
+	size_t	i;
+
+	i = pos;
+	while (configContent[i])
+	{
+		if (configContent[i] == 's')
+			break ;
+		if (!isspace(configContent[i]))
+			throw (std::runtime_error("Config parser: Wrong formatting of the config file (character our of server scope)."));
+		i++;
+	}
+	if (configContent.compare(i, 6, "server") != 0)
+		throw(std::runtime_error("Config parser: Invalid start of the server scope."));
+	i += 6;
+	while (configContent[i] && isspace(configContent[i]))
+		i++;
+	if (configContent[i] != '{')
+		throw(std::runtime_error("Config parser: Invalid start of the scope."));
+	return (i);
+}
+
+size_t	validateServerBlockEnd(size_t pos, std::string &configContent)
+{
+	size_t	i;
+	size_t	nested;
+
+	nested = 0;
+	for (i = pos; configContent[i]; i++)
+	{
+		if (configContent[i] == '{')
+			nested++;
+		else if (configContent[i] == '}')
+		{
+			if (nested == 0)
+				return(i);
+			nested--;
+		}
+	}
+	return (pos);
+}
+
 
 void	ServerConfig::detectServerBlocks(void)
 {
@@ -116,18 +160,19 @@ void	ServerConfig::detectServerBlocks(void)
 	size_t		serverEnd;
 	std::string	serverBlock;
 
-	serverStart = this->_fileContent.find("server");
-	if (serverStart == std::string::npos)
-		throw(std::runtime_error("Provided config file doesn't include a server block."));
-	serverEnd = this->_fileContent.find("}", serverStart);
+	if (this->_configContent.find("server") == std::string::npos)
+		throw(std::runtime_error("Config parser: No server block found."));
+	serverStart = validateServerBlockStart(0, this->_configContent);
+	serverEnd = validateServerBlockEnd(serverStart, this->_configContent);
 	while (serverStart != std::string::npos)
 	{
 		if (serverEnd == std::string::npos)
-			throw(std::runtime_error("Server block has no scope."));
-		serverBlock = this->_fileContent.substr(serverStart, serverEnd - serverStart + 1);
+			throw(std::runtime_error("Config parser: Server block has no scope."));
+		serverBlock = this->_configContent.substr(serverStart, serverEnd - serverStart + 1);
 		this->_serverBlocks.push_back(serverBlock);
-		serverStart = this->_fileContent.find("server", serverEnd + 1);
-		serverEnd = this->_fileContent.find("}", serverStart);
+		std::cout << "Server block: " << serverBlock << std::endl;
+		serverStart = validateServerBlockStart(serverEnd + 1, this->_configContent);
+		serverEnd = validateServerBlockEnd(serverStart, this->_configContent);
 	}
 }
 
