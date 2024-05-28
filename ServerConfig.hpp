@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/22 18:28:00 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/23 17:16:26 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/28 10:44:30 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@ class ServerConfig
 
 		std::string	getFileContent(void) const;
 
-		void		removeCommentsAndEndSpaces(void);
+		void		removeCommentsAndEmptyLines(void);
 	
 	private:
 		ServerConfig(void);

@@ -40,9 +40,8 @@ ServerConfig::ServerConfig(std::string configFile)
 	this->_fileContent = tmpFileContent.str();
 
 	std::cout << "CONTENT (initial)" << std::endl;
-	std::cout << "First:" << this->_fileContent[0] << "|" << std::endl;
 	std::cout << this->_fileContent << std::endl;
-	removeCommentsAndEndSpaces();
+	removeCommentsAndEmptyLines();
 	std::cout << "CONTENT (removed comments)" << std::endl;
 	std::cout << this->_fileContent << std::endl;
 	file.close();
@@ -75,22 +74,32 @@ std::string	ServerConfig::getFileContent(void) const
 	return (this->_fileContent);
 }
 
-void	ServerConfig::removeCommentsAndEndSpaces(void)
+void	ServerConfig::removeCommentsAndEmptyLines(void)
 {
-	size_t	commentStart;
-	size_t	commentEnd;
-	size_t	pos;
+	size_t				start;
+	size_t				end;
+	std::string			line;
+	std::stringstream	ss;
+	std::string			newFileContent;
 
-	commentStart = this->_fileContent.find('#');
-	while (commentStart != std::string::npos)
+	start = this->_fileContent.find('#');
+	while (start != std::string::npos)
 	{
-		commentEnd = this->_fileContent.find('\n', commentStart);
-		this->_fileContent.erase(commentStart, commentEnd - commentStart);
-		commentStart = this->_fileContent.find('#');
+		end = this->_fileContent.find('\n', start);
+		this->_fileContent.erase(start, end - start);
+		start = this->_fileContent.find('#');
 	}
-	pos = 0;
-	pos = this->_fileContent.size() - 1;
-	while (this->_fileContent[pos] && isspace(this->_fileContent[pos]))
-		pos--;
-	this->_fileContent = this->_fileContent.substr(0, pos + 1);
+	ss.str(this->_fileContent);
+	while (std::getline(ss, line))
+	{
+		start = line.find_first_of("\t\n\v\f\r ");
+		end = line.find_last_not_of("\t\n\v\f\r ");
+		if (start != std::string::npos && end != std::string::npos) // trim whitespaces from the end of the line
+			line = line.substr(start, end - start + 1);
+		else
+			line = "";
+		if (!line.empty()) // if line not empty (after removing the start and end whitespaces) add to newFileContent
+			newFileContent += line + '\n';
+	}
+	this->_fileContent = newFileContent;
 }
