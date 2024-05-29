@@ -6,12 +6,12 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 10:01:22 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/22 19:10:38 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/29 12:17:27 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
-#include "ServerConfig.hpp"
+#include "ServerMaster.hpp"
 #include "webserv.hpp"
 
 bool runWebserv = true;
@@ -52,7 +52,7 @@ int	main(int argc, char **argv)
 				configFile = "config_files/default.conf";
 			else
 				configFile = argv[1];
-			ServerConfig serverConfig(configFile);
+			ServerMaster serverConfig(configFile);
 		}
 		catch(const std::exception& e)
 		{
