@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/05/21 10:57:18 by plouda           ###   ########.fr       */
+/*   Updated: 2024/05/28 18:03:58 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,17 @@ HttpHeader::~HttpHeader()
 	return ;
 }
 
+std::string	trim(const std::string& str)
+{
+	const std::string	whitespace(" \t\r");
+	const size_t		strBegin = str.find_first_not_of(whitespace);
+	if (strBegin == std::string::npos)
+		return (""); // no content
+	const size_t strEnd = str.find_last_not_of(whitespace);
+	const size_t strRange = strEnd - strBegin + 1;
+	return (str.substr(strBegin, strRange));
+}
+
 void	HttpHeader::parseMethod(std::string& token)
 {
 	if (token == "GET" || token == "POST" || token == "DELETE")
@@ -41,22 +52,20 @@ void	HttpHeader::parseMethod(std::string& token)
 		throw(std::invalid_argument("400 Bad Request: Invalid method")); // should probably be Not implemented
 }
 
-static void resolvePercentEncoding(std::string& absolutePath, size_t& pos)
+void resolvePercentEncoding(std::string& path, size_t& pos)
 {
-	if (absolutePath[pos] == '%')
+	if (path[pos] == '%')
 	{
-		if (pos + 2 < absolutePath.size())
+		if (pos + 2 < path.size())
 		{	
-			std::string	hexDigit = absolutePath.substr(pos + 1, 2);
+			std::string	hexDigit = path.substr(pos + 1, 2);
 			if (hexDigit.find_first_not_of(HEXDIGITS) != std::string::npos)
 				throw(std::invalid_argument("400 Bad Request: Invalid percent encoding"));
 			int	c = strtol(hexDigit.c_str(), NULL, 16);
-			//if (c >= 128)
-			//	throw(std::invalid_argument("400 Bad Request: Invalid percent encoding - out of range"));
 			if (c)
 			{
-				absolutePath.erase(pos, 3);
-				absolutePath.insert(pos, 1, static_cast<char>(c));
+				path.erase(pos, 3);
+				path.insert(pos, 1, static_cast<char>(c));
 			}
 			else
 				throw(std::invalid_argument("400 Bad Request: Zero byte insertion detected"));
@@ -70,21 +79,23 @@ static void resolvePercentEncoding(std::string& absolutePath, size_t& pos)
 void	HttpHeader::validateURIElements(void)
 {
 	size_t			pos = 0;
-	std::string		extraAllowedChars("?#\0", 3);
+	std::string		extraAllowedChars("?#\0\0", 4);
 	std::string		allowedChars(std::string(UNRESERVED) + std::string(PCHAR_EXTRA)
 									+ std::string(SUBDELIMS));
-	std::string*	elements[3] = {&this->startLine.requestTarget.absolutePath,
+	std::string*	elements[] = {&this->startLine.requestTarget.host,
+									&this->startLine.requestTarget.absolutePath,
 									&this->startLine.requestTarget.query,
 									&this->startLine.requestTarget.fragment};
-	for (size_t i = 0; i < 3; i++)
+	for (size_t i = 0; i < 4; i++)
 	{
+		std::cout << this->startLine.requestTarget.host << " " << (*elements)[i] << std::endl;
 		pos = (*elements)[i].find_first_not_of(allowedChars);
 		while (pos != std::string::npos && pos < (*elements)[i].size())
 		{
 			if ((*elements)[i][pos] == '%')
 				resolvePercentEncoding((*elements)[i], pos);
 			else
-				throw(std::invalid_argument("400 Bad Request: Invalid character in URI detected (path)"));
+				throw(std::invalid_argument("400 Bad Request: Invalid character in URI"));
 			pos = (*elements)[i].find_first_not_of(allowedChars, pos);
 		}
 		allowedChars.push_back(extraAllowedChars[i]);
@@ -98,7 +109,6 @@ void	HttpHeader::resolveDotSegments(std::string& path)
 	std::stringstream	input(path);
 	std::string			buffer;
 	std::string			newPath;
-	std::cout << "Unedited path: " << path << std::endl;
 	output.push("/");
 	while (std::getline(input, buffer, '/'))
 	{
@@ -119,15 +129,63 @@ void	HttpHeader::resolveDotSegments(std::string& path)
 		newPath.insert(0, output.top());
 		output.pop();
 	}
-	
 	this->startLine.requestTarget.absolutePath = newPath;
 	return ;
+}
+
+void	HttpHeader::parseAuthority(std::string& authority)
+{
+	if (authority.find_first_of("@") != std::string::npos)
+		throw(std::invalid_argument("400 Bad Request: 'userinfo' component deprecated"));
+	std::string		allowedChars(std::string(UNRESERVED) + std::string(SUBDELIMS) + std::string("%"));
+	std::string		host("");
+	std::string		port("");
+	size_t			portPos = authority.find_first_of(":");
+	if (portPos == std::string::npos)
+	{
+		host = std::string(authority);
+		port = DEFAULT_PORT;
+	}
+	else if (portPos == 0)
+		throw(std::invalid_argument("400 Bad Request: Empty host name"));
+	else
+	{
+		host = std::string(authority.begin(), authority.begin() + portPos);
+		port = std::string(authority.begin() + portPos + 1, authority.end());
+		if (port == "")
+			port = DEFAULT_PORT;
+	}
+	if (host.find_first_not_of(allowedChars) != std::string::npos)
+		throw(std::invalid_argument("400 Bad Request: Invalid host name"));
+	if (port.find_first_not_of(DIGITS) != std::string::npos)
+		throw(std::invalid_argument("400 Bad Request: Invalid port format"));
+	this->startLine.requestTarget.authority.first = host;
+	this->startLine.requestTarget.authority.second = port;
+	this->startLine.requestTarget.host = host;	
 }
 
 void	HttpHeader::parseRequestTarget(std::string& uri)
 {
 	if (uri.find_first_of('/') != 0)
-		throw(std::invalid_argument("400 Bad Request: Invalid URI path"));
+	{
+		if (uri.find("http://") != 0)
+			throw(std::invalid_argument("400 Bad Request: Invalid URI path"));
+		else
+		{
+			uri.erase(uri.begin(), uri.begin() + 7); // remove "http://"
+			size_t	authEnd = uri.find_first_of("/?#");
+			if (authEnd == std::string::npos)
+				throw(std::invalid_argument("400 Bad Request: Authority required"));
+			else
+			{
+				std::string	authority = std::string(uri.begin(), uri.begin() + authEnd);
+				if (authority.size() == 0)
+					throw(std::invalid_argument("400 Bad Request: Authority required"));
+				parseAuthority(authority);
+				uri.erase(0, authority.size());
+			}
+		}
+	}
 	std::string::iterator	queryPos = std::find(uri.begin(), uri.end(), '?');
 	std::string::iterator	fragmentPos = std::find(uri.begin(), uri.end(), '#');
 	if (std::distance(uri.begin(), queryPos) > std::distance(uri.begin(), fragmentPos))
@@ -179,8 +237,8 @@ void	HttpHeader::parseStartLine(std::string startLine)
 	std::vector<std::string>	startLineTokens;
 	std::string::iterator		space = std::find(startLine.begin(), startLine.end(), SP);
 	ParseToken					parse[3] = {&HttpHeader::parseMethod,
-								&HttpHeader::parseRequestTarget,
-								&HttpHeader::parseHttpVersion};
+									&HttpHeader::parseRequestTarget,
+									&HttpHeader::parseHttpVersion};
 
 	while (space != startLine.end() || startLine.size() != 0) // size != 0 to grab the last segment
 	{
@@ -196,6 +254,32 @@ void	HttpHeader::parseStartLine(std::string startLine)
 	for (size_t i = 0; i < 3; i++)
 		(this->*parse[i])(startLineTokens[i]);
 	std::cout << this->startLine << std::endl;
+}
+
+void	HttpHeader::parseFieldSection(std::vector<std::string>& fields)
+{
+	std::string	allowedChars(std::string(DIGITS) + std::string(ALPHA) + std::string(TOKEN));
+	std::string	fieldName;
+	std::string	fieldValue;
+	std::string::iterator	fieldIter;
+	std::map<std::string,std::string>::iterator	mapIter;
+	for (std::vector<std::string>::iterator it = fields.begin() ; it != fields.end() ; it++)
+	{
+		fieldIter = it->begin();
+		std::advance(fieldIter, it->find_first_of(':'));
+		fieldName = std::string(it->begin(), fieldIter);
+		std::transform(fieldName.begin(), fieldName.end(), fieldName.begin(), tolower);
+		if (fieldName.size() == 0 || fieldName.find_first_not_of(allowedChars.c_str()) != std::string::npos)
+			throw(std::invalid_argument("400 Bad Request: Invalid field name"));
+		fieldValue = std::string(++fieldIter, it->end()); // to remove ':' from the value part
+		fieldValue = trim(fieldValue);
+		if(!(this->headerFields.insert(std::make_pair(fieldName, fieldValue)).second)) // handle insertion of duplicates by concatenation
+		{
+			mapIter = this->headerFields.find(fieldName);
+			mapIter->second.append(std::string(", ") + std::string(fieldValue));
+		}
+	}
+	std::cout << this->headerFields << std::endl;
 }
 
 /* "In the interest of robustness, a server that is expecting to receive and parse a request-line
@@ -280,8 +364,7 @@ void	HttpHeader::parseHeader(octets_t header)
 			throw (std::invalid_argument("400 Bad Request: Missing empty CRLF"));
 		if (std::distance(header.begin(), nl) == 1 && *header.begin() != '\r')
 			throw (std::invalid_argument("400 Bad Request: Improperly terminated header-field section"));
-		
-		std::cout << splitLines << std::endl;
+		parseFieldSection(splitLines);
 	}
 	catch(const std::exception& e)
 	{
@@ -289,35 +372,44 @@ void	HttpHeader::parseHeader(octets_t header)
 	}
 }
 
-
 std::ostream &operator<<(std::ostream &os, octets_t &vec)
 {
 	for (octets_t::iterator it = vec.begin(); it != vec.end(); it++)
-			os << *it;
-		return os;
+		os << *it;
+	return os;
 }
 
 std::ostream &operator<<(std::ostream &os, std::vector<octets_t> &vec)
 {
 	for (std::vector<octets_t>::iterator it = vec.begin(); it != vec.end(); it++)
-			os << *it << std::endl;
-		return os;
+		os << *it << std::endl;
+	return os;
 }
 
 std::ostream &operator<<(std::ostream &os, std::vector<std::string> &vec)
 {
 	for (std::vector<std::string>::iterator it = vec.begin(); it != vec.end(); it++)
-			os << *it << std::endl;
-		return os;
+		os << *it << std::endl;
+	return os;
 }
 
 std::ostream &operator<<(std::ostream &os, startLine_t& startLine)
 {
 	os << "method: " << startLine.method << std::endl;
+	os << "request-target host: " << startLine.requestTarget.authority.first << std::endl;
+	os << "request-target host (str): " << startLine.requestTarget.host << std::endl;
+	os << "request-target port: " << startLine.requestTarget.authority.second << std::endl;
 	os << "request-target path: " << startLine.requestTarget.absolutePath << std::endl;
 	os << "request-target query: " << startLine.requestTarget.query << std::endl;
 	os << "request-target fragment: " << startLine.requestTarget.fragment << std::endl;
 	os << "http-version: " << startLine.httpVersion << std::endl;
+	return os;
+}
+
+std::ostream &operator<<(std::ostream &os, std::map<std::string, std::string>& fieldSection)
+{
+	for (std::map<std::string, std::string>::iterator it = fieldSection.begin(); it != fieldSection.end(); it++)
+		os << "[ " << it->first << " : " << it->second << " ]" << std::endl;
 	return os;
 }
 

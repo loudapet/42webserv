@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 10:46:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/05/21 10:06:45 by plouda           ###   ########.fr       */
+/*   Updated: 2024/05/28 17:50:48 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,20 +40,23 @@ std::string getFileContents(const char *filename)
 int	main()
 {
 
-	//std::string	startLine("\n\r\n\n\r\nGET /%E2%82%ACe/wher%22//./eyo?q=now?key=value/index.ttx#%32 HTTP/1.1\r\n"); // if testing for 0-byte, pass precise length to constructor
+	std::string	startLine("\n\r\n\n\r\nGET http://l%21%22o/%E2%82%ACe/wher%22//./eyo?q=now%34?key=value/index.ttx#%32 HTTP/1.1\r\n"); // if testing for 0-byte, pass precise length to constructor
+	//std::string	startLine("\n\r\n\n\r\nGET http:// HTTP/1.1\r\n"); // if testing for 0-byte, pass precise length to constructor
 	//std::string	startLine("\n\r\n\n\r\nGET /./././a/b//////.. HTTP/1.1\r\n");
 	//std::string	startLine("\n\r\n\n\r\nGET ///...////?q=key#fragment HTTP/1.1\r\n");
-	std::string	startLine("\n\r\n\n\r\nGET /./////// HTTP/1.1\r\n");
+	//std::string	startLine("\n\r\n\n\r\nGET /./////// HTTP/1.1\r\n");
 	std::string	host("Host: www.example.com\r\n");
 	std::string userAgent("User-Agent: Mozilla/5.0\n");
 	std::string	accept("Accept: text/html, */*\r\n");
 	std::string	acceptLanguage("Accept-Language: en-us\n");
 	std::string	acceptCharset("Accept-Charset: ISO-8859-1,utf-8\n");
-	std::string	connection ("Connection: keep-alive\r\n");
+	std::string	connection ("Connection: \r\n");
+	std::string	connection2 ("Accept-Language: en-gb\n");
+	std::string	invalid("t: €h\n");
 	std::string	endLine("\n");
-	std::string	request = startLine + host + userAgent + accept + acceptLanguage + acceptCharset + connection + endLine;
+	std::string	request = startLine + host + userAgent + accept + acceptLanguage + acceptCharset + connection + connection2 + invalid + endLine;
 
-	std::string		response = "HTTP/1.1  \t200     OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!\n";
+	std::string	response = "HTTP/1.1  \t200     OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!\n";
 	octets_t octetRequest = convertStringToOctets(request);
 	octets_t octetResponse = convertStringToOctets(response);
 

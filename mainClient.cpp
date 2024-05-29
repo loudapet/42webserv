@@ -4,7 +4,6 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <cstring>
-#include "webserv.hpp"
 
 //"\n\r\n\n\r\nGET /index.html HTTP/1.1\r\nHost: www.example.com\r\nUser-Agent: Mozilla/5.0\nAccept: text/html, */*\r\nAccept-Language: en-us\nAccept-Charset: ISO-8859-1,utf-8\nConnection: keep-alive\r\n\n";
 //GET / HTTP/1.1
@@ -31,7 +30,7 @@ int main(void)
 	struct sockaddr_in serverAddr;
 
 	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(PORT_SERVER); // Port number of the server
+	serverAddr.sin_port = htons(8080); // Port number of the server
 	serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1"); // IP address of the server
 
 	// Connect to the server
@@ -42,8 +41,8 @@ int main(void)
 		return (1);
 	}
 	// Send data to the server
-	//const char *message = "\nGET / HTTP/1.0\nHost: example.com\nConnection: close\n\n";
-	const char *message = "GET /index.html HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n";
+	//const char *message = "\nGET /index.html?%71=key#key HTTP/1.1\nHost: example.com\nConnection: close\n\n";
+	const char *message = "\nGET http://s:/ HTTP/1.1\nHost: newhost \nConnection: close\ntest:\n\n";
 	if (send(clientSocket, message, strlen(message), 0) == -1)
 	{
 		std::cerr << "Error: Failed to send data\n";
@@ -53,6 +52,7 @@ int main(void)
 
 	// Receive response from the server
 	char buffer[1024] = {0};
+	sleep(1);
 	if (recv(clientSocket, buffer, 1024, 0) == -1)
 	{
 		std::cerr << "Error: Failed to receive data\n";
