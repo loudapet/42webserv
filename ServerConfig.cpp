@@ -110,27 +110,19 @@ void	ServerConfig::removeCommentsAndEmptyLines(void)
 	std::cout << this->_configContent << std::endl;
 }
 
+
 size_t	validateServerBlockStart(size_t pos, std::string &configContent)
 {
 	size_t	i;
 
-	i = pos;
-	while (configContent[i])
-	{
-		if (configContent[i] == 's')
-			break ;
-		if (!isspace(configContent[i]))
-			throw (std::runtime_error("Config parser: Wrong formatting of the config file (character our of server scope)."));
-		i++;
-	}
-	if (!configContent[i])
+	i = configContent.find_first_not_of(" \t\n\r", pos);
+	if (i == std::string::npos)
 		return (pos);
-	if (configContent.compare(i, 6, "server") != 0)
+	if (configContent.substr(i, 6) != "server")
 		throw(std::runtime_error("Config parser: Invalid start of the server scope."));
 	i += 6;
-	while (configContent[i] && isspace(configContent[i]))
-		i++;
-	if (configContent[i] != '{')
+	i = configContent.find_first_not_of(" \t\n\r", i);
+	if (i == std::string::npos || configContent[i] != '{')
 		throw(std::runtime_error("Config parser: Invalid start of the scope."));
 	return (i);
 }
@@ -141,15 +133,19 @@ size_t	validateServerBlockEnd(size_t pos, std::string &configContent)
 	size_t	nested;
 
 	nested = 0;
-	for (i = pos; configContent[i]; i++)
+	i = pos;
+	while (i != std::string::npos)
 	{
-		if (configContent[i] == '{')
-			nested++;
-		if (configContent[i] == '}')
+		i = configContent.find_first_of("{}", i);
+		if (i != std::string::npos)
 		{
-			if (nested == 0)
-				return(i);
-			nested--;
+			if (configContent[i] == '{')
+				nested++;
+			else if (nested == 0)
+				return (i);
+			else
+				nested--;
+			i++;
 		}
 	}
 	return (pos);
