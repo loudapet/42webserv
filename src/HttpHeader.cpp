@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/05/28 18:03:58 by plouda           ###   ########.fr       */
+/*   Updated: 2024/05/29 10:35:58 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,32 +76,6 @@ void resolvePercentEncoding(std::string& path, size_t& pos)
 	}
 }
 
-void	HttpHeader::validateURIElements(void)
-{
-	size_t			pos = 0;
-	std::string		extraAllowedChars("?#\0\0", 4);
-	std::string		allowedChars(std::string(UNRESERVED) + std::string(PCHAR_EXTRA)
-									+ std::string(SUBDELIMS));
-	std::string*	elements[] = {&this->startLine.requestTarget.host,
-									&this->startLine.requestTarget.absolutePath,
-									&this->startLine.requestTarget.query,
-									&this->startLine.requestTarget.fragment};
-	for (size_t i = 0; i < 4; i++)
-	{
-		std::cout << this->startLine.requestTarget.host << " " << (*elements)[i] << std::endl;
-		pos = (*elements)[i].find_first_not_of(allowedChars);
-		while (pos != std::string::npos && pos < (*elements)[i].size())
-		{
-			if ((*elements)[i][pos] == '%')
-				resolvePercentEncoding((*elements)[i], pos);
-			else
-				throw(std::invalid_argument("400 Bad Request: Invalid character in URI"));
-			pos = (*elements)[i].find_first_not_of(allowedChars, pos);
-		}
-		allowedChars.push_back(extraAllowedChars[i]);
-	}
-}
-
 void	HttpHeader::resolveDotSegments(std::string& path)
 {
 	std::stack<std::string>	segments;
@@ -133,6 +107,31 @@ void	HttpHeader::resolveDotSegments(std::string& path)
 	return ;
 }
 
+void	HttpHeader::validateURIElements(void)
+{
+	size_t			pos = 0;
+	std::string		extraAllowedChars("?#\0\0", 4);
+	std::string		allowedChars(std::string(UNRESERVED) + std::string(PCHAR_EXTRA)
+									+ std::string(SUBDELIMS));
+	std::string*	elements[] = 	{&this->startLine.requestTarget.absolutePath,
+									&this->startLine.requestTarget.query,
+									&this->startLine.requestTarget.fragment,
+									&this->startLine.requestTarget.authority.first};
+	for (size_t i = 0; i < 4; i++)
+	{
+		pos = (*(elements)[i]).find_first_not_of(allowedChars);
+		while (pos != std::string::npos && pos < (*(elements)[i]).size())
+		{
+			if ((*(elements)[i])[pos] == '%')
+				resolvePercentEncoding(*(elements)[i], pos);
+			else
+				throw(std::invalid_argument("400 Bad Request: Invalid character in URI"));
+			pos = (*(elements)[i]).find_first_not_of(allowedChars, pos);
+		}
+		allowedChars.push_back(extraAllowedChars[i]);
+	}
+}
+
 void	HttpHeader::parseAuthority(std::string& authority)
 {
 	if (authority.find_first_of("@") != std::string::npos)
@@ -161,7 +160,6 @@ void	HttpHeader::parseAuthority(std::string& authority)
 		throw(std::invalid_argument("400 Bad Request: Invalid port format"));
 	this->startLine.requestTarget.authority.first = host;
 	this->startLine.requestTarget.authority.second = port;
-	this->startLine.requestTarget.host = host;	
 }
 
 void	HttpHeader::parseRequestTarget(std::string& uri)
@@ -397,7 +395,6 @@ std::ostream &operator<<(std::ostream &os, startLine_t& startLine)
 {
 	os << "method: " << startLine.method << std::endl;
 	os << "request-target host: " << startLine.requestTarget.authority.first << std::endl;
-	os << "request-target host (str): " << startLine.requestTarget.host << std::endl;
 	os << "request-target port: " << startLine.requestTarget.authority.second << std::endl;
 	os << "request-target path: " << startLine.requestTarget.absolutePath << std::endl;
 	os << "request-target query: " << startLine.requestTarget.query << std::endl;

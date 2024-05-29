@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/05/28 18:00:25 by plouda           ###   ########.fr       */
+/*   Updated: 2024/05/29 10:14:29 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,7 +47,6 @@ enum	MessageType
 typedef struct RequestTarget
 {
 	std::pair<std::string,std::string>	authority;
-	std::string	host;
 	std::string	absolutePath;
 	std::string	query;
 	std::string	fragment;
@@ -56,7 +55,7 @@ typedef struct RequestTarget
 typedef struct startLine
 {
 	std::string			method; // GET, POST, DELETE
-	request_target_t	requestTarget; // origin-form
+	request_target_t	requestTarget; // origin-form / absolute form
 	std::string 		httpVersion; // "HTTP/" DIGIT "." DIGIT
 	std::string			statusCode; // 1xx/2xx/3xx/4xx/5xx
 	std::string			reasonPhrase; // optional
