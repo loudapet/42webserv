@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/29 13:38:23 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/30 15:55:56 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,13 +39,13 @@ ServerMaster::ServerMaster(std::string configFile)
 	tmpFileContent << file.rdbuf();
 	this->_configContent = tmpFileContent.str();
 
-	std::cout << "CONTENT (initial)" << std::endl;
-	std::cout << this->_configContent << std::endl;
+//	std::cout << "CONTENT (initial)" << std::endl;
+//	std::cout << this->_configContent << std::endl;
 	removeCommentsAndEmptyLines();
 	
 	detectServerBlocks();
-	std::cout << "DETECTED SERVER BLOCKS" << std::endl;
-	printServerBlocks();
+//	std::cout << "DETECTED SERVER BLOCKS" << std::endl;
+//	printServerBlocks();
 	for (size_t i = 0; i < this->_serverBlocks.size(); i++)
 	{
 		ServerConfig server(this->_serverBlocks[i]);
@@ -79,8 +79,8 @@ void	ServerMaster::removeCommentsAndEmptyLines(void)
 		this->_configContent.erase(start, end - start);
 		start = this->_configContent.find('#');
 	}
-	std::cout << "CONTENT (removed comments)" << std::endl;
-	std::cout << this->_configContent << std::endl;
+//	std::cout << "CONTENT (removed comments)" << std::endl;
+//	std::cout << this->_configContent << std::endl;
 	ss.str(this->_configContent);
 	while (std::getline(ss, line))
 	{
@@ -94,8 +94,8 @@ void	ServerMaster::removeCommentsAndEmptyLines(void)
 			newFileContent += line + '\n';
 	}
 	this->_configContent = newFileContent;
-	std::cout << "CONTENT (removed empty lines)" << std::endl;
-	std::cout << this->_configContent << std::endl;
+//	std::cout << "CONTENT (removed empty lines)" << std::endl;
+//	std::cout << this->_configContent << std::endl;
 }
 
 

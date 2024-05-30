@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/22 19:55:35 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/30 17:06:44 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,7 @@
 # include <signal.h>
 # include <fstream>
 # include <sstream>
+# include <arpa/inet.h>
 
 extern bool runWebserv;
 
