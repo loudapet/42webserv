@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/30 15:55:56 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/05/31 18:21:23 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,20 +19,17 @@ ServerMaster::ServerMaster(void)
 
 ServerMaster::ServerMaster(std::string configFile)
 {
-	int				fileCheck;
-	struct stat		fileCheckBuff;
 	std::ifstream	file;
 	char			c;
 	std::stringstream	tmpFileContent;
 
 	if (configFile.size() < 5 || configFile.substr(configFile.size() - 5) != ".conf")
 		throw(std::runtime_error("Provided config file '" + configFile + "' doesn't have a .conf extension."));
-	fileCheck = stat(configFile.c_str(), &fileCheckBuff);
-	if (fileCheck != 0 || !(fileCheckBuff.st_mode & S_IFREG))
+	if (access(configFile.c_str(), 0) < 0)
 		throw(std::runtime_error("Provided config file '" + configFile + "' is an invalid file."));
-	file.open(configFile.c_str());
-	if (!file)
+	if (access(configFile.c_str(), 4) < 0)
 		throw(std::runtime_error("Provided config file '" + configFile + "' is not accessible."));
+	file.open(configFile.c_str());
 	if (!(file >> c)) // check if the file is empty by trying to read a character from it
 		throw(std::runtime_error("Provided config file '" + configFile + "' is empty."));
 	file.putback(c); //	putting the character back bcs it will be read again later
@@ -84,8 +81,8 @@ void	ServerMaster::removeCommentsAndEmptyLines(void)
 	ss.str(this->_configContent);
 	while (std::getline(ss, line))
 	{
-		start = line.find_first_not_of("\t\n\v\f\r ");
-		end = line.find_last_not_of("\t\n\v\f\r ");
+		start = line.find_first_not_of(WHITESPACES);
+		end = line.find_last_not_of(WHITESPACES);
 		if (start != std::string::npos && end != std::string::npos) // trim whitespaces from the end of the line
 			line = line.substr(start, end - start + 1);
 		else
@@ -107,11 +104,11 @@ size_t	validateServerBlockStart(size_t pos, std::string &configContent)
 	if (i == std::string::npos)
 		return (pos);
 	if (configContent.substr(i, 6) != "server")
-		throw(std::runtime_error("Config parser: Invalid start of the server scope."));
+		throw(std::runtime_error("Config parser: Invalid server scope."));
 	i += 6;
 	i = configContent.find_first_not_of(" \t\n\r", i);
 	if (i == std::string::npos || configContent[i] != '{')
-		throw(std::runtime_error("Config parser: Invalid start of the scope."));
+		throw(std::runtime_error("Config parser: Invalid server scope."));
 	return (i);
 }
 
@@ -138,7 +135,6 @@ size_t	validateServerBlockEnd(size_t pos, std::string &configContent)
 	}
 	return (pos);
 }
-
 
 void	ServerMaster::detectServerBlocks(void)
 {
