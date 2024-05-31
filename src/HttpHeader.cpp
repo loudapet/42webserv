@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/05/29 10:35:58 by plouda           ###   ########.fr       */
+/*   Updated: 2024/05/31 16:16:53 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,7 @@ HttpHeader::~HttpHeader()
 
 std::string	trim(const std::string& str)
 {
-	const std::string	whitespace(" \t\r");
+	const std::string	whitespace(" \t\r\n");
 	const size_t		strBegin = str.find_first_not_of(whitespace);
 	if (strBegin == std::string::npos)
 		return (""); // no content
@@ -132,7 +132,7 @@ void	HttpHeader::validateURIElements(void)
 	}
 }
 
-void	HttpHeader::parseAuthority(std::string& authority)
+stringpair_t	HttpHeader::parseAuthority(std::string& authority, HostLocation parseLocation)
 {
 	if (authority.find_first_of("@") != std::string::npos)
 		throw(std::invalid_argument("400 Bad Request: 'userinfo' component deprecated"));
@@ -146,7 +146,12 @@ void	HttpHeader::parseAuthority(std::string& authority)
 		port = DEFAULT_PORT;
 	}
 	else if (portPos == 0)
-		throw(std::invalid_argument("400 Bad Request: Empty host name"));
+	{
+		if (parseLocation == URI)
+			throw(std::invalid_argument("400 Bad Request: Empty host name in URI"));
+		else
+			throw(std::invalid_argument("400 Bad Request: Empty host name in host header field"));
+	}
 	else
 	{
 		host = std::string(authority.begin(), authority.begin() + portPos);
@@ -155,31 +160,46 @@ void	HttpHeader::parseAuthority(std::string& authority)
 			port = DEFAULT_PORT;
 	}
 	if (host.find_first_not_of(allowedChars) != std::string::npos)
-		throw(std::invalid_argument("400 Bad Request: Invalid host name"));
+	{
+		if (parseLocation == URI)
+			throw(std::invalid_argument("400 Bad Request: Invalid host name in URI"));
+		else
+			throw(std::invalid_argument("400 Bad Request: Invalid host name in host header field"));
+	}
 	if (port.find_first_not_of(DIGITS) != std::string::npos)
-		throw(std::invalid_argument("400 Bad Request: Invalid port format"));
-	this->startLine.requestTarget.authority.first = host;
-	this->startLine.requestTarget.authority.second = port;
+	{
+		if (parseLocation == URI)
+			throw(std::invalid_argument("400 Bad Request: Invalid port format in URI"));
+		else
+			throw(std::invalid_argument("400 Bad Request: Invalid port format in host header field"));
+	}
+	std::transform(host.begin(), host.end(), host.begin(), tolower); // case-insensitive
+	return(std::make_pair(host, port));
 }
 
 void	HttpHeader::parseRequestTarget(std::string& uri)
 {
+	//the following two lines should be in the constructor
+	this->startLine.requestTarget.authority.first = "";
+	this->startLine.requestTarget.authority.second = "";
 	if (uri.find_first_of('/') != 0)
 	{
-		if (uri.find("http://") != 0)
+		std::string scheme(uri.begin(), uri.begin() + 7);
+		std::transform(scheme.begin(), scheme.end(), scheme.begin(), tolower);
+		if (scheme.find("http://") != 0)
 			throw(std::invalid_argument("400 Bad Request: Invalid URI path"));
 		else
 		{
+			std::string	delimiters("?#/");
 			uri.erase(uri.begin(), uri.begin() + 7); // remove "http://"
-			size_t	authEnd = uri.find_first_of("/?#");
-			if (authEnd == std::string::npos)
+			if (uri.size() == 0 || uri.find_first_of(delimiters) == 0)
 				throw(std::invalid_argument("400 Bad Request: Authority required"));
 			else
 			{
-				std::string	authority = std::string(uri.begin(), uri.begin() + authEnd);
+				std::string	authority = std::string(uri.begin(), std::find_first_of(uri.begin(), uri.end(), delimiters.begin(), delimiters.end()));
 				if (authority.size() == 0)
 					throw(std::invalid_argument("400 Bad Request: Authority required"));
-				parseAuthority(authority);
+				this->startLine.requestTarget.authority = this->parseAuthority(authority, URI);
 				uri.erase(0, authority.size());
 			}
 		}
@@ -212,6 +232,8 @@ void	HttpHeader::parseRequestTarget(std::string& uri)
 		this->startLine.requestTarget.query = std::string("");
 		this->startLine.requestTarget.fragment = std::string(fragmentPos, uri.end());
 	}
+	if (this->startLine.requestTarget.absolutePath == "")
+		this->startLine.requestTarget.absolutePath = "/";
 	validateURIElements();
 	resolveDotSegments(this->startLine.requestTarget.absolutePath);
 	return ;
@@ -251,7 +273,6 @@ void	HttpHeader::parseStartLine(std::string startLine)
 		throw(std::invalid_argument("400 Bad Request: Invalid start line"));
 	for (size_t i = 0; i < 3; i++)
 		(this->*parse[i])(startLineTokens[i]);
-	std::cout << this->startLine << std::endl;
 }
 
 void	HttpHeader::parseFieldSection(std::vector<std::string>& fields)
@@ -260,7 +281,8 @@ void	HttpHeader::parseFieldSection(std::vector<std::string>& fields)
 	std::string	fieldName;
 	std::string	fieldValue;
 	std::string::iterator	fieldIter;
-	std::map<std::string,std::string>::iterator	mapIter;
+	std::string::iterator	valueIter;
+	stringmap_t::iterator	mapIter;
 	for (std::vector<std::string>::iterator it = fields.begin() ; it != fields.end() ; it++)
 	{
 		fieldIter = it->begin();
@@ -271,13 +293,62 @@ void	HttpHeader::parseFieldSection(std::vector<std::string>& fields)
 			throw(std::invalid_argument("400 Bad Request: Invalid field name"));
 		fieldValue = std::string(++fieldIter, it->end()); // to remove ':' from the value part
 		fieldValue = trim(fieldValue);
-		if(!(this->headerFields.insert(std::make_pair(fieldName, fieldValue)).second)) // handle insertion of duplicates by concatenation
+		valueIter = std::find_if_not(fieldValue.begin(), fieldValue.end(), isgraph);
+		while (valueIter != fieldValue.end())
 		{
+			/* std::bitset<8> x(*valueIter);
+			std::cout << x << std::endl; */
+			if (*valueIter >> 7) // UTF-8 encoding starts with 1 in its most-significant byte
+			{
+				valueIter = std::find_if_not(++valueIter, fieldValue.end(), isgraph);
+				continue;
+			}
+			if (!isblank(*valueIter))
+				throw(std::invalid_argument("400 Bad Request: Invalid field value - CTL characters forbidden"));
+			else if (isblank(*valueIter) && isblank(*(valueIter + 1)))
+				throw(std::invalid_argument("400 Bad Request: Invalid field value - multiple SP / HTAB detected"));
+			valueIter = std::find_if_not(++valueIter, fieldValue.end(), isgraph);
+		}
+		if (!(this->headerFields.insert(std::make_pair(fieldName, fieldValue)).second)) // handle insertion of duplicates by concatenation
+		{
+			if (fieldName == "host")
+				throw(std::invalid_argument("400 Bad Request: Duplicate Host header field"));
 			mapIter = this->headerFields.find(fieldName);
-			mapIter->second.append(std::string(", ") + std::string(fieldValue));
+			mapIter->second.append(std::string(",") + std::string(fieldValue));
 		}
 	}
-	std::cout << this->headerFields << std::endl;
+	if (this->headerFields.find("host") == this->headerFields.end())
+		throw(std::invalid_argument("400 Bad Request: Missing Host header field"));
+}
+
+//host header field needs additional checks
+// 1/ host from header needs to be parsed and percent-encoding has to be resolved
+// 2/ that does not need ot be done if there already is a host under requestLine.authority - but it should probably still be checked for invalid characters and separators
+// 3/ identify comma-separated hosts (or automatically consider them as a singleton field)
+stringpair_t	HttpHeader::resolveHost(void)
+{
+	stringmap_t::iterator	hostIter = this->headerFields.find("host");
+	stringpair_t			hostHeader = this->parseAuthority(hostIter->second, HEADER_FIELD);
+	stringpair_t			authority("","");
+	size_t					pos = 0;
+	pos = hostHeader.first.find('%');
+	while (pos != std::string::npos && pos < hostHeader.first.size())
+	{
+		resolvePercentEncoding(hostHeader.first, pos);
+		pos = hostHeader.first.find('%', pos);
+	}
+
+	if (this->startLine.requestTarget.authority.first != "")
+	{
+		authority.first = this->startLine.requestTarget.authority.first;
+		authority.second = this->startLine.requestTarget.authority.second;
+	}
+	else if (hostHeader.first != "")
+	{
+		authority.first = hostHeader.first;
+		authority.second = hostHeader.second;
+	}
+	return (authority);
 }
 
 /* "In the interest of robustness, a server that is expecting to receive and parse a request-line
@@ -321,7 +392,7 @@ static void	invalidateNullBytes(octets_t& line)
 		throw (std::invalid_argument("400 Bad Request: Zero bytes disallowed"));
 }
 
-void	HttpHeader::parseHeader(octets_t header)
+stringpair_t	HttpHeader::parseHeader(octets_t header)
 {
 	try
 	{
@@ -331,6 +402,7 @@ void	HttpHeader::parseHeader(octets_t header)
 		bool							endLine = false;
 		octets_t::iterator				nl = std::find(header.begin(), header.end(), '\n');
 		octets_t 						line;
+		stringpair_t					authority;
 		while (nl != header.end())
 		{
 			octets_t line(header.begin(), nl);
@@ -362,11 +434,17 @@ void	HttpHeader::parseHeader(octets_t header)
 			throw (std::invalid_argument("400 Bad Request: Missing empty CRLF"));
 		if (std::distance(header.begin(), nl) == 1 && *header.begin() != '\r')
 			throw (std::invalid_argument("400 Bad Request: Improperly terminated header-field section"));
-		parseFieldSection(splitLines);
+		this->parseFieldSection(splitLines);
+		authority = this->resolveHost();
+		std::cout << this->startLine << this->headerFields << std::endl;
+		std::cout << "Final host:\t" << authority.first << std::endl;
+		std::cout << "Final port:\t" << authority.second << std::endl;
+		return (authority);
 	}
 	catch(const std::exception& e)
 	{
 		std::cerr << e.what() << '\n';
+		return (std::make_pair(std::string(""), std::string(DEFAULT_PORT)));
 	}
 }
 
@@ -393,6 +471,7 @@ std::ostream &operator<<(std::ostream &os, std::vector<std::string> &vec)
 
 std::ostream &operator<<(std::ostream &os, startLine_t& startLine)
 {
+	os << UNDERLINE << "Start line" << RESET << std::endl;
 	os << "method: " << startLine.method << std::endl;
 	os << "request-target host: " << startLine.requestTarget.authority.first << std::endl;
 	os << "request-target port: " << startLine.requestTarget.authority.second << std::endl;
@@ -405,8 +484,9 @@ std::ostream &operator<<(std::ostream &os, startLine_t& startLine)
 
 std::ostream &operator<<(std::ostream &os, std::map<std::string, std::string>& fieldSection)
 {
+	os << UNDERLINE << "Header fields" << RESET << std::endl;
 	for (std::map<std::string, std::string>::iterator it = fieldSection.begin(); it != fieldSection.end(); it++)
-		os << "[ " << it->first << " : " << it->second << " ]" << std::endl;
+		os << it->first << ": " << it->second << std::endl;
 	return os;
 }
 
