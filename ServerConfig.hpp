@@ -6,14 +6,17 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:21:17 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/31 16:10:14 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/02 18:15:06 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef SERVERCONFIG_HPP
 # define SERVERCONFIG_HPP
 
+# include "Location.hpp"
 # include <iostream>
+
+class Location;
 
 class ServerConfig
 {
@@ -23,14 +26,15 @@ class ServerConfig
 		ServerConfig	&operator=(const ServerConfig &src);
 		~ServerConfig(void);
 
-		unsigned short	getPort(void) const;
-		std::string		getServerName(void) const;
-		in_addr_t		getHost(void) const;
-		std::string		getRoot(void) const;
-		std::string		getIndex(void) const;
+		unsigned short					getPort(void) const;
+		std::string						getServerName(void) const;
+		in_addr_t						getHost(void) const;
+		std::string						getRoot(void) const;
+		std::string						getIndex(void) const;
 		std::map<short, std::string>	getErrorPages(void) const;
-		unsigned int	getRequestBodySizeLimit(void) const;
-		bool			getAutoindex(void) const;
+		unsigned int					getRequestBodySizeLimit(void) const;
+		bool							getAutoindex(void) const;
+		std::vector<Location>			getLocations(void) const;
 
 		void	initServerConfig(void);
 		void	validateErrorPages(std::vector<std::string> &errorPageLine);
@@ -46,6 +50,7 @@ class ServerConfig
 		std::map<short, std::string> 	_errorPages;
 		unsigned int					_requestBodySizeLimit;
 		bool							_autoindex;
+		std::vector<Location>			_locations;
 };
 
 std::ostream &operator << (std::ostream &o, ServerConfig const &instance);

@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/31 18:21:23 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/02 16:38:08 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,8 +45,8 @@ ServerMaster::ServerMaster(std::string configFile)
 //	printServerBlocks();
 	for (size_t i = 0; i < this->_serverBlocks.size(); i++)
 	{
-		ServerConfig server(this->_serverBlocks[i]);
-		this->_serverConfigs.push_back(server);
+		ServerConfig newServer(this->_serverBlocks[i]);
+		this->_serverConfigs.push_back(newServer);
 	}
 	file.close();
 }

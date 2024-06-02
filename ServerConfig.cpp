@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:19:56 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/31 18:22:32 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/02 16:48:43aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,17 +40,6 @@ std::vector<std::string>	splitServerBlock(std::string &serverBlock)
 		start = end + 1;
 	}
 	return (serverBlockElements);
-}
-
-bool	validateElement(std::string &element)
-{
-	size_t	pos;
-
-	pos = element.rfind(";");
-	if (pos != element.size() - 1)
-		throw(std::runtime_error("Config parser: Invalid ending of an element in a server block."));
-	element.erase(pos);
-	return (true);
 }
 
 void	ServerConfig::validateErrorPages(std::vector<std::string> &errorPageLine)
@@ -114,7 +103,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	{
 		if (!inLocationBlock)
 		{
-			if (serverBlockElements[i] == "listen" && i + 1 < serverBlockElements.size()
+			if (serverBlockElements[i] == "listen" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
 			{
 				if (this->_port != 0)
@@ -131,7 +120,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				iss.clear();
 				i++;
 			}
-			else if (serverBlockElements[i] == "server_name" && i + 1 < serverBlockElements.size()
+			else if (serverBlockElements[i] == "server_name" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
 			{
 				if (!this->_serverName.empty())
@@ -139,7 +128,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				this->_serverName = serverBlockElements[i + 1];
 				i++;
 			}
-			else if (serverBlockElements[i] == "host" && i + 1 < serverBlockElements.size()
+			else if (serverBlockElements[i] == "host" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
 			{
 				if (this->_host != 0)
@@ -151,12 +140,12 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				this->_host = inet_addr(serverBlockElements[i + 1].data());
 				i++;
 			}
-			else if (serverBlockElements[i] == "root" && i + 1 < serverBlockElements.size()
+			else if (serverBlockElements[i] == "root" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
 			{
 				if (!this->_root.empty())
 					throw (std::runtime_error("Config parser: Duplicate root directive."));
-				// validate or find a valid root
+				// check the absolute path (raw string from config) and if invalid, check relative path that is interpreted as relative to the current working directory
 				fileCheck = stat(serverBlockElements[i + 1].c_str(), &fileCheckBuff);
 				if (fileCheck != 0)
 					throw(std::runtime_error("Config parser: Cannot access root path."));
@@ -173,7 +162,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 					this->_root = serverBlockElements[i + 1];
 				i++;
 			}
-			else if (serverBlockElements[i] == "index" && i + 1 < serverBlockElements.size()
+			else if (serverBlockElements[i] == "index" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
 			{
 				if (!this->_index.empty())
@@ -181,7 +170,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				this->_index = serverBlockElements[i + 1];
 				i++;
 			}
-			else if (serverBlockElements[i] == "client_max_body_size" && i + 1 < serverBlockElements.size()
+			else if (serverBlockElements[i] == "client_max_body_size" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
 			{
 				if (rbslInConfig)
@@ -213,7 +202,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				rbslInConfig = true;
 				i++;
 			}
-			else if (serverBlockElements[i] == "autoindex" && i + 1 < serverBlockElements.size()
+			else if (serverBlockElements[i] == "autoindex" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
 			{
 				if (autoindexInConfig)
@@ -238,7 +227,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				i += errorPageLine.size() - 1;
 				errorPageLine.clear();
 			}
-			else if (serverBlockElements[i] == "location" && i + 1 < serverBlockElements.size()) // validate start and end of the block different to the above
+			else if (serverBlockElements[i] == "location" && (i + 1) < serverBlockElements.size()) // validate start and end of the block different to the above
 			{
 				size_t	posBracket;
 				std::string	locationPath;
@@ -259,6 +248,10 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				locationScope.push_back("}");
 				std::cout << "location path: " << locationPath << '\n'
 					<< "location scope: " << locationScope << std::endl;
+
+				Location newLocation(locationPath, locationScope);
+				this->_locations.push_back(newLocation);
+				
 				i += locationScope.size() + 1; // if 'location' and location path from the config would be included, it'd be -1, but those 2 aren't in the vector
 				locationScope.clear();
 			//	inLocationBlock = true;
@@ -356,6 +349,11 @@ bool	ServerConfig::getAutoindex(void) const
 	return (this->_autoindex);
 }
 
+std::vector<Location>	ServerConfig::getLocations(void) const
+{
+	return (this->_locations);
+}
+
 void	ServerConfig::initServerConfig(void)
 {
 	this->_port = 0;
@@ -370,9 +368,11 @@ std::ostream &operator << (std::ostream &o, ServerConfig const &instance)
 {
 	unsigned int					host;
 	std::map<short, std::string>	errorPages;
+	std::vector<Location>			locations;
 	
 	host = instance.getHost();
 	errorPages = instance.getErrorPages();
+	locations = instance.getLocations();
 	o << "___Server Config___" << '\n'
 		<< "listen (port): " << instance.getPort() << '\n'
 		<< "server_name: " << instance.getServerName() << '\n'
@@ -383,6 +383,8 @@ std::ostream &operator << (std::ostream &o, ServerConfig const &instance)
 	for (std::map<short, std::string>::const_iterator it = errorPages.begin(); it != errorPages.end(); ++it)
 		o << it->first << ": " << it->second << '\n';
 	o << "client_max_body_size (requestBodySizeLimit): " << instance.getRequestBodySizeLimit() << '\n'
-		<< "autoindex: " << instance.getAutoindex();
+		<< "autoindex: " << instance.getAutoindex() << '\n';
+	for (size_t i = 0; i < locations.size(); i++)
+		o << locations[i] << '\n';
 	return (o);
 }
