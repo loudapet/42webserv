@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/02 18:17:22 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/03 16:50:48 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,35 +19,20 @@ Location::Location(void)
 
 Location::Location(std::string locationPath, std::vector<std::string> locationScope)
 {
-	int								fileCheck; // validate root
-	struct stat						fileCheckBuff; // validate root
-	char							currentDirectory[4096]; // try to find a valid root
-	std::string						tmpRoot; // try to find a valid root
+	bool						rbslInConfig;
+	bool						autoindexInConfig;
+	std::vector<std::string>	allowMethodsLine;
 
 	initLocation();
+	rbslInConfig = false;
+	autoindexInConfig = false;
 	this->_path = locationPath;
 	for (size_t i = 0; i < locationScope.size(); i++)
 	{
 		if (locationScope[i] == "root" && (i + 1) < locationScope.size()
 			&& validateElement(locationScope[i + 1]))
 		{
-			if (!this->_root.empty())
-				throw (std::runtime_error("Config parser: Duplicate root directive in a location scope."));
-			// check the absolute path (raw string from config) and if invalid, check relative path that is interpreted as relative to the current working directory
-			fileCheck = stat(locationScope[i + 1].c_str(), &fileCheckBuff);
-			if (fileCheck != 0)
-				throw(std::runtime_error("Config parser: Cannot access root path of a location."));
-			if (!(fileCheckBuff.st_mode & S_IFDIR) || fileCheckBuff.st_mode & S_IFREG) // not a directory, but a file
-			{
-				getcwd(currentDirectory, sizeof(currentDirectory));
-				tmpRoot = currentDirectory + locationScope[i + 1];
-				fileCheck = stat(locationScope[i + 1].c_str(), &fileCheckBuff);
-				if (!(fileCheckBuff.st_mode & S_IFDIR)) // is not a directory
-					throw(std::runtime_error("Config parser: Failed to find a valid root for a location."));
-				this->_root = tmpRoot;
-			}
-			else
-				this->_root = locationScope[i + 1];
+			this->_root = validateRoot(this->_root, locationScope[i + 1], "location");
 			i++;
 		}
 		else if (locationScope[i] == "index" && (i + 1) < locationScope.size()
@@ -58,11 +43,39 @@ Location::Location(std::string locationPath, std::vector<std::string> locationSc
 			this->_index = locationScope[i + 1];
 			i++;
 		}
+		else if (locationScope[i] == "client_max_body_size" && (i + 1) < locationScope.size()
+			&& validateElement(locationScope[i + 1]))
+		{
+			this->_requestBodySizeLimit = validateRequestBodySizeLimit(rbslInConfig, locationScope[i + 1], "location"); 
+			rbslInConfig = true;
+			i++;
+		}
+		else if (locationScope[i] == "autoindex" && (i + 1) < locationScope.size()
+			&& validateElement(locationScope[i + 1]))
+		{
+			this->_autoindex = validateAutoindex(autoindexInConfig, locationScope[i + 1], "location");
+			autoindexInConfig = true;
+			i++;
+		}
+		else if (locationScope[i] == "allow_methods")
+		{
+			size_t j = 0;
+			while (locationScope[i + j].find(';') == std::string::npos && i + j < locationScope.size())
+			{
+				allowMethodsLine.push_back(locationScope[i + j]);
+				j++;
+			}
+			allowMethodsLine.push_back(locationScope[i + j]);
+	//		validateAllowMethodsLine(allowMethodsLine);
+			i += allowMethodsLine.size() - 1;
+			allowMethodsLine.clear();
+		}
+
 	}
 	// validate location path - TBA
 	// validate index once you have root
-	std::cout << "Location created." << std::endl;
-	return ;
+	// what if difference between server and location scope directives - e.g. autoindex off in server but off in location
+	// require methods?
 }
 
 Location::Location(const Location& copy)
@@ -70,6 +83,8 @@ Location::Location(const Location& copy)
 	this->_path = copy.getPath();
 	this->_root = copy.getRoot();
 	this->_index = copy.getIndex();
+	this->_requestBodySizeLimit = copy.getRequestBodySizeLimit();
+	this->_autoindex = copy.getAutoindex();
 }
 
 Location	&Location::operator = (const Location &src)
@@ -79,6 +94,8 @@ Location	&Location::operator = (const Location &src)
 		this->_path = src.getPath();
 		this->_root = src.getRoot();
 		this->_index = src.getIndex();
+		this->_requestBodySizeLimit = src.getRequestBodySizeLimit();
+		this->_autoindex = src.getAutoindex();
 	}
 	return (*this);
 }
@@ -105,11 +122,23 @@ std::string	Location::getIndex(void) const
 	return (this->_index);
 }
 
+unsigned int	Location::getRequestBodySizeLimit(void) const
+{
+	return (this->_requestBodySizeLimit);
+}
+
+bool	Location::getAutoindex(void) const
+{
+	return (this->_autoindex);	
+}
+
 void	Location::initLocation(void)
 {
 	this->_path = "";
 	this->_root = "";
 	this->_index = "";
+	this->_requestBodySizeLimit = REQUEST_BODY_SIZE_LIMIT;
+	this->_autoindex = false;
 }
 
 std::ostream &operator << (std::ostream &o, Location const &instance)
@@ -117,6 +146,8 @@ std::ostream &operator << (std::ostream &o, Location const &instance)
 	o << "*** Location ***" << '\n'
 		<< "path: " << instance.getPath() << '\n'
 		<< "root: " << instance.getRoot() << '\n'
-		<< "index: " << instance.getIndex();
+		<< "index: " << instance.getIndex() << '\n'
+		<< "client_max_body_size (requestBodySizeLimit): " << instance.getRequestBodySizeLimit() << '\n'
+		<< "autoindex: " << instance.getAutoindex();
 	return (o);
 }

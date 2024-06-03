@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/02 17:55:23 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/03 17:48:34 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,7 @@ extern bool runWebserv;
 
 typedef std::vector<uint8_t> octets_t;
 
+
 # define PORT_SERVER 8000
 # define CONNECTION_TIMEOUT 20
 //# define CLIENT_MESSAGE_BUFF 4096 // 4 KB
@@ -46,12 +47,25 @@ typedef std::vector<uint8_t> octets_t;
 
 # define WHITESPACES "\t\n\v\f\r "
 
-bool	validateElement(std::string &element);
+// Utils.cpp
+bool			validateElement(std::string &element);
+std::string		validateRoot(const std::string &root, const std::string &locationScopeElement, const std::string &exceptionMessage);
+unsigned int	validateRequestBodySizeLimit(bool rbslInConfig, const std::string &rbslFromConfig, const std::string &exceptionMessage);
+bool			validateAutoindex(bool autoindexInConfig, const std::string &autoindexFromConfig, const std::string &exceptionMessage);
+unsigned short	validateListen(unsigned short port, const std::string &portFromConfig);
+std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::string> &mainVector, size_t pos);
 
 inline std::ostream &operator << (std::ostream &o, std::vector<std::string> &stringVectorToPrint)
 {
 	for (size_t i = 0; i < stringVectorToPrint.size(); i++)
 		o << stringVectorToPrint[i] << std::endl;
+	return (o);
+}
+
+inline std::ostream &operator << (std::ostream &o, const std::vector<std::string> &stringVectorToPrint)
+{
+	for (size_t i = 0; i < stringVectorToPrint.size(); i++)
+		o << stringVectorToPrint[i] << " ";
 	return (o);
 }
 
