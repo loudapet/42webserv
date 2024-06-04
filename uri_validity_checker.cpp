@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/03 13:28:25 by okraus            #+#    #+#             */
-/*   Updated: 2024/06/03 17:29:12 by okraus           ###   ########.fr       */
+/*   Updated: 2024/06/04 16:18:13 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -157,7 +157,7 @@ bool	check_valid(std::string uri)
 		if (!check_label(label))
 			return (false);
 	}
-	if (uri.size() && !is_alphas(uri))
+	if (!is_alphas(uri))
 		return (false);
 	return (true);
 }
