@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/03 17:48:34 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/04 20:52:55 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 # include <iostream>
 # include <vector>
 # include <map>
+# include <set>
 # include <unistd.h>
 # include <stdexcept>
 # include <sys/types.h>
@@ -53,7 +54,12 @@ std::string		validateRoot(const std::string &root, const std::string &locationSc
 unsigned int	validateRequestBodySizeLimit(bool rbslInConfig, const std::string &rbslFromConfig, const std::string &exceptionMessage);
 bool			validateAutoindex(bool autoindexInConfig, const std::string &autoindexFromConfig, const std::string &exceptionMessage);
 unsigned short	validateListen(unsigned short port, const std::string &portFromConfig);
+std::vector<std::string>	validateIndex(const std::vector<std::string> &indexes, const std::vector<std::string> &scopeElements, size_t pos, const std::string &exceptionMessage);
+
 std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::string> &mainVector, size_t pos);
+
+void	fileIsValidAndAccessible(const std::string &path, const std::string &exceptionMessage);
+std::string	dirIsValidAndAccessible(const std::string &path, const std::string &directiveName, const std::string &exceptionMessage);
 
 inline std::ostream &operator << (std::ostream &o, std::vector<std::string> &stringVectorToPrint)
 {
@@ -67,6 +73,13 @@ inline std::ostream &operator << (std::ostream &o, const std::vector<std::string
 	for (size_t i = 0; i < stringVectorToPrint.size(); i++)
 		o << stringVectorToPrint[i] << " ";
 	return (o);
+}
+
+inline std::ostream &operator << (std::ostream &o, const std::set<std::string> &stringSetToPrint)
+{
+	for (std::set<std::string>::const_iterator it = stringSetToPrint.begin(); it != stringSetToPrint.end(); ++it)
+		o << *it << " ";
+	return o;
 }
 
 #endif

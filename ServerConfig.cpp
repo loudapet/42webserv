@@ -74,6 +74,22 @@ void	ServerConfig::validateErrorPagesLine(std::vector<std::string> &errorPageLin
 }
 
 
+bool	isValidWildcardName(std::vector<std::string> &serverNames)
+{
+	for (size_t i = 0; i < serverNames.size(); i++)
+	{
+		if (serverNames[i].find("*") != std::string::npos)
+		{
+			if (serverNames[i][0] != '*' && serverNames[i][serverNames[i].length() - 1] != '*')
+				return (false);
+			else
+				if (serverNames[i][1] != '.' && serverNames[i][serverNames[i].length() - 2] != '.')
+					return (false);
+		}
+	}
+	return (true);
+}
+
 ServerConfig::ServerConfig(std::string &serverBlock)
 {
 	std::vector<std::string>		serverBlockElements;
@@ -113,14 +129,16 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 			}
 			else if (serverBlockElements[i] == "server_name" && (i + 1) < serverBlockElements.size())
 			{
-				// should check for 'invalid' server names??
+				// QUESTION: resolve $hostname?
 				if (!this->_serverNames.size() == 0)
 					throw (std::runtime_error("Config parser: Duplicate server_name directive."));
 				this->_serverNames = extractVectorUntilSemicolon(serverBlockElements, i + 1);
 				validateElement(this->_serverNames.back());
+				if (!isValidWildcardName(this->_serverNames))
+					throw (std::runtime_error("Config parser: Invalid server name."));
 				if (this->_serverNames.size() > 0)
 					this->_primaryServerName = this->_serverNames[0];
-				i += this->_serverNames.size();
+				i += this->_serverNames.size(); // not -1 bcs there is the directive name to skip too
 			}
 			else if (serverBlockElements[i] == "host" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
@@ -137,20 +155,19 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 			else if (serverBlockElements[i] == "root" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
 			{
+				// QUESTION: resolve variables? https://nginx.org/en/docs/varindex.html
 				this->_root = validateRoot(this->_root, serverBlockElements[i + 1], "server");
 				i++;
 			}
-			else if (serverBlockElements[i] == "index" && (i + 1) < serverBlockElements.size()
-				&& validateElement(serverBlockElements[i + 1]))
+			else if (serverBlockElements[i] == "index" && (i + 1) < serverBlockElements.size())
 			{
-				if (!this->_index.empty())
-					throw (std::runtime_error("Config parser: Duplicate index directive in a server scope."));
-				this->_index = serverBlockElements[i + 1];
-				i++;
+				this->_index = validateIndex(this->_index, serverBlockElements, i + 1, "server");
+				i += this->_index.size(); // not -1 bcs there is the directive name to skip too
 			}
 			else if (serverBlockElements[i] == "client_max_body_size" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
 			{
+				// source: https://docs.nginx.com/nginx-management-suite/acm/how-to/policies/request-body-size-limit/
 				this->_requestBodySizeLimit = validateRequestBodySizeLimit(rbslInConfig, serverBlockElements[i + 1], "server"); 
 				rbslInConfig = true;
 				i++;
@@ -217,21 +234,14 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 		this->_root = "/";
 	if (this->_host == 0)
 		this->_host = inet_pton(AF_INET, "127.0.0.1", &(sa.sin_addr));
-	if (this->_index.empty())
-		this->_index = "index.html";
+	if (this->_index.size() == 0)
+		this->_index.push_back("index.html");
 	
 	// validate files now that you have the root
-	if (access((this->getRoot() + this->_index).c_str(), 0) < 0)
-		throw(std::runtime_error("Config parser: Index file '" + this->_index + "' is an invalid file."));
-	if (access((this->getRoot() + this->_index).c_str(), 4) < 0)
-		throw(std::runtime_error("Config parser: Index file '" + this->_index + "' is not accessible."));
+	for (size_t i = 0; i < this->_index.size(); i++)
+		fileIsValidAndAccessible(this->getRoot() + this->_index[i], "Index file");
 	for (std::map<short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
-	{
-		if (access((this->getRoot() + it->second).c_str(), 0) < 0)
-			throw(std::runtime_error("Config parser: Error page file '" + it->second + "' is an invalid file."));
-		if (access((this->getRoot() + it->second).c_str(), 4) < 0)
-			throw(std::runtime_error("Config parser: Error page file '" + it->second + "' is not accessible."));
-	}
+		fileIsValidAndAccessible(this->getRoot() + it->second, "Error page file");
 	// validate mandatory directives
 }
 
@@ -300,7 +310,7 @@ const std::string	&ServerConfig::getRoot(void) const
 	return (this->_root);
 }
 
-const std::string	&ServerConfig::getIndex(void) const
+const std::vector<std::string>	&ServerConfig::getIndex(void) const
 {
 	return (this->_index);
 }
@@ -333,6 +343,7 @@ void	ServerConfig::initServerConfig(void)
 	this->_primaryServerName = "";
 	this->_host = 0;
 	this->_root = "";
+	this->_index = std::vector<std::string>();
 	this->_errorPages = std::map<short, std::string>();
 	this->_requestBodySizeLimit = REQUEST_BODY_SIZE_LIMIT;
 	this->_autoindex = false;

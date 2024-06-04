@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/02 16:38:08 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/04 20:45:28 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,10 +25,7 @@ ServerMaster::ServerMaster(std::string configFile)
 
 	if (configFile.size() < 5 || configFile.substr(configFile.size() - 5) != ".conf")
 		throw(std::runtime_error("Provided config file '" + configFile + "' doesn't have a .conf extension."));
-	if (access(configFile.c_str(), 0) < 0)
-		throw(std::runtime_error("Provided config file '" + configFile + "' is an invalid file."));
-	if (access(configFile.c_str(), 4) < 0)
-		throw(std::runtime_error("Provided config file '" + configFile + "' is not accessible."));
+	fileIsValidAndAccessible(configFile, "Config file");
 	file.open(configFile.c_str());
 	if (!(file >> c)) // check if the file is empty by trying to read a character from it
 		throw(std::runtime_error("Provided config file '" + configFile + "' is empty."));
