@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/03 13:28:25 by okraus            #+#    #+#             */
-/*   Updated: 2024/06/04 16:18:13 by okraus           ###   ########.fr       */
+/*   Updated: 2024/06/04 16:34:36 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@
 
 //./a.out en.wikipedia-org.com 10.10.1.255 214.15.1.cn
 //./a.out en.wikipedia-org-.com 10.10.1.256 214.15.1
-//c++ -Wall -Wextra -Werror uri_validity_checker.cpp 
+//c++ -Wall -Wextra -Werror -std=c++98 uri_validity_checker.cpp 
 
 
 //what about octal, hexadecimal or integer IP???
@@ -31,8 +31,8 @@ bool	is_digits(const std::string str)
 {
 	if (str.empty())
 		return (false);
-	for (char ch : str)
-		if (!std::isdigit(ch))
+	for (size_t i = 0; i < str.size(); ++i)
+		if (!std::isdigit(str[i]))
 			return (false);
 	return (true);
 }
@@ -41,8 +41,8 @@ bool	is_alphas(const std::string str)
 {
 	if (str.empty())
 		return (false);
-	for (char ch : str)
-		if (!std::isalpha(ch))
+	for (size_t i = 0; i < str.size(); ++i)
+		if (!std::isalpha(str[i]))
 			return (false);
 	return (true);
 }
@@ -53,17 +53,17 @@ bool	is_alhypnumsperc(const std::string str)
 	int	perc = 0;
 	if (str.empty())
 		return (false);
-	for (char ch : str)
-		if (!(std::isalnum(ch) || ch == '-'))
+	for (size_t i = 0; i < str.size(); ++i)
+		if (!(std::isalnum(str[i]) || str[i] == '-'))
 		{
-			if (ch == '%' && !perc)
+			if (str[i] == '%' && !perc)
 				perc = 2;
 			else
 				return (false);
 		}
 		else if (perc)
 		{
-			if (!std::isxdigit(ch))
+			if (!std::isxdigit(str[i]))
 				return (false);
 			else
 				--perc;
