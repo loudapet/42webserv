@@ -1,17 +1,17 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   HttpHeader.hpp                                     :+:      :+:    :+:   */
+/*   HttpRequest.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/05/31 14:37:04 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/04 10:23:03 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef HTTPHEADER_HPP
-#define HTTPHEADER_HPP
+#ifndef HTTPREQUEST_HPP
+#define HTTPREQUEST_HPP
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -71,7 +71,7 @@ typedef struct StartLine
 	std::string			reasonPhrase; // optional
 } startLine_t;
 
-class HttpHeader
+class HttpRequest
 {
 	private:
 		startLine_t	startLine;
@@ -87,12 +87,13 @@ class HttpHeader
 		stringpair_t	resolveHost();
 
 	public:
-		HttpHeader();
-		HttpHeader(const HttpHeader& refObj);
-		HttpHeader& operator = (const HttpHeader& refObj);
-		~HttpHeader();
+		HttpRequest();
+		HttpRequest(const HttpRequest& refObj);
+		HttpRequest& operator = (const HttpRequest& refObj);
+		~HttpRequest();
 
 		stringpair_t	parseHeader(octets_t header);
+		void			validateHeader();
 };
 
 std::ostream &operator<<(std::ostream &os, octets_t &vec);
@@ -102,6 +103,6 @@ std::ostream &operator<<(std::ostream &os, startLine_t &startLine);
 std::ostream &operator<<(std::ostream &os, std::map<std::string, std::string> &fieldSection);
 
 
-typedef void(HttpHeader::*ParseToken)(std::string&);
+typedef void(HttpRequest::*ParseToken)(std::string&);
 
-#endif  // HTTPHEADER_HPP
+#endif  // HTTPREQUEST_HPP

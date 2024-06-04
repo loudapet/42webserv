@@ -1,34 +1,34 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   HttpHeader.cpp                                     :+:      :+:    :+:   */
+/*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/05/31 16:16:53 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/04 10:56:50 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../inc/HttpHeader.hpp"
+#include "../inc/HttpRequest.hpp"
 
-HttpHeader::HttpHeader()
+HttpRequest::HttpRequest()
 {
 	return ;
 }
 
-HttpHeader::HttpHeader(const HttpHeader& refObj)
+HttpRequest::HttpRequest(const HttpRequest& refObj)
 {
 	*this = refObj;
 }
 
-HttpHeader& HttpHeader::operator = (const HttpHeader& refObj)
+HttpRequest& HttpRequest::operator = (const HttpRequest& refObj)
 {
 	(void)refObj;
 	return (*this);
 }
 
-HttpHeader::~HttpHeader()
+HttpRequest::~HttpRequest()
 {
 	return ;
 }
@@ -44,7 +44,7 @@ std::string	trim(const std::string& str)
 	return (str.substr(strBegin, strRange));
 }
 
-void	HttpHeader::parseMethod(std::string& token)
+void	HttpRequest::parseMethod(std::string& token)
 {
 	if (token == "GET" || token == "POST" || token == "DELETE")
 		this->startLine.method = token;
@@ -76,7 +76,7 @@ void resolvePercentEncoding(std::string& path, size_t& pos)
 	}
 }
 
-void	HttpHeader::resolveDotSegments(std::string& path)
+void	HttpRequest::resolveDotSegments(std::string& path)
 {
 	std::stack<std::string>	segments;
 	std::stack<std::string>	output;
@@ -107,7 +107,7 @@ void	HttpHeader::resolveDotSegments(std::string& path)
 	return ;
 }
 
-void	HttpHeader::validateURIElements(void)
+void	HttpRequest::validateURIElements(void)
 {
 	size_t			pos = 0;
 	std::string		extraAllowedChars("?#\0\0", 4);
@@ -132,7 +132,7 @@ void	HttpHeader::validateURIElements(void)
 	}
 }
 
-stringpair_t	HttpHeader::parseAuthority(std::string& authority, HostLocation parseLocation)
+stringpair_t	HttpRequest::parseAuthority(std::string& authority, HostLocation parseLocation)
 {
 	if (authority.find_first_of("@") != std::string::npos)
 		throw(std::invalid_argument("400 Bad Request: 'userinfo' component deprecated"));
@@ -177,7 +177,7 @@ stringpair_t	HttpHeader::parseAuthority(std::string& authority, HostLocation par
 	return(std::make_pair(host, port));
 }
 
-void	HttpHeader::parseRequestTarget(std::string& uri)
+void	HttpRequest::parseRequestTarget(std::string& uri)
 {
 	//the following two lines should be in the constructor
 	this->startLine.requestTarget.authority.first = "";
@@ -240,7 +240,7 @@ void	HttpHeader::parseRequestTarget(std::string& uri)
 }
 
 // pending response to invalid versions and to version 1.0
-void	HttpHeader::parseHttpVersion(std::string& token)
+void	HttpRequest::parseHttpVersion(std::string& token)
 {
 	std::string::iterator	slash = std::find(token.begin(), token.end(), '/');
 	std::string	http(token.begin(), slash);
@@ -252,13 +252,13 @@ void	HttpHeader::parseHttpVersion(std::string& token)
 	this->startLine.httpVersion = token;
 }
 
-void	HttpHeader::parseStartLine(std::string startLine)
+void	HttpRequest::parseStartLine(std::string startLine)
 {
 	std::vector<std::string>	startLineTokens;
 	std::string::iterator		space = std::find(startLine.begin(), startLine.end(), SP);
-	ParseToken					parse[3] = {&HttpHeader::parseMethod,
-									&HttpHeader::parseRequestTarget,
-									&HttpHeader::parseHttpVersion};
+	ParseToken					parse[3] = {&HttpRequest::parseMethod,
+									&HttpRequest::parseRequestTarget,
+									&HttpRequest::parseHttpVersion};
 
 	while (space != startLine.end() || startLine.size() != 0) // size != 0 to grab the last segment
 	{
@@ -275,7 +275,7 @@ void	HttpHeader::parseStartLine(std::string startLine)
 		(this->*parse[i])(startLineTokens[i]);
 }
 
-void	HttpHeader::parseFieldSection(std::vector<std::string>& fields)
+void	HttpRequest::parseFieldSection(std::vector<std::string>& fields)
 {
 	std::string	allowedChars(std::string(DIGITS) + std::string(ALPHA) + std::string(TOKEN));
 	std::string	fieldName;
@@ -325,7 +325,7 @@ void	HttpHeader::parseFieldSection(std::vector<std::string>& fields)
 // 1/ host from header needs to be parsed and percent-encoding has to be resolved
 // 2/ that does not need ot be done if there already is a host under requestLine.authority - but it should probably still be checked for invalid characters and separators
 // 3/ identify comma-separated hosts (or automatically consider them as a singleton field)
-stringpair_t	HttpHeader::resolveHost(void)
+stringpair_t	HttpRequest::resolveHost(void)
 {
 	stringmap_t::iterator	hostIter = this->headerFields.find("host");
 	stringpair_t			hostHeader = this->parseAuthority(hostIter->second, HEADER_FIELD);
@@ -392,7 +392,7 @@ static void	invalidateNullBytes(octets_t& line)
 		throw (std::invalid_argument("400 Bad Request: Zero bytes disallowed"));
 }
 
-stringpair_t	HttpHeader::parseHeader(octets_t header)
+stringpair_t	HttpRequest::parseHeader(octets_t header)
 {
 	try
 	{
@@ -441,11 +441,30 @@ stringpair_t	HttpHeader::parseHeader(octets_t header)
 		std::cout << "Final port:\t" << authority.second << std::endl;
 		return (authority);
 	}
-	catch(const std::exception& e)
+	catch(const std::invalid_argument& e)
 	{
 		std::cerr << e.what() << '\n';
 		return (std::make_pair(std::string(""), std::string(DEFAULT_PORT)));
 	}
+}
+
+/*
+1) method check based on string comparison once the server block rules are matched, also needs 405 Method Not Allowed if applicable
+2) 
+*/
+void	HttpRequest::validateHeader(void)
+{
+	try
+	{
+		if (this->startLine.method != "GET" && this->startLine.method != "POST"
+		&& this->startLine.method != "DELETE")
+			throw (std::invalid_argument("501 Not implemented"));
+	}
+	catch(const std::invalid_argument& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+
 }
 
 std::ostream &operator<<(std::ostream &os, octets_t &vec)
