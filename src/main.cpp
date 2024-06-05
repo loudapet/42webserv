@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 10:46:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/05 09:59:34 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/05 15:59:16 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,17 +44,18 @@ int	main()
 	//std::string	startLine("\n\r\n\n\r\nGET /./ HTTP/1.1\r\n"); // if testing for 0-byte, pass precise length to constructor
 	//std::string	startLine("\n\r\n\n\r\nGET /./././a/b//////.. HTTP/1.1\r\n");
 	//std::string	startLine("\n\r\n\n\r\nGET ///...////?q=key#fragment HTTP/1.1\r\n");
-	std::string	startLine("\n\r\n\n\r\nGET http://1.2.ab/test/ HTTP/1.1\r\n");
+	std::string	startLine("\n\r\n\n\r\nGET http://1.2.ab/test/file.html HTTP/1.1\r\n");
 	std::string	host("Host: %4ehello%E2%82%AC:90\r\n");
 	std::string userAgent("User-Agent: Mozilla/5.0\n");
 	std::string	accept("Accept: text/html, */*\r\n");
 	std::string	acceptLanguage("Accept-Language: en-us\n");
 	std::string	acceptCharset("Accept-Charset: \tISO-8859-1,utf-8\n");
 	std::string	connection ("Connection: \r\n");
-	std::string	connection2 ("Accept-Language: en-gb\n");
+	//std::string	headerField1 ("Transfer-Encoding: \"identity;q=0.5\", chunked\n");
+	std::string	headerField2 ("Content-length: 9s\n");
 	std::string	invalid("t: €h\n");
 	std::string	endLine("\n");
-	std::string	request = startLine + host + userAgent + accept + acceptLanguage + acceptCharset + connection + connection2 + invalid + endLine;
+	std::string	request = startLine + host + userAgent + accept + acceptLanguage + acceptCharset + connection + headerField2 + invalid + endLine;
 
 	std::string	response = "HTTP/1.1  \t200     OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!\n";
 	octets_t octetRequest = convertStringToOctets(request);

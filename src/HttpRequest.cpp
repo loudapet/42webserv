@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/05 10:55:55 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/05 16:04:18 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,6 +44,33 @@ std::string	trim(const std::string& str)
 	const size_t strEnd = str.find_last_not_of(whitespace);
 	const size_t strRange = strEnd - strBegin + 1;
 	return (str.substr(strBegin, strRange));
+}
+
+std::vector<std::string>	splitQuotedString(const std::string& str, char sep)
+{
+	if (std::count(str.begin(), str.end(), '\"') % 2)
+		throw(std::invalid_argument("400 Bad Request: Unclosed quotes in quoted string"));
+	std::vector<std::string> splitString;
+	unsigned int counter = 0;
+	std::string segment;
+	std::stringstream stream_input(str);
+	while(std::getline(stream_input, segment, '\"'))
+	{
+		++counter;
+		if (counter % 2 == 0)
+		{
+			if (!segment.empty())
+				splitString.push_back(segment);
+		}
+		else
+		{
+			std::stringstream stream_segment(segment);
+			while(std::getline(stream_segment, segment, sep))
+				if (!segment.empty())
+					splitString.push_back(segment);
+		}
+	}
+	return (splitString);
 }
 
 void	HttpRequest::parseMethod(std::string& token)
@@ -470,12 +497,48 @@ void	HttpRequest::validateResourceAccess(void)
 			if (fileCheckBuff.st_mode & S_IFDIR)
 				throw (std::invalid_argument("301 Moved Permanently")); // will likely not be an exception, but a proper response handler
 		}
-		else if (*finalPath.rbegin() == '/' && !this->autoIndexing)
+		else if (*finalPath.rbegin() == '/' && !this->allowedDirListing)
 			throw (std::invalid_argument("403 Forbidden: Autoindexing is off"));
 		else
 			;// autoindexing for GET
 	}
 	// handle redirections, POST and DELETE
+}
+
+void	HttpRequest::validateMessageFraming(void)
+{
+	stringmap_t::iterator	transferEncoding = this->headerFields.find("transfer-encoding");
+	stringmap_t::iterator	contentLength = this->headerFields.find("content-length");
+	std::vector<std::string>	values;
+	if (transferEncoding != this->headerFields.end() && contentLength != this->headerFields.end())
+		throw (std::invalid_argument("404 Bad Request: Ambiguous message framing"));
+	if (transferEncoding != this->headerFields.end())
+	{
+		values = splitQuotedString(transferEncoding->second, ',');
+		for (std::vector<std::string>::iterator it = values.begin(); it != values.end(); it++)
+		{
+			*it = trim(*it);
+			std::string type = splitQuotedString(*it, ';')[0]; // get rid of parameters
+			if (type != "chunked" && type != "identity" && type != "")
+				throw (std::invalid_argument("501 Not Implemented: Unknown transfer-encoding"));
+			this->messageFraming = TRANSFER_ENCODING;
+		}
+	}
+	else if (contentLength != this->headerFields.end()) // needs reviewing
+	{
+		if (contentLength->second.find_first_not_of(DIGITS) != std::string::npos)
+			throw (std::invalid_argument("400 Bad Request: Invalid Content-Length value"));
+		errno = 0;
+		long bodySize = strtol(contentLength->second.c_str(), NULL, 10);
+		int	error = errno;
+		if (error == ERANGE || bodySize > INT_MAX) // update to max_body_size
+			throw (std::invalid_argument("413 Content Too Large: Content-Length is too big"));
+		if (error == EINVAL || bodySize < 0)
+			throw (std::invalid_argument("400 Bad Request: Invalid Content-Length value"));
+		
+	}
+	else
+		throw (std::invalid_argument("400 Bad Request: Invalid framing (depends on method)"));
 }
 
 /*
@@ -490,6 +553,7 @@ void	HttpRequest::validateHeader(void)
 		&& this->startLine.method != "DELETE")
 			throw (std::invalid_argument("501 Not implemented"));
 		this->validateResourceAccess();
+		this->validateMessageFraming();
 	}
 	catch(const std::invalid_argument& e)
 	{

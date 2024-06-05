@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/04 16:31:44 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/05 15:47:16 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,8 @@
 #include <exception>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <limits.h>
 #define UNDERLINE "\033[4m"
 #define	RESET "\033[0m"
 #define CR '\r'
@@ -42,6 +44,12 @@ typedef std::vector<uint8_t> octets_t;
 typedef std::pair<std::string,std::string> stringpair_t;
 typedef std::map<std::string,std::string> stringmap_t;
 octets_t	convertStringToOctets(std::string& str);
+
+enum	MessageFraming
+{
+	TRANSFER_ENCODING,
+	CONTENT_LENGTH
+};
 
 enum	HostLocation
 {
@@ -76,8 +84,9 @@ class HttpRequest
 		startLine_t	startLine;
 		stringmap_t	headerFields;
 		std::string	finalPath; // used to access the resource after URI with location's root
-		bool		autoIndexing;
+		bool		allowedDirListing;
 		bool		isRedirect;
+		enum MessageFraming		messageFraming;
 		void	parseStartLine(std::string startLine);
 		void	parseMethod(std::string& token);
 		stringpair_t	parseAuthority(std::string& authority, HostLocation parseLocation);
@@ -89,6 +98,7 @@ class HttpRequest
 		stringpair_t	resolveHost();
 
 		void	validateResourceAccess();
+		void	validateMessageFraming();
 
 	public:
 		HttpRequest();

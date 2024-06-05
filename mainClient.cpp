@@ -42,7 +42,12 @@ int main(void)
 	}
 	// Send data to the server
 	//const char *message = "\nGET /index.html?%71=key#key HTTP/1.1\nHost: example.com\nConnection: close\n\n";
-	const char *message = "\nGET /testdir/ HTTP/1.1\nConnection: keep-alive\ntest:\nHost: example.org:80\nConnection: low\ntest: n    o\n\n";
+	const char *message = "\nGET /testdir/test.html HTTP/1.1\nConnection: keep-alive\ntest:\n"
+							"Host: example.org:80\nConnection: low\ntest: n    o\n"
+							"Content-Length: 1\r\n\n"
+							"H"
+							"GET /testdir/test.html HTTP/1.1\nConnection: keep-alive\ntest:\n"
+							"Host: example.org:80\nConnection: low\ntest: n    o\n\n";
 	if (send(clientSocket, message, strlen(message), 0) == -1)
 	{
 		std::cerr << "Error: Failed to send data\n";
@@ -51,9 +56,9 @@ int main(void)
 	}
 
 	// Receive response from the server
-	char buffer[1024] = {0};
+	char buffer[8192] = {0};
 	sleep(1);
-	if (recv(clientSocket, buffer, 1024, 0) == -1)
+	if (recv(clientSocket, buffer, 8192, 0) == -1)
 	{
 		std::cerr << "Error: Failed to receive data\n";
 		close(clientSocket);
