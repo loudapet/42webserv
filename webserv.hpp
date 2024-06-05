@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/04 20:52:55 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/05 16:00:14 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,7 +51,7 @@ typedef std::vector<uint8_t> octets_t;
 // Utils.cpp
 bool			validateElement(std::string &element);
 std::string		validateRoot(const std::string &root, const std::string &locationScopeElement, const std::string &exceptionMessage);
-unsigned int	validateRequestBodySizeLimit(bool rbslInConfig, const std::string &rbslFromConfig, const std::string &exceptionMessage);
+int	validateRequestBodySizeLimit(bool rbslInConfig, const std::string &rbslFromConfig, const std::string &exceptionMessage);
 bool			validateAutoindex(bool autoindexInConfig, const std::string &autoindexFromConfig, const std::string &exceptionMessage);
 unsigned short	validateListen(unsigned short port, const std::string &portFromConfig);
 std::vector<std::string>	validateIndex(const std::vector<std::string> &indexes, const std::vector<std::string> &scopeElements, size_t pos, const std::string &exceptionMessage);
@@ -59,7 +59,7 @@ std::vector<std::string>	validateIndex(const std::vector<std::string> &indexes, 
 std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::string> &mainVector, size_t pos);
 
 void	fileIsValidAndAccessible(const std::string &path, const std::string &exceptionMessage);
-std::string	dirIsValidAndAccessible(const std::string &path, const std::string &directiveName, const std::string &exceptionMessage);
+std::string	dirIsValidAndAccessible(const std::string &path, const std::string &accessMessage, const std::string &dirOrFileMessage);
 
 inline std::ostream &operator << (std::ostream &o, std::vector<std::string> &stringVectorToPrint)
 {

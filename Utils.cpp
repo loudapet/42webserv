@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/04 21:00:06 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/05 16:07:11 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,14 +43,19 @@ unsigned short	validateListen(unsigned short port, const std::string &portFromCo
 	return (newPort);
 }
 
-std::string		validateRoot(const std::string &root, const std::string &rootFromConfig, const std::string &exceptionMessage)
+std::string		validateRoot(const std::string &root, const std::string &rootFromConfig, const std::string &exceptionScope)
 {
 	if (!root.empty())
-		throw (std::runtime_error("Config parser: Duplicate root directive in a " + exceptionMessage + " scope."));
-	return (dirIsValidAndAccessible(rootFromConfig, "root", exceptionMessage));
+		throw (std::runtime_error("Config parser: Duplicate root directive in a " + exceptionScope + " scope."));
+	if (exceptionScope == "server")
+		return (dirIsValidAndAccessible(rootFromConfig, 
+			"Cannot access root path of a server.", "Root path of a server is not a directory."));
+	else
+		return (dirIsValidAndAccessible(rootFromConfig, 
+			"Cannot access root path of a location.", "Root path of a location is not a directory."));
 }
 
-unsigned int	validateRequestBodySizeLimit(bool rbslInConfig, const std::string &rbslFromConfig, const std::string &exceptionMessage)
+int	validateRequestBodySizeLimit(bool rbslInConfig, const std::string &rbslFromConfig, const std::string &exceptionMessage)
 {
 	int		multiplier;
 	long	rbslValue;
@@ -99,9 +104,8 @@ std::vector<std::string>	validateIndex(const std::vector<std::string> &index, co
 {
 	std::vector<std::string>	newIndex;
 
-	// QUESTION: resolve variables? https://nginx.org/en/docs/varindex.html
-	// https://nginx.org/en/docs/http/ngx_http_index_module.html
-	if (!index.size() == 0)
+	// source: https://nginx.org/en/docs/http/ngx_http_index_module.html
+	if (!(index.size() == 0))
 		throw (std::runtime_error("Config parser: Duplicate index directive in a " + exceptionMessage + " scope."));
 	newIndex = extractVectorUntilSemicolon(scopeElements, pos);
 	validateElement(newIndex.back());
@@ -122,25 +126,27 @@ std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::stri
 	return (extractedVector);
 }
 
-void	fileIsValidAndAccessible(const std::string &path, const std::string &exceptionMessage)
+void	fileIsValidAndAccessible(const std::string &path, const std::string &exceptionScope)
 {
 	if (access(path.c_str(), 0) < 0)
-		throw(std::runtime_error("Config parser: " + exceptionMessage + " file at '" + path + "' is an invalid file."));
+		throw(std::runtime_error("Config parser: " + exceptionScope + " file at '" + path + "' is an invalid file."));
 	if (access(path.c_str(), 4) < 0)
-		throw(std::runtime_error("Config parser: " + exceptionMessage + " file at '" + path + "' is not accessible."));
+		throw(std::runtime_error("Config parser: " + exceptionScope + " file at '" + path + "' is not accessible."));
 }
 
-// check the absolute path (raw string from config) and if invalid, check relative path that is interpreted as relative to the current working directory
-std::string	dirIsValidAndAccessible(const std::string &path, const std::string &directiveName, const std::string &exceptionMessage)
+std::string	dirIsValidAndAccessible(const std::string &path, const std::string &accessMessage, const std::string &dirOrFileMessage)
 {
 	int			fileCheck;
 	struct stat	fileCheckBuff;
 
+	// Cannot access root path of a location/scope.
+	// Root path of a location/scope is not a directory.
+
 	fileCheck = stat(path.c_str(), &fileCheckBuff);
 	if (fileCheck != 0)
-		throw(std::runtime_error("Config parser: Cannot access " + directiveName + " path of a " + exceptionMessage + "."));
+		throw(std::runtime_error("Config parser: " + accessMessage));
 	if (!(fileCheckBuff.st_mode & S_IFDIR) || fileCheckBuff.st_mode & S_IFREG) // not a directory, but a file
-		throw(std::runtime_error("Config parser: Root path of a " + directiveName + " is not a directory."));
+		throw(std::runtime_error("Config parser: " + dirOrFileMessage));
 	if (path[path.size() - 1] != '/')
 		return (path + "/");
 	return (path);

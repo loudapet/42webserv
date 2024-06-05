@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/04 20:58:33 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/05 16:53:10 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,7 @@ Location::Location(std::string locationPath, std::vector<std::string> locationSc
 	autoindexInConfig = false;
 	allowMethodsInConfig = false;
 	this->_path = locationPath;
+	//std::cout << "Location block: " << locationScope << std::endl;
 	for (size_t i = 0; i < locationScope.size(); i++)
 	{
 		if (locationScope[i] == "root" && (i + 1) < locationScope.size()
@@ -72,26 +73,36 @@ Location::Location(std::string locationPath, std::vector<std::string> locationSc
 					throw(std::runtime_error("Config parser: Duplicate method '" + allowMethodsLine[i] + "'."));
 				this->_allowMethods.insert(allowMethodsLine[i]);
 			}
-			i += allowMethodsLine.size() - 1;
+			i += allowMethodsLine.size(); // not -1 bcs there is the directive to skip too
 			allowMethodsLine.clear();
 		}
-		else if (locationScope[i] == "alias" && (i + 1) < locationScope.size()
+		else if (locationScope[i] == "cgi_path" && (i + 1) < locationScope.size())
+		{
+			this->_cgiPath = extractVectorUntilSemicolon(locationScope, i + 1);
+			validateElement(this->_cgiPath.back());
+			i += this->_cgiPath.size(); // not -1 bcs there is the directive name to skip too
+		}
+		else if (locationScope[i] == "cgi_ext" && (i + 1) < locationScope.size())
+		{
+			this->_cgiExt = extractVectorUntilSemicolon(locationScope, i + 1);
+			validateElement(this->_cgiExt.back());
+			i += this->_cgiExt.size(); // not -1 bcs there is the directive name to skip too
+		}
+		else if (locationScope[i] == "return" && (i + 1) < locationScope.size()
 			&& validateElement(locationScope[i + 1]))
 		{
-			// QUESTION: not sure how (and therefore where) to validate? With root as prefix? Need to check if the location has a root and if not fallback on the server one?
-			//this->_alias = dirIsValidAndAccessible(locationScope[i + 1], "alias", "location");
-			this->_alias = locationScope[i + 1];
-			if (this->_alias.length() >= this->_path.length() &&
-				   this->_alias.compare(this->_alias.size() - this->_path.length(), this->_path.length(), this->_path) == 0)
-				throw(std::runtime_error("Config parser: The location path matches the last part of the alias directive value. Please use the root directive instead."));
+			this->_return = locationScope[i + 1];
 			i++;
 		}
-
+		else if (locationScope[i] != "{" && locationScope[i] != "}")
+		{
+			//std::cout << "unsupported: " << locationScope[i] << std::endl;
+			throw (std::runtime_error("Config parser: Invalid directive in a location block."));
+		}
 	}
-	// validate location path - TBA
-	// validate index once you have root
-	// what if difference between server and location scope directives - e.g. autoindex off in server but off in location
-	// require methods?
+	// the location will be completed back in ServerConfig loop over the serverScopeElements as access to the server values is needed
+
+	//validateEntireLocation();
 }
 
 Location::Location(const Location& copy)
@@ -102,7 +113,9 @@ Location::Location(const Location& copy)
 	this->_requestBodySizeLimit = copy.getRequestBodySizeLimit();
 	this->_autoindex = copy.getAutoindex();
 	this->_allowMethods = copy.getAllowMethods();
-	this->_alias = copy.getAlias();
+	this->_cgiPath = copy.getCgiPath();
+	this->_cgiExt = copy.getCgiExt();
+	this->_return = copy.getReturn();
 }
 
 Location	&Location::operator = (const Location &src)
@@ -115,7 +128,7 @@ Location	&Location::operator = (const Location &src)
 		this->_requestBodySizeLimit = src.getRequestBodySizeLimit();
 		this->_autoindex = src.getAutoindex();
 		this->_allowMethods = src.getAllowMethods();
-		this->_alias = src.getAlias();
+		this->_return = src.getReturn();
 	}
 	return (*this);
 }
@@ -142,7 +155,7 @@ const std::vector<std::string>	&Location::getIndex(void) const
 	return (this->_index);
 }
 
-unsigned int	Location::getRequestBodySizeLimit(void) const
+int	Location::getRequestBodySizeLimit(void) const
 {
 	return (this->_requestBodySizeLimit);
 }
@@ -157,9 +170,34 @@ const std::set<std::string>	&Location::getAllowMethods(void) const
 	return (this->_allowMethods);
 }
 
-const std::string	&Location::getAlias(void) const
+const std::vector<std::string>		&Location::getCgiPath(void) const
 {
-	return (this->_alias);
+	return (this->_cgiPath);
+}
+
+const std::vector<std::string>		&Location::getCgiExt(void) const
+{
+	return (this->_cgiExt);
+}
+
+const std::string		&Location::getReturn(void) const
+{
+	return (this->_return);
+}
+
+void	Location::setRoot(const std::string &root)
+{
+	this->_root = root;
+}
+
+void	Location::setIndex(const std::vector<std::string> &index)
+{
+	this->_index = index;
+}
+
+void	Location::setRequestBodySizeLimit(int requestBodySizeLimit)
+{
+	this->_requestBodySizeLimit = requestBodySizeLimit;
 }
 
 void	Location::initLocation(void)
@@ -167,9 +205,23 @@ void	Location::initLocation(void)
 	this->_path = "";
 	this->_root = "";
 	this->_index = std::vector<std::string>();
-	this->_requestBodySizeLimit = REQUEST_BODY_SIZE_LIMIT;
+	this->_requestBodySizeLimit = -1;
 	this->_autoindex = false;
 	this->_allowMethods = std::set<std::string>();
+	this->_cgiPath = std::vector<std::string>();
+	this->_cgiExt = std::vector<std::string>();
+	this->_return = "";
+}
+
+void	Location::validateEntireLocation(void)
+{
+	// validate location path
+//	dirIsValidAndAccessible(this->_path,
+//		"Cannot access location match path.", "Location match path is not a directory.");
+	// validate cgi_path, cgi_ext and return
+	// validate index once you have root
+	// what if difference between server and location scope directives - e.g. autoindex off in server but off in location
+	// should methods be mandatory?
 }
 
 std::ostream &operator << (std::ostream &o, Location const &instance)
@@ -181,6 +233,8 @@ std::ostream &operator << (std::ostream &o, Location const &instance)
 		<< "client_max_body_size (requestBodySizeLimit): " << instance.getRequestBodySizeLimit() << '\n'
 		<< "autoindex: " << instance.getAutoindex() << '\n'
 		<< "allow_methods: " << instance.getAllowMethods() << '\n'
-		<< "alias: " << instance.getAlias();
+		<< "cgi_path: " << instance.getCgiPath() << '\n'
+		<< "cgi_ext: " << instance.getCgiExt() << '\n'
+		<< "return: " << instance.getReturn();
 	return (o);
 }

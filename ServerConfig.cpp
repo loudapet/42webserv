@@ -90,6 +90,22 @@ bool	isValidWildcardName(std::vector<std::string> &serverNames)
 	return (true);
 }
 
+void	ServerConfig::completeLocation(Location &location)
+{
+	// add server root if none defined
+	if (location.getPath() != "/cgi-bin")
+	{
+		if (location.getRoot().empty())
+			location.setRoot(this->_root);
+		if (location.getIndex().empty())
+			location.setIndex(this->_index);
+	}
+	if (location.getRequestBodySizeLimit() == -1)
+		location.setRequestBodySizeLimit(this->_requestBodySizeLimit);
+	// add server index if none defined
+	
+}
+
 ServerConfig::ServerConfig(std::string &serverBlock)
 {
 	std::vector<std::string>		serverBlockElements;
@@ -129,8 +145,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 			}
 			else if (serverBlockElements[i] == "server_name" && (i + 1) < serverBlockElements.size())
 			{
-				// QUESTION: resolve $hostname?
-				if (!this->_serverNames.size() == 0)
+				if (!(this->_serverNames.size() == 0))
 					throw (std::runtime_error("Config parser: Duplicate server_name directive."));
 				this->_serverNames = extractVectorUntilSemicolon(serverBlockElements, i + 1);
 				validateElement(this->_serverNames.back());
@@ -155,7 +170,6 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 			else if (serverBlockElements[i] == "root" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
 			{
-				// QUESTION: resolve variables? https://nginx.org/en/docs/varindex.html
 				this->_root = validateRoot(this->_root, serverBlockElements[i + 1], "server");
 				i++;
 			}
@@ -208,6 +222,8 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				//std::cout << "location path: " << locationPath << '\n' << "location scope: " << locationScope << std::endl;
 				
 				Location newLocation(locationPath, locationScope);
+			// the location is completed only here as access to the server values is needed
+			//	completeLocation(newLocation);
 				this->_locations.push_back(newLocation);
 				
 				i += locationScope.size() + 1; // if 'location' and location path from the config would be included, it'd be -1, but those 2 aren't in the vector
@@ -218,14 +234,15 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 			{
 				if (!inLocationBlock)
 				{
-					std::cout << "unsupported: " << serverBlockElements[i] << std::endl;
-					throw (std::runtime_error("Config parser: Invalid directive in server block."));
+					//std::cout << "unsupported: " << serverBlockElements[i] << std::endl;
+					throw (std::runtime_error("Config parser: Invalid directive in a server block."));
 				}
 			}
 		}
 	}
 	std::cout << *this << std::endl;
-	// check duplications of server_names
+	// check duplicates of server_names
+	// check duplicates of ports
 
 	// set empty values
 	if (this->_port == 0)
@@ -320,7 +337,7 @@ const std::map<short, std::string>	&ServerConfig::getErrorPages(void) const
 	return (this->_errorPages);
 }
 
-unsigned int	ServerConfig::getRequestBodySizeLimit(void) const
+int	ServerConfig::getRequestBodySizeLimit(void) const
 {
 	return (this->_requestBodySizeLimit);
 }
