@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/04 10:23:03 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/04 16:31:44 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <exception>
 #include <stdlib.h>
+#include <sys/stat.h>
 #define UNDERLINE "\033[4m"
 #define	RESET "\033[0m"
 #define CR '\r'
@@ -67,8 +68,6 @@ typedef struct StartLine
 	std::string			method; // GET, POST, DELETE
 	request_target_t	requestTarget; // origin-form / absolute form
 	std::string 		httpVersion; // "HTTP/" DIGIT "." DIGIT
-	std::string			statusCode; // 1xx/2xx/3xx/4xx/5xx
-	std::string			reasonPhrase; // optional
 } startLine_t;
 
 class HttpRequest
@@ -76,6 +75,9 @@ class HttpRequest
 	private:
 		startLine_t	startLine;
 		stringmap_t	headerFields;
+		std::string	finalPath; // used to access the resource after URI with location's root
+		bool		autoIndexing;
+		bool		isRedirect;
 		void	parseStartLine(std::string startLine);
 		void	parseMethod(std::string& token);
 		stringpair_t	parseAuthority(std::string& authority, HostLocation parseLocation);
@@ -85,6 +87,8 @@ class HttpRequest
 		void	resolveDotSegments(std::string& path);
 		void	parseFieldSection(std::vector<std::string>& fields);
 		stringpair_t	resolveHost();
+
+		void	validateResourceAccess();
 
 	public:
 		HttpRequest();

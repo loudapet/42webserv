@@ -6,12 +6,12 @@
 #    By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/16 10:28:25 by plouda            #+#    #+#              #
-#    Updated: 2024/06/04 10:24:28 by plouda           ###   ########.fr        #
+#    Updated: 2024/06/04 14:58:46 by plouda           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME =	parser
-SRCS =	parser.cpp HttpRequest.cpp
+SRCS =	main.cpp HttpRequest.cpp
 
 BUILD_DIR = ./obj
 OBJS = $(addprefix $(BUILD_DIR)/, $(SRCS))

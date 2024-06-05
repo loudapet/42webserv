@@ -6,11 +6,13 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/04 10:56:50 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/05 10:55:55 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/HttpRequest.hpp"
+
+std::string	root = "./docs";
 
 HttpRequest::HttpRequest()
 {
@@ -448,9 +450,37 @@ stringpair_t	HttpRequest::parseHeader(octets_t header)
 	}
 }
 
+// http://hello//testdir/a will get redirected to /testdir/a/
+void	HttpRequest::validateResourceAccess(void)
+{
+	if (*root.rbegin() == '/')
+		root.erase(root.end() - 1);
+	this->finalPath = root + this->startLine.requestTarget.absolutePath;
+	std::cout << "Final path:\t" << this->finalPath << std::endl;
+	
+	if (!this->isRedirect && this->startLine.method == "GET")
+	{
+		int			validFile;
+		struct stat	fileCheckBuff;
+		validFile = stat(finalPath.c_str(), &fileCheckBuff);
+		if (validFile < 0)
+			throw (std::invalid_argument("404 Not Found"));
+		if (*finalPath.rbegin() != '/')
+		{
+			if (fileCheckBuff.st_mode & S_IFDIR)
+				throw (std::invalid_argument("301 Moved Permanently")); // will likely not be an exception, but a proper response handler
+		}
+		else if (*finalPath.rbegin() == '/' && !this->autoIndexing)
+			throw (std::invalid_argument("403 Forbidden: Autoindexing is off"));
+		else
+			;// autoindexing for GET
+	}
+	// handle redirections, POST and DELETE
+}
+
 /*
 1) method check based on string comparison once the server block rules are matched, also needs 405 Method Not Allowed if applicable
-2) 
+2) merge paths and check access to URI based on allowed methods
 */
 void	HttpRequest::validateHeader(void)
 {
@@ -459,12 +489,12 @@ void	HttpRequest::validateHeader(void)
 		if (this->startLine.method != "GET" && this->startLine.method != "POST"
 		&& this->startLine.method != "DELETE")
 			throw (std::invalid_argument("501 Not implemented"));
+		this->validateResourceAccess();
 	}
 	catch(const std::invalid_argument& e)
 	{
 		std::cerr << e.what() << '\n';
 	}
-
 }
 
 std::ostream &operator<<(std::ostream &os, octets_t &vec)

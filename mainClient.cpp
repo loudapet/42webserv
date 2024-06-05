@@ -42,7 +42,7 @@ int main(void)
 	}
 	// Send data to the server
 	//const char *message = "\nGET /index.html?%71=key#key HTTP/1.1\nHost: example.com\nConnection: close\n\n";
-	const char *message = "\nGET http://1.2.3.4.5/ HTTP/1.1\nConnection: keep-alive\ntest:\nHost: 1.2.3.\nConnection: low\ntest: n    o\n\n";
+	const char *message = "\nGET /testdir/ HTTP/1.1\nConnection: keep-alive\ntest:\nHost: example.org:80\nConnection: low\ntest: n    o\n\n";
 	if (send(clientSocket, message, strlen(message), 0) == -1)
 	{
 		std::cerr << "Error: Failed to send data\n";
