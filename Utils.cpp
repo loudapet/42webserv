@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/05 16:07:11 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/06 17:54:56 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -132,6 +132,15 @@ void	fileIsValidAndAccessible(const std::string &path, const std::string &except
 		throw(std::runtime_error("Config parser: " + exceptionScope + " file at '" + path + "' is an invalid file."));
 	if (access(path.c_str(), 4) < 0)
 		throw(std::runtime_error("Config parser: " + exceptionScope + " file at '" + path + "' is not accessible."));
+//	struct stat buffer;
+//
+//	// Check if file exists
+//	if (stat(path.c_str(), &buffer) != 0)
+//		throw(std::runtime_error("Config parser: " + exceptionScope + " file at '" + path + "' is an invalid file."));
+//
+//	// Check if file is readable
+//	if (!(buffer.st_mode & S_IRUSR))
+//		throw(std::runtime_error("Config parser: " + exceptionScope + " file at '" + path + "' is not accessible."));
 }
 
 std::string	dirIsValidAndAccessible(const std::string &path, const std::string &accessMessage, const std::string &dirOrFileMessage)

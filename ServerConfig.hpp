@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:21:17 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/05 16:53:39 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/06 17:24:30 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,8 @@ class ServerConfig
 
 		void	initServerConfig(void);
 		void	validateErrorPagesLine(std::vector<std::string> &errorPageLine);
-		void	completeLocation(Location &location);
+		void	completeLocations(void);
+		void	validateLocations(void);
 
 	private:
 		ServerConfig(void);

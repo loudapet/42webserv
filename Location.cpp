@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/05 16:53:10 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/06 22:28:40 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -101,8 +101,6 @@ Location::Location(std::string locationPath, std::vector<std::string> locationSc
 		}
 	}
 	// the location will be completed back in ServerConfig loop over the serverScopeElements as access to the server values is needed
-
-	//validateEntireLocation();
 }
 
 Location::Location(const Location& copy)
@@ -160,7 +158,7 @@ int	Location::getRequestBodySizeLimit(void) const
 	return (this->_requestBodySizeLimit);
 }
 
-bool	Location::getAutoindex(void) const
+int	Location::getAutoindex(void) const
 {
 	return (this->_autoindex);	
 }
@@ -185,6 +183,11 @@ const std::string		&Location::getReturn(void) const
 	return (this->_return);
 }
 
+const std::map<std::string, std::string>	&Location::getCgiMap(void) const
+{
+	return (this->_cgiMap);
+}
+
 void	Location::setRoot(const std::string &root)
 {
 	this->_root = root;
@@ -200,28 +203,27 @@ void	Location::setRequestBodySizeLimit(int requestBodySizeLimit)
 	this->_requestBodySizeLimit = requestBodySizeLimit;
 }
 
+void	Location::setAutoindex(int autoindex)
+{
+	this->_autoindex = autoindex;
+}
+
+void	Location::setCgiMap(std::map<std::string, std::string> &cgiMap)
+{
+	this->_cgiMap = cgiMap;
+}
+
 void	Location::initLocation(void)
 {
 	this->_path = "";
 	this->_root = "";
 	this->_index = std::vector<std::string>();
 	this->_requestBodySizeLimit = -1;
-	this->_autoindex = false;
+	this->_autoindex = -1;
 	this->_allowMethods = std::set<std::string>();
 	this->_cgiPath = std::vector<std::string>();
 	this->_cgiExt = std::vector<std::string>();
 	this->_return = "";
-}
-
-void	Location::validateEntireLocation(void)
-{
-	// validate location path
-//	dirIsValidAndAccessible(this->_path,
-//		"Cannot access location match path.", "Location match path is not a directory.");
-	// validate cgi_path, cgi_ext and return
-	// validate index once you have root
-	// what if difference between server and location scope directives - e.g. autoindex off in server but off in location
-	// should methods be mandatory?
 }
 
 std::ostream &operator << (std::ostream &o, Location const &instance)

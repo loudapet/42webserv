@@ -90,20 +90,94 @@ bool	isValidWildcardName(std::vector<std::string> &serverNames)
 	return (true);
 }
 
-void	ServerConfig::completeLocation(Location &location)
+void	ServerConfig::completeLocations(void)
 {
-	// add server root if none defined
-	if (location.getPath() != "/cgi-bin")
+	for (size_t i = 0; i < this->_locations.size(); i++)
 	{
-		if (location.getRoot().empty())
-			location.setRoot(this->_root);
-		if (location.getIndex().empty())
-			location.setIndex(this->_index);
+	// add server root if none defined
+		if (this->_locations[i].getPath() != "/cgi-bin")
+		{
+			if (this->_locations[i].getRoot().empty())
+				this->_locations[i].setRoot(this->_root);
+			if (this->_locations[i].getIndex().empty())
+				this->_locations[i].setIndex(this->_index);
+		}
+		else
+		{
+			// WARNING: cgi-bin TBA
+		}
+		if (this->_locations[i].getRequestBodySizeLimit() == -1)
+			this->_locations[i].setRequestBodySizeLimit(this->_requestBodySizeLimit);
+		// what if difference between server and location scope directives - e.g. autoindex off in server but off in this->_locations[i]
+		if (this->_locations[i].getAutoindex() == -1)
+			this->_locations[i].setAutoindex(this->_autoindex);
 	}
-	if (location.getRequestBodySizeLimit() == -1)
-		location.setRequestBodySizeLimit(this->_requestBodySizeLimit);
-	// add server index if none defined
 	
+}
+
+void	ServerConfig::validateLocations(void)
+{
+	struct stat buff;
+	std::map<std::string, std::string> cgiMap;
+	// validate location path
+//	dirIsValidAndAccessible(this->_path,
+//		"Cannot access location match path.", "Location match path is not a directory.");
+
+	for (size_t i = 0; i < this->_locations.size(); i++)
+	{
+		// validate location
+		if (this->_locations[i].getPath() != "/cgi-bin")
+		{
+			if (!this->_locations[i].getReturn().empty())
+				dirIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getReturn(),
+					"Cannot access location return path.", "Location return path is not a directory.");
+			else
+			{
+				// validate index
+				for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)
+					fileIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], "Index");
+			}
+		}
+		else // is cgi-bin
+		{
+			if (this->_locations[i].getCgiPath().empty() || this->_locations[i].getCgiExt().empty() || this->_locations[i].getIndex().empty())
+				throw(std::runtime_error("Config parser: Missing cgi_path, cgi_ext or index directive in cgi-bin location."));
+			// validate index (and path)
+			for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)
+				fileIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], "Index");
+			// validate cgi_path and cgi_ext
+			if (this->_locations[i].getCgiPath().size() != this->_locations[i].getCgiExt().size())
+				throw(std::runtime_error("Config parser: Mismatch between cgi_path and cgi_ext in cgi-bin location."));
+
+			// only allowed cgi_ext
+			for (size_t j = 0; j < this->_locations[i].getCgiExt().size(); j++)
+			{
+				if (this->_locations[i].getCgiExt()[j] != ".py" && this->_locations[i].getCgiExt()[j] != ".php" && this->_locations[i].getCgiExt()[j] != ".sh")
+					throw(std::runtime_error("Config parser: Invalid cgi_ext in cgi-bin location."));
+				if (this->_locations[i].getCgiExt()[j] == ".py" && this->_locations[i].getCgiPath()[j].find("python") == std::string::npos)
+					throw(std::runtime_error("Config parser: Invalid cgi_path for .py in cgi-bin location."));
+			//	else if (this->_locations[i].getCgiExt()[j] == ".php" && this->_locations[i].getCgiPath()[j].find("php") == std::string::npos)
+			//		throw(std::runtime_error("Config parser: Invalid cgi_path for .php in cgi-bin location."));
+				else if (this->_locations[i].getCgiExt()[j] == ".sh" && this->_locations[i].getCgiPath()[j].find("bash") == std::string::npos)
+					throw(std::runtime_error("Config parser: Invalid cgi_path for .sh in cgi-bin location."));
+			}
+			for (size_t j = 0; j < this->_locations[i].getCgiExt().size(); j++)
+			{
+				// Insert the pair into the map
+				std::pair<std::map<std::string, std::string>::iterator, bool> result = cgiMap.insert(std::make_pair(this->_locations[i].getCgiExt()[j], this->_locations[i].getCgiPath()[j]));
+				// Check if the insertion was successful
+				if (!result.second)
+					throw(std::runtime_error("Config parser: Duplicate cgi_ext in cgi-bin location."));
+			}
+			this->_locations[i].setCgiMap(cgiMap);
+			// Check if file exists and is executable
+			for (std::map<std::string, std::string>::iterator it = cgiMap.begin(); it != cgiMap.end(); ++it)
+			{
+				if (stat(it->second.c_str(), &buff) != 0 || !(buff.st_mode & S_IXUSR))
+					throw(std::runtime_error("Config parser: Invalid cgi_path for " + it->first + " in cgi-bin location."));
+			}
+		}
+	}
 }
 
 ServerConfig::ServerConfig(std::string &serverBlock)
@@ -222,8 +296,6 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				//std::cout << "location path: " << locationPath << '\n' << "location scope: " << locationScope << std::endl;
 				
 				Location newLocation(locationPath, locationScope);
-			// the location is completed only here as access to the server values is needed
-			//	completeLocation(newLocation);
 				this->_locations.push_back(newLocation);
 				
 				i += locationScope.size() + 1; // if 'location' and location path from the config would be included, it'd be -1, but those 2 aren't in the vector
@@ -240,7 +312,6 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 			}
 		}
 	}
-	std::cout << *this << std::endl;
 	// check duplicates of server_names
 	// check duplicates of ports
 
@@ -260,6 +331,11 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	for (std::map<short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
 		fileIsValidAndAccessible(this->getRoot() + it->second, "Error page file");
 	// validate mandatory directives
+	
+	// the location is completed only here as access to the server values is needed
+	completeLocations();
+	validateLocations();
+	std::cout << *this << std::endl;
 }
 
 ServerConfig::ServerConfig(const ServerConfig& copy)
