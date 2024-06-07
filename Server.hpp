@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:01:17 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/18 14:49:35 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/07 13:14:12 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,11 +34,11 @@ class Server
 		void	handleDataFromClient(const int clientSocket);
 		void	closeConnection(const int clientSocket);
 
-		int					_port;
-		int					_serverSocket;
+		int						_port;
+		int						_serverSocket;
 		std::map<int, Client>	_clients;
-		int					_fdMax; // maximum fd number
-		fd_set				_master; // master fds list
+		int						_fdMax; // maximum fd number
+		fd_set					_master; // master fds list
 };
 
 #endif

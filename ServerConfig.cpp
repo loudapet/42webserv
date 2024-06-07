@@ -42,37 +42,6 @@ std::vector<std::string>	splitServerBlock(std::string &serverBlock)
 	return (serverBlockElements);
 }
 
-void	ServerConfig::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
-{
-	short							tmpErrorCode;
-	std::istringstream				iss; // convert error code to short
-	std::string						errorPageFileName;
-	std::ifstream					errorPageFile;
-
-	if (errorPageLine.size() < 3)
-		throw(std::runtime_error("Config parser: Invalid formatting of error_page directive."));
-	errorPageFileName = errorPageLine.back();
-	if (validateElement(errorPageFileName))
-	{
-		for (size_t i = 1; i < errorPageLine.size() - 1; i++) // -1 to ignore the page itself
-		{
-			for (size_t j = 0; j < errorPageLine[i].size(); j++)
-			{
-				if (!std::isdigit(errorPageLine[i][j]))
-					throw (std::runtime_error("Config parser: Invalid error page number."));
-			}
-			iss.str(errorPageLine[i]);
-			if (!(iss >> tmpErrorCode) || !iss.eof())
-				throw(std::runtime_error("Config parser: Error page number is out of range for short."));
-			iss.str("");
-			iss.clear();
-			if (tmpErrorCode < 400 || (tmpErrorCode > 426 && tmpErrorCode < 500) || tmpErrorCode > 505)
-				throw(std::runtime_error("Config parser: Error page number is out of range of valid error pages."));
-			this->_errorPages[tmpErrorCode] = errorPageFileName;
-		}
-	}
-}
-
 
 bool	isValidWildcardName(std::vector<std::string> &serverNames)
 {
@@ -88,96 +57,6 @@ bool	isValidWildcardName(std::vector<std::string> &serverNames)
 		}
 	}
 	return (true);
-}
-
-void	ServerConfig::completeLocations(void)
-{
-	for (size_t i = 0; i < this->_locations.size(); i++)
-	{
-	// add server root if none defined
-		if (this->_locations[i].getPath() != "/cgi-bin")
-		{
-			if (this->_locations[i].getRoot().empty())
-				this->_locations[i].setRoot(this->_root);
-			if (this->_locations[i].getIndex().empty())
-				this->_locations[i].setIndex(this->_index);
-		}
-		else
-		{
-			// WARNING: cgi-bin TBA
-		}
-		if (this->_locations[i].getRequestBodySizeLimit() == -1)
-			this->_locations[i].setRequestBodySizeLimit(this->_requestBodySizeLimit);
-		// what if difference between server and location scope directives - e.g. autoindex off in server but off in this->_locations[i]
-		if (this->_locations[i].getAutoindex() == -1)
-			this->_locations[i].setAutoindex(this->_autoindex);
-	}
-	
-}
-
-void	ServerConfig::validateLocations(void)
-{
-	struct stat buff;
-	std::map<std::string, std::string> cgiMap;
-	// validate location path
-//	dirIsValidAndAccessible(this->_path,
-//		"Cannot access location match path.", "Location match path is not a directory.");
-
-	for (size_t i = 0; i < this->_locations.size(); i++)
-	{
-		// validate location
-		if (this->_locations[i].getPath() != "/cgi-bin")
-		{
-			if (!this->_locations[i].getReturn().empty())
-				dirIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getReturn(),
-					"Cannot access location return path.", "Location return path is not a directory.");
-			else
-			{
-				// validate index
-				for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)
-					fileIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], "Index");
-			}
-		}
-		else // is cgi-bin
-		{
-			if (this->_locations[i].getCgiPath().empty() || this->_locations[i].getCgiExt().empty() || this->_locations[i].getIndex().empty())
-				throw(std::runtime_error("Config parser: Missing cgi_path, cgi_ext or index directive in cgi-bin location."));
-			// validate index (and path)
-			for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)
-				fileIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], "Index");
-			// validate cgi_path and cgi_ext
-			if (this->_locations[i].getCgiPath().size() != this->_locations[i].getCgiExt().size())
-				throw(std::runtime_error("Config parser: Mismatch between cgi_path and cgi_ext in cgi-bin location."));
-
-			// only allowed cgi_ext
-			for (size_t j = 0; j < this->_locations[i].getCgiExt().size(); j++)
-			{
-				if (this->_locations[i].getCgiExt()[j] != ".py" && this->_locations[i].getCgiExt()[j] != ".php" && this->_locations[i].getCgiExt()[j] != ".sh")
-					throw(std::runtime_error("Config parser: Invalid cgi_ext in cgi-bin location."));
-				if (this->_locations[i].getCgiExt()[j] == ".py" && this->_locations[i].getCgiPath()[j].find("python") == std::string::npos)
-					throw(std::runtime_error("Config parser: Invalid cgi_path for .py in cgi-bin location."));
-			//	else if (this->_locations[i].getCgiExt()[j] == ".php" && this->_locations[i].getCgiPath()[j].find("php") == std::string::npos)
-			//		throw(std::runtime_error("Config parser: Invalid cgi_path for .php in cgi-bin location."));
-				else if (this->_locations[i].getCgiExt()[j] == ".sh" && this->_locations[i].getCgiPath()[j].find("bash") == std::string::npos)
-					throw(std::runtime_error("Config parser: Invalid cgi_path for .sh in cgi-bin location."));
-			}
-			for (size_t j = 0; j < this->_locations[i].getCgiExt().size(); j++)
-			{
-				// Insert the pair into the map
-				std::pair<std::map<std::string, std::string>::iterator, bool> result = cgiMap.insert(std::make_pair(this->_locations[i].getCgiExt()[j], this->_locations[i].getCgiPath()[j]));
-				// Check if the insertion was successful
-				if (!result.second)
-					throw(std::runtime_error("Config parser: Duplicate cgi_ext in cgi-bin location."));
-			}
-			this->_locations[i].setCgiMap(cgiMap);
-			// Check if file exists and is executable
-			for (std::map<std::string, std::string>::iterator it = cgiMap.begin(); it != cgiMap.end(); ++it)
-			{
-				if (stat(it->second.c_str(), &buff) != 0 || !(buff.st_mode & S_IXUSR))
-					throw(std::runtime_error("Config parser: Invalid cgi_path for " + it->first + " in cgi-bin location."));
-			}
-		}
-	}
 }
 
 ServerConfig::ServerConfig(std::string &serverBlock)
@@ -312,9 +191,6 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 			}
 		}
 	}
-	// check duplicates of server_names
-	// check duplicates of ports
-
 	// set empty values
 	if (this->_port == 0)
 		this->_port = 8000; // If the directive is not present then either *:80 is used if nginx runs with the superuser privileges, or *:8000 otherwise.
@@ -324,17 +200,15 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 		this->_host = inet_pton(AF_INET, "127.0.0.1", &(sa.sin_addr));
 	if (this->_index.size() == 0)
 		this->_index.push_back("index.html");
-	
 	// validate files now that you have the root
 	for (size_t i = 0; i < this->_index.size(); i++)
 		fileIsValidAndAccessible(this->getRoot() + this->_index[i], "Index file");
 	for (std::map<short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
 		fileIsValidAndAccessible(this->getRoot() + it->second, "Error page file");
-	// validate mandatory directives
-	
 	// the location is completed only here as access to the server values is needed
 	completeLocations();
 	validateLocations();
+	// validate mandatory directives
 	std::cout << *this << std::endl;
 }
 
@@ -441,6 +315,165 @@ void	ServerConfig::initServerConfig(void)
 	this->_requestBodySizeLimit = REQUEST_BODY_SIZE_LIMIT;
 	this->_autoindex = false;
 	this->_locations = std::vector<Location>();
+}
+
+void	ServerConfig::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
+{
+	short							tmpErrorCode;
+	std::istringstream				iss; // convert error code to short
+	std::string						errorPageFileName;
+	std::ifstream					errorPageFile;
+
+	if (errorPageLine.size() < 3)
+		throw(std::runtime_error("Config parser: Invalid formatting of error_page directive."));
+	errorPageFileName = errorPageLine.back();
+	if (validateElement(errorPageFileName))
+	{
+		for (size_t i = 1; i < errorPageLine.size() - 1; i++) // -1 to ignore the page itself
+		{
+			for (size_t j = 0; j < errorPageLine[i].size(); j++)
+			{
+				if (!std::isdigit(errorPageLine[i][j]))
+					throw (std::runtime_error("Config parser: Invalid error page number."));
+			}
+			iss.str(errorPageLine[i]);
+			if (!(iss >> tmpErrorCode) || !iss.eof())
+				throw(std::runtime_error("Config parser: Error page number is out of range for short."));
+			iss.str("");
+			iss.clear();
+			if (tmpErrorCode < 400 || (tmpErrorCode > 426 && tmpErrorCode < 500) || tmpErrorCode > 505)
+				throw(std::runtime_error("Config parser: Error page number is out of range of valid error pages."));
+			this->_errorPages[tmpErrorCode] = errorPageFileName;
+		}
+	}
+}
+
+void	ServerConfig::completeLocations(void)
+{
+	for (size_t i = 0; i < this->_locations.size(); i++)
+	{
+	// add server root if none defined
+		if (this->_locations[i].getPath() != "/cgi-bin")
+		{
+			if (this->_locations[i].getRoot().empty())
+				this->_locations[i].setRoot(this->_root);
+			if (this->_locations[i].getIndex().empty())
+				this->_locations[i].setIndex(this->_index);
+		}
+		if (this->_locations[i].getRequestBodySizeLimit() == -1)
+			this->_locations[i].setRequestBodySizeLimit(this->_requestBodySizeLimit);
+		// what if difference between server and location scope directives - e.g. autoindex off in server but off in this->_locations[i]
+		if (this->_locations[i].getAutoindex() == -1)
+			this->_locations[i].setAutoindex(this->_autoindex);
+	}
+}
+
+void	findCgiPair(const Location &location, const std::string &cgiExt, std::map<std::string, std::string> &cgiMap, const std::string &type)
+{
+	for (size_t k = 0; k < location.getCgiPath().size(); k++)
+	{
+		if (location.getCgiPath()[k].find(type) != std::string::npos)
+		{
+			// std::cout << "Pairing: " << cgiExt << " + " << location.getCgiPath()[k] << std::endl;
+			std::pair<std::map<std::string, std::string>::iterator, bool> result = cgiMap.insert(std::make_pair(cgiExt, location.getCgiPath()[k]));
+			// Check if the insertion was successful
+			if (!result.second)
+				throw(std::runtime_error("Config parser: Duplicate cgi_ext '" + cgiExt + "' in cgi-bin location."));
+			break ;
+		}
+		else if (k == location.getCgiPath().size() - 1)
+			throw(std::runtime_error("Config parser: Invalid cgi_path for " + cgiExt + " in cgi-bin location."));
+	}
+}	
+
+void	ServerConfig::validateLocations(void)
+{
+	struct stat							buff;
+	std::map<std::string, std::string>	cgiMap;
+
+	for (size_t i = 0; i < this->_locations.size(); i++)
+	{
+		// validate location
+		if (this->_locations[i].getPath() != "/cgi-bin")
+		{
+			// simple check for path validity, the rest of the path will be checked later with root and index file
+			if (this->_locations[i].getPath()[0] != '/')
+				throw(std::runtime_error("Config parser: Invalid location path."));
+			if (!this->_locations[i].getReturn().empty())
+				dirIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getReturn(),
+					"Cannot access location return path.", "Location return path is not a directory.");
+			else
+			{
+				// validate index (and path)
+				for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)
+					fileIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], "Index");
+			}
+		}
+		else // is cgi-bin
+		{
+			if (this->_locations[i].getCgiPath().empty() || this->_locations[i].getCgiExt().empty() || this->_locations[i].getIndex().empty())
+				throw(std::runtime_error("Config parser: Missing cgi_path, cgi_ext or index directive in cgi-bin location."));
+			// validate index (and path)
+			for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)
+				fileIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], "Index");
+			if (this->_locations[i].getCgiPath().size() != this->_locations[i].getCgiExt().size())
+				throw(std::runtime_error("Config parser: Mismatch between cgi_path and cgi_ext in cgi-bin location."));
+			// only allowed cgi_ext
+			for (size_t j = 0; j < this->_locations[i].getCgiExt().size(); j++)
+			{
+				if (this->_locations[i].getCgiExt()[j] != ".py" && this->_locations[i].getCgiExt()[j] != ".php" && this->_locations[i].getCgiExt()[j] != ".sh")
+					throw(std::runtime_error("Config parser: Invalid cgi_ext in cgi-bin location."));
+
+				if (this->_locations[i].getCgiExt()[j] == ".py")
+					findCgiPair(this->_locations[i], ".py", cgiMap, "python");
+			//	else if (this->_locations[i].getCgiExt()[j] == ".php")
+			//		findCgiPair(this->_locations[i], ".php", cgiMap, "php");
+				else if (this->_locations[i].getCgiExt()[j] == ".sh")
+					findCgiPair(this->_locations[i], ".sh", cgiMap, "bash");
+			}
+			this->_locations[i].setCgiMap(cgiMap);
+			// Check if file exists and is executable
+			for (std::map<std::string, std::string>::iterator it = cgiMap.begin(); it != cgiMap.end(); ++it)
+			{
+				if (stat(it->second.c_str(), &buff) != 0 || !(buff.st_mode & S_IXUSR))
+					throw(std::runtime_error("Config parser: Invalid cgi_path for " + it->first + " in cgi-bin location."));
+			}
+		}
+	}
+}
+
+int createSocket(void)
+{
+	int fdSocket;
+
+	fdSocket = socket(AF_INET, SOCK_STREAM, 0);
+	if (fdSocket == -1)
+		throw(std::runtime_error("Socket creation failed."));
+	return (fdSocket);
+}
+
+void bindSocket(int fdSocket, int port, in_addr_t host)
+{
+	struct sockaddr_in	serverAddr;
+	int					yes = 1;
+
+	if (setsockopt(fdSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1)
+		throw (std::runtime_error("Setsockopt failed."));
+	serverAddr.sin_family = AF_INET;
+	serverAddr.sin_addr.s_addr = host;
+	serverAddr.sin_port = htons(port);
+	if (bind(fdSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1)
+		throw (std::runtime_error("Socket binding failed."));
+}
+
+void ServerConfig::startServer(void)
+{
+	this->_serverSocket = createSocket();
+	bindSocket(this->_serverSocket, this->_port, this->_host);
+	std::cout << "Server '" << this->_primaryServerName << "' started on "
+		<< this->_host % 256 << "." << this->_host / 256 % 256 << "."
+		<< this->_host / 65536 % 256 << "." << this->_host / 16777216 << ":"
+		<< this->_port << std::endl;
 }
 
 std::ostream &operator << (std::ostream &o, ServerConfig const &instance)

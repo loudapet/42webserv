@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:21:17 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/06 17:24:30 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/07 17:48:37 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,17 +34,20 @@ class ServerConfig
 		const std::string					&getRoot(void) const;
 		const std::vector<std::string>		&getIndex(void) const;
 		const std::map<short, std::string>	&getErrorPages(void) const;
-		int						getRequestBodySizeLimit(void) const;
+		int									getRequestBodySizeLimit(void) const;
 		bool								getAutoindex(void) const;
 		const std::vector<Location>			&getLocations(void) const;
 
+		void startServer(void);
+
+	private:
+		ServerConfig(void);
+		
 		void	initServerConfig(void);
 		void	validateErrorPagesLine(std::vector<std::string> &errorPageLine);
 		void	completeLocations(void);
 		void	validateLocations(void);
 
-	private:
-		ServerConfig(void);
 
 		unsigned short					_port;
 		bool							_isDefault;
@@ -57,6 +60,7 @@ class ServerConfig
 		int								_requestBodySizeLimit;
 		bool							_autoindex;
 		std::vector<Location>			_locations;
+		int								_serverSocket;
 };
 
 std::ostream &operator << (std::ostream &o, ServerConfig const &instance);

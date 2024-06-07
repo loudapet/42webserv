@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/04 20:45:28 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/07 18:03:17 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,8 @@ ServerMaster::ServerMaster(std::string configFile)
 	std::ifstream	file;
 	char			c;
 	std::stringstream	tmpFileContent;
+	std::set<int> ports;
+	int	port;
 
 	if (configFile.size() < 5 || configFile.substr(configFile.size() - 5) != ".conf")
 		throw(std::runtime_error("Provided config file '" + configFile + "' doesn't have a .conf extension."));
@@ -31,6 +33,7 @@ ServerMaster::ServerMaster(std::string configFile)
 		throw(std::runtime_error("Provided config file '" + configFile + "' is empty."));
 	file.putback(c); //	putting the character back bcs it will be read again later
 	tmpFileContent << file.rdbuf();
+	file.close();
 	this->_configContent = tmpFileContent.str();
 
 //	std::cout << "CONTENT (initial)" << std::endl;
@@ -45,7 +48,20 @@ ServerMaster::ServerMaster(std::string configFile)
 		ServerConfig newServer(this->_serverBlocks[i]);
 		this->_serverConfigs.push_back(newServer);
 	}
-	file.close();
+	// MORE VALIDATION OF CONFIG - across different configs
+	// check duplicates of ports
+	for (size_t i = 0; i < this->_serverConfigs.size(); i++)
+	{
+		port = this->_serverConfigs[i].getPort();
+		if (!ports.insert(port).second)
+			throw(std::runtime_error("Config parser: Duplicate port detected."));
+	}
+	// QUESTION: check duplicates of server_names?
+
+//	// Launch servers
+//	for (size_t i = 0; i < this->_serverConfigs.size(); i++)
+//		this->_serverConfigs[i].startServer();
+		
 }
 
 ServerMaster::~ServerMaster(void)
@@ -164,3 +180,62 @@ void	ServerMaster::printServerBlocks(void) const
 		std::cout << this->_serverBlocks[i] << std::endl;
 	}
 }
+
+//void	ServerMaster::listenForConnections(void)
+//{
+//	fd_set			readFds; // temp fds list for select()
+//	struct timeval	selectTimer;
+//	
+//	
+////	if (listen(fdSocket, SOMAXCONN) == -1)
+////		throw(std::runtime_error("Socket listening failed."));
+////	std::cout << "Server listening on port " << this->_port << std::endl;
+////	FD_SET(fdSocket, &this->_master); // add the listener to the master set
+//	this->_fdMax = 0; // keep track of the biggest fd which so far is the only one we have
+//	// main listening loop
+//	while(runWebserv)
+//	{
+//		selectTimer.tv_sec = 1;
+//		selectTimer.tv_usec = 0; // could be causing select to fail (with errno of invalid argument) if not set
+//		readFds = this->_master; // copy whole fds master list in the fds list for select (only listener socket in the first run)
+//		if (select(this->_fdMax + 1, &readFds, NULL, NULL, &selectTimer) == -1)
+//			throw(std::runtime_error("Select failed."));
+//
+//		// run through the existing connections looking for data to read
+//		for (int i = 0; i <= this->_fdMax; i++)
+//		{
+//			if (FD_ISSET(i, &readFds)) // finds a socket with data to read
+//			{
+//				if (FD_ISSET(i, &readFds) && )
+//				if (i == fdSocket) // indicates that the server socket is ready to read which means that a client is attempting to connect
+//					acceptConnection();
+//				else
+//				{
+//					handleDataFromClient(i);
+//					if (this->_clients.find(i)->second.findValidHeaderEnd())
+//					{
+//						std::cout << "This will be sent to parser: ";
+//						this->_clients.find(i)->second.printDataToParse();
+//						this->_clients.find(i)->second.clearDataToParse();
+//						std::cout << "This is what stays in the buffer: ";
+//						this->_clients.find(i)->second.printReceivedData();
+//					}
+//				}
+//			}
+//		}
+//		checkForTimeout();
+//	}
+//}
+//
+//void	ServerMaster::checkForTimeout(void)
+//{
+//	for (std::map<int, Client>::iterator it = this->_clients.begin(); it != this->_clients.end(); it++)
+//	{
+//		if (time(NULL) - it->second.getTimeLastMessage() > CONNECTION_TIMEOUT)
+//		{
+//			std::cout << "Client " << it->second.getClientSocket() << " timeout. Closing connection now." << std::endl;
+//			closeConnection(it->first);
+//			return ;
+//		}
+//	}
+//}

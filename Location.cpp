@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/06 22:28:40 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/07 11:59:59 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -113,6 +113,7 @@ Location::Location(const Location& copy)
 	this->_allowMethods = copy.getAllowMethods();
 	this->_cgiPath = copy.getCgiPath();
 	this->_cgiExt = copy.getCgiExt();
+	this->_cgiMap = copy.getCgiMap();
 	this->_return = copy.getReturn();
 }
 
@@ -126,6 +127,9 @@ Location	&Location::operator = (const Location &src)
 		this->_requestBodySizeLimit = src.getRequestBodySizeLimit();
 		this->_autoindex = src.getAutoindex();
 		this->_allowMethods = src.getAllowMethods();
+		this->_cgiPath = src.getCgiPath();
+		this->_cgiExt = src.getCgiExt();
+		this->_cgiMap = src.getCgiMap();
 		this->_return = src.getReturn();
 	}
 	return (*this);
@@ -223,11 +227,15 @@ void	Location::initLocation(void)
 	this->_allowMethods = std::set<std::string>();
 	this->_cgiPath = std::vector<std::string>();
 	this->_cgiExt = std::vector<std::string>();
+	this->_cgiMap = std::map<std::string, std::string>();
 	this->_return = "";
 }
 
 std::ostream &operator << (std::ostream &o, Location const &instance)
 {
+	std::map<std::string, std::string>	cgiMap;
+
+	cgiMap = instance.getCgiMap();
 	o << "*** Location ***" << '\n'
 		<< "path: " << instance.getPath() << '\n'
 		<< "root: " << instance.getRoot() << '\n'
@@ -237,6 +245,9 @@ std::ostream &operator << (std::ostream &o, Location const &instance)
 		<< "allow_methods: " << instance.getAllowMethods() << '\n'
 		<< "cgi_path: " << instance.getCgiPath() << '\n'
 		<< "cgi_ext: " << instance.getCgiExt() << '\n'
-		<< "return: " << instance.getReturn();
+		<< "cgi_map: \n";
+	for (std::map<std::string, std::string>::iterator it = cgiMap.begin(); it != cgiMap.end(); it++)
+		o << it->first << ": " << it->second << '\n';
+	o << "return: " << instance.getReturn();
 	return (o);
 }

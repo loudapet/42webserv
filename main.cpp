@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 10:01:22 by aulicna           #+#    #+#             */
-/*   Updated: 2024/05/29 12:17:27 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/07 13:01:27 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,7 +52,7 @@ int	main(int argc, char **argv)
 				configFile = "config_files/default.conf";
 			else
 				configFile = argv[1];
-			ServerMaster serverConfig(configFile);
+			ServerMaster serverMaster(configFile);
 		}
 		catch(const std::exception& e)
 		{
