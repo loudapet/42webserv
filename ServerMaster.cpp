@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/07 18:03:17 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/09 13:40:46 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,12 +19,13 @@ ServerMaster::ServerMaster(void)
 
 ServerMaster::ServerMaster(std::string configFile)
 {
-	std::ifstream	file;
-	char			c;
+	std::ifstream		file;
+	char				c;
 	std::stringstream	tmpFileContent;
-	std::set<int> ports;
-	int	port;
+	std::set<int> 		ports;
+	int					port;
 
+	initServerMaster();
 	if (configFile.size() < 5 || configFile.substr(configFile.size() - 5) != ".conf")
 		throw(std::runtime_error("Provided config file '" + configFile + "' doesn't have a .conf extension."));
 	fileIsValidAndAccessible(configFile, "Config file");
@@ -58,20 +59,34 @@ ServerMaster::ServerMaster(std::string configFile)
 	}
 	// QUESTION: check duplicates of server_names?
 
-//	// Launch servers
-//	for (size_t i = 0; i < this->_serverConfigs.size(); i++)
-//		this->_serverConfigs[i].startServer();
-		
+	// Launch servers
+	for (size_t i = 0; i < this->_serverConfigs.size(); i++)
+		this->_serverConfigs[i].startServer();
+	prepareServersToListen();
+	listenForConnections();
 }
 
 ServerMaster::~ServerMaster(void)
 {
-	return ;
+	std::cout << std::endl;
+	std::map<int, Client>::iterator it = this->_clients.begin();
+	while (it != this->_clients.end())
+	{
+		closeConnection(it->first);
+		it = this->_clients.begin();
+	}
 }
 
 std::string	ServerMaster::getFileContent(void) const
 {
 	return (this->_configContent);
+}
+
+void	ServerMaster::initServerMaster(void)
+{
+	this->_fdMax = -1;
+	FD_ZERO(&this->_readFds);
+	//FD_ZERO(&this->_writeFds);
 }
 
 void	ServerMaster::removeCommentsAndEmptyLines(void)
@@ -139,7 +154,7 @@ size_t	validateServerBlockEnd(size_t pos, std::string &configContent)
 		{
 			if (configContent[i] == '{')
 				nested++;
-			else if (nested == 0)
+			else if (!nested)
 				return (i);
 			else
 				nested--;
@@ -159,11 +174,11 @@ void	ServerMaster::detectServerBlocks(void)
 		throw(std::runtime_error("Config parser: No server block found."));
 	serverStart = validateServerBlockStart(0, this->_configContent);
 	serverEnd = validateServerBlockEnd(serverStart + 1, this->_configContent);
-	if (serverEnd == std::string::npos)
+	if (serverEnd == std::string::npos || serverEnd == serverStart + 1)
 		throw(std::runtime_error("Config parser: Server block has no scope."));
 	while (serverStart < this->_configContent.length() - 1 && serverEnd != serverStart)
 	{
-		if (serverStart == serverEnd)
+		if (serverEnd == serverStart + 1)
 			throw(std::runtime_error("Config parser: Server block has no scope."));
 		serverBlock = this->_configContent.substr(serverStart, serverEnd - serverStart + 1);
 		this->_serverBlocks.push_back(serverBlock);
@@ -181,61 +196,163 @@ void	ServerMaster::printServerBlocks(void) const
 	}
 }
 
-//void	ServerMaster::listenForConnections(void)
-//{
-//	fd_set			readFds; // temp fds list for select()
-//	struct timeval	selectTimer;
-//	
-//	
-////	if (listen(fdSocket, SOMAXCONN) == -1)
-////		throw(std::runtime_error("Socket listening failed."));
-////	std::cout << "Server listening on port " << this->_port << std::endl;
-////	FD_SET(fdSocket, &this->_master); // add the listener to the master set
-//	this->_fdMax = 0; // keep track of the biggest fd which so far is the only one we have
-//	// main listening loop
-//	while(runWebserv)
-//	{
-//		selectTimer.tv_sec = 1;
-//		selectTimer.tv_usec = 0; // could be causing select to fail (with errno of invalid argument) if not set
-//		readFds = this->_master; // copy whole fds master list in the fds list for select (only listener socket in the first run)
-//		if (select(this->_fdMax + 1, &readFds, NULL, NULL, &selectTimer) == -1)
-//			throw(std::runtime_error("Select failed."));
-//
-//		// run through the existing connections looking for data to read
-//		for (int i = 0; i <= this->_fdMax; i++)
-//		{
-//			if (FD_ISSET(i, &readFds)) // finds a socket with data to read
-//			{
-//				if (FD_ISSET(i, &readFds) && )
-//				if (i == fdSocket) // indicates that the server socket is ready to read which means that a client is attempting to connect
-//					acceptConnection();
-//				else
-//				{
-//					handleDataFromClient(i);
-//					if (this->_clients.find(i)->second.findValidHeaderEnd())
-//					{
-//						std::cout << "This will be sent to parser: ";
-//						this->_clients.find(i)->second.printDataToParse();
-//						this->_clients.find(i)->second.clearDataToParse();
-//						std::cout << "This is what stays in the buffer: ";
-//						this->_clients.find(i)->second.printReceivedData();
-//					}
-//				}
-//			}
-//		}
-//		checkForTimeout();
-//	}
-//}
-//
-//void	ServerMaster::checkForTimeout(void)
-//{
-//	for (std::map<int, Client>::iterator it = this->_clients.begin(); it != this->_clients.end(); it++)
-//	{
-//		if (time(NULL) - it->second.getTimeLastMessage() > CONNECTION_TIMEOUT)
-//		{
-//			std::cout << "Client " << it->second.getClientSocket() << " timeout. Closing connection now." << std::endl;
-//			closeConnection(it->first);
-//			return ;
-//		}
-//	}
-//}
+void	ServerMaster::prepareServersToListen(void)
+{
+	for(size_t i = 0; i < this->_serverConfigs.size(); i++)
+	{
+		if (listen(this->_serverConfigs[i].getServerSocket(), SOMAXCONN) == -1)
+			throw(std::runtime_error("Socket listening failed."));
+		if (fcntl(this->_serverConfigs[i].getServerSocket(), F_SETFL, O_NONBLOCK) == -1)
+			throw(std::runtime_error("Fcntl failed."));
+		FD_SET(this->_serverConfigs[i].getServerSocket(), &this->_readFds);
+		this->_servers.insert(std::make_pair(this->_serverConfigs[i].getServerSocket(), this->_serverConfigs[i]));
+		std::cout << "Server '" << this->_serverConfigs[i].getPrimaryServerName() << "' listening on port " << this->_serverConfigs[i].getPort() << "..." << std::endl;
+	}
+	this->_fdMax = this->_serverConfigs.back().getServerSocket();
+}
+
+void	ServerMaster::listenForConnections(void)
+{
+	fd_set			readFds; // temp fds list for select()
+	fd_set			writeFds; // temp fds list for select()
+	struct timeval	selectTimer;
+	
+	
+//	FD_SET(fdSocket, &this->_master); // add the listener to the master set
+	// main listening loop
+	while(runWebserv)
+	{
+		selectTimer.tv_sec = 1;
+		selectTimer.tv_usec = 0; // could be causing select to fail (with errno of invalid argument) if not set
+		readFds = this->_readFds; // copy whole fds master list in the fds list for select (only listener socket in the first run)
+		writeFds = this->_writeFds;
+		if (select(this->_fdMax + 1, &readFds, &writeFds, NULL, &selectTimer) == -1)
+			throw(std::runtime_error("Select failed."));
+		// run through the existing connections looking for data to read
+		for (int i = 0; i <= this->_fdMax; i++)
+		{
+			if (FD_ISSET(i, &readFds)) // finds a socket with data to read
+			{
+				if (FD_ISSET(i, &readFds) && this->_servers.count(i)) // indicates that the server socket is ready to read which means that a client is attempting to connect
+					acceptConnection(i);
+				else if (FD_ISSET(i, &readFds) && this->_clients.count(i))
+				{
+					handleDataFromClient(i);
+					if (this->_clients.find(i)->second.findValidHeaderEnd())
+					{
+						std::cout << "This will be sent to parser: ";
+						this->_clients.find(i)->second.printDataToParse();
+						this->_clients.find(i)->second.clearDataToParse();
+						std::cout << "This is what stays in the buffer: ";
+						this->_clients.find(i)->second.printReceivedData();
+					}
+				}
+				else if (FD_ISSET(i, &writeFds) && this->_clients.count(i))
+				{
+					// CGI TBA
+				}
+			}
+		}
+		checkForTimeout();
+	}
+}
+
+/**
+ * inet_ntop(AF_INET, &clientAddr, buf, INET_ADDRSTRLEN) is a call
+ * to the inet_ntop function, which converts a network address structure
+ * to a string.
+*/
+void	ServerMaster::acceptConnection(int serverSocket)
+{
+	char		buff[INET_ADDRSTRLEN];
+	Client				newClient;
+	struct sockaddr_in	clientAddr;
+	socklen_t			lenClientAddr;
+	int					clientSocket;
+
+	lenClientAddr = sizeof(clientAddr);
+	clientSocket = accept(serverSocket, (struct sockaddr *)&clientAddr, &lenClientAddr);
+	if (clientSocket == -1)
+		throw(std::runtime_error("Accepting connection failed."));
+	newClient.updateTimeLastMessage();
+	addFdToSet(this->_readFds, clientSocket);
+	if (fcntl(clientSocket, F_SETFL, O_NONBLOCK) < 0) // so that the sockets don't block each other in nested while on recv
+	{
+		closeConnection(clientSocket);
+		throw(std::runtime_error("Fcntl failed."));
+	}
+	newClient.setClientSocket(clientSocket);
+	this->_clients.insert(std::make_pair(clientSocket, newClient));
+	std::cout << "New connection accepted from "
+		<< inet_ntop(AF_INET, &clientAddr, buff, INET_ADDRSTRLEN)
+		<< ". Assigned socket " << clientSocket << '.' << std::endl;
+}
+
+void	ServerMaster::handleDataFromClient(const int clientSocket)
+{
+	uint8_t							recvBuf[CLIENT_MESSAGE_BUFF]; // Buffer to store received data
+	const char						*confirmReceived = "Well received!\n";
+	ssize_t							bytesReceived;
+	
+	memset(recvBuf, 0, sizeof(recvBuf)); // clear the receive buffer
+	Client &clientToHandle = this->_clients.find(clientSocket)->second; // reference to the client object
+	if ((bytesReceived = recv(clientSocket, recvBuf, sizeof(recvBuf), 0)) <= 0)
+	{
+		if (bytesReceived == 0) // if the client has closed the connection
+			std::cout << "Socket " << clientSocket << " hung up." << std::endl;
+		else if (bytesReceived < 0)  // if there was an error receiving data
+			std::cerr << "Error receiving data from client!" << std::endl;
+		closeConnection(clientSocket);
+	}
+	else // if data has been received
+	{
+		clientToHandle.updateTimeLastMessage();
+		clientToHandle.updateReceivedData(recvBuf, bytesReceived);
+		clientToHandle.trimHeaderEmptyLines();
+		std::cout << "Data from client on socket " << clientSocket << ": ";
+		clientToHandle.printReceivedData();
+		std::cout << std::endl;
+		
+		// send acknowledgement to the client 
+		if (send(clientSocket, confirmReceived, strlen(confirmReceived), 0) == -1)
+			std::cerr << "Error sending acknowledgement to client." << std::endl;
+	}
+}
+
+
+void	ServerMaster::checkForTimeout(void)
+{
+	for (std::map<int, Client>::iterator it = this->_clients.begin(); it != this->_clients.end(); it++)
+	{
+		if (time(NULL) - it->second.getTimeLastMessage() > CONNECTION_TIMEOUT)
+		{
+			std::cout << "Client " << it->second.getClientSocket() << " timeout. Closing connection now." << std::endl;
+			closeConnection(it->first);
+			return ;
+		}
+	}
+}
+
+void	ServerMaster::addFdToSet(fd_set &set, int fd)
+{
+	FD_SET(fd, &set);
+	if (fd > this->_fdMax) // keep track of the max fd
+		this->_fdMax = fd;
+}
+
+void	ServerMaster::removeFdFromSet(fd_set &set, int fd)
+{
+	FD_CLR(fd, &set);
+	if (fd == this->_fdMax)
+		this->_fdMax -= 1;
+}
+
+void	ServerMaster::closeConnection(const int clientSocket)
+{
+	if (FD_ISSET(clientSocket, &this->_readFds))
+		removeFdFromSet(this->_readFds, clientSocket);
+	if (FD_ISSET(clientSocket, &this->_writeFds))
+		removeFdFromSet(this->_writeFds, clientSocket);
+	close(clientSocket); // close the socket	
+	this->_clients.erase(clientSocket); // remove from clients map
+}

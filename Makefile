@@ -6,7 +6,7 @@
 #    By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/01/13 11:40:54 by aulicna           #+#    #+#              #
-#    Updated: 2024/06/02 18:05:39 by aulicna          ###   ########.fr        #
+#    Updated: 2024/06/09 11:17:02 by aulicna          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -16,7 +16,6 @@ SRC = main.cpp \
 	ServerMaster.cpp \
 	ServerConfig.cpp \
 	Location.cpp \
-	Server.cpp \
 	Client.cpp \
 	Utils.cpp
 

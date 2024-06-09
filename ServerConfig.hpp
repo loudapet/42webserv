@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:21:17 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/07 17:48:37 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/09 11:07:10 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,7 @@ class ServerConfig
 		int									getRequestBodySizeLimit(void) const;
 		bool								getAutoindex(void) const;
 		const std::vector<Location>			&getLocations(void) const;
+		int									getServerSocket(void) const;
 
 		void startServer(void);
 
@@ -47,6 +48,8 @@ class ServerConfig
 		void	validateErrorPagesLine(std::vector<std::string> &errorPageLine);
 		void	completeLocations(void);
 		void	validateLocations(void);
+		
+		void	bindSocket(void);
 
 
 		unsigned short					_port;
@@ -61,6 +64,7 @@ class ServerConfig
 		bool							_autoindex;
 		std::vector<Location>			_locations;
 		int								_serverSocket;
+		struct sockaddr_in				_serverAddr;
 };
 
 std::ostream &operator << (std::ostream &o, ServerConfig const &instance);

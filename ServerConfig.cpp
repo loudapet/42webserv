@@ -65,7 +65,6 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	bool							inLocationBlock;
 	struct sockaddr_in				sa; // validate IP address
 	std::vector<std::string>		errorPageLine; // to validate error page lines
-//	short						tmpErrorCode; // to validate error page lines
 	std::map<short, std::string>	tmpErrorPages;
 	bool							rbslInConfig;
 	bool							autoindexInConfig;
@@ -193,35 +192,39 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	}
 	// set empty values
 	if (this->_port == 0)
-		this->_port = 8000; // If the directive is not present then either *:80 is used if nginx runs with the superuser privileges, or *:8000 otherwise.
+		this->_port = 8006; // If the directive is not present then either *:80 is used if nginx runs with the superuser privileges, or *:8000 otherwise.
 	if (this->_root.empty())
-		this->_root = "/";
+		this->_root = "./";
 	if (this->_host == 0)
-		this->_host = inet_pton(AF_INET, "127.0.0.1", &(sa.sin_addr));
+		this->_host = inet_addr(std::string("127.0.0.1").data());
 	if (this->_index.size() == 0)
 		this->_index.push_back("index.html");
 	// validate files now that you have the root
 	for (size_t i = 0; i < this->_index.size(); i++)
-		fileIsValidAndAccessible(this->getRoot() + this->_index[i], "Index file");
+		fileIsValidAndAccessible(this->getRoot() + this->_index[i], "Index ");
 	for (std::map<short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
 		fileIsValidAndAccessible(this->getRoot() + it->second, "Error page file");
 	// the location is completed only here as access to the server values is needed
 	completeLocations();
 	validateLocations();
-	// validate mandatory directives
-	std::cout << *this << std::endl;
+	// QUESTION: validate mandatory directives
+	// std::cout << *this << std::endl;
 }
 
 ServerConfig::ServerConfig(const ServerConfig& copy)
-	: _port(copy._port),
-	  _serverNames(copy._serverNames),
-	  _host(copy._host),
-	  _root(copy._root),
-	  _index(copy._index),
-	  _errorPages(copy._errorPages),
-	  _requestBodySizeLimit(copy._requestBodySizeLimit),
-	  _autoindex(copy._autoindex),
-	  _locations(copy._locations)
+	:	_port(copy._port),
+		_isDefault(copy._isDefault),
+		_serverNames(copy._serverNames),
+		_primaryServerName(copy._primaryServerName),
+		_host(copy._host),
+		_root(copy._root),
+		_index(copy._index),
+		_errorPages(copy._errorPages),
+		_requestBodySizeLimit(copy._requestBodySizeLimit),
+		_autoindex(copy._autoindex),
+		_locations(copy._locations),
+		_serverSocket(copy._serverSocket),
+		_serverAddr(copy._serverAddr)
 {
 }
 
@@ -230,7 +233,9 @@ ServerConfig& ServerConfig::operator=(const ServerConfig& src)
 	if (this != &src)
 	{
 		this->_port = src._port;
+		this->_isDefault = src._isDefault;
 		this->_serverNames = src._serverNames;
+		this->_primaryServerName = src._primaryServerName;
 		this->_host = src._host;
 		this->_root = src._root;
 		this->_index = src._index;
@@ -238,6 +243,8 @@ ServerConfig& ServerConfig::operator=(const ServerConfig& src)
 		this->_requestBodySizeLimit = src._requestBodySizeLimit;
 		this->_autoindex = src._autoindex;
 		this->_locations = src._locations;
+		this->_serverSocket = src._serverSocket;
+		this->_serverAddr = src._serverAddr;
 	}
 	return *this;
 }
@@ -300,6 +307,11 @@ bool	ServerConfig::getAutoindex(void) const
 const std::vector<Location>	&ServerConfig::getLocations(void) const
 {
 	return (this->_locations);
+}
+
+int	ServerConfig::getServerSocket(void) const
+{
+	return (this->_serverSocket);
 }
 
 void	ServerConfig::initServerConfig(void)
@@ -446,30 +458,29 @@ int createSocket(void)
 {
 	int fdSocket;
 
-	fdSocket = socket(AF_INET, SOCK_STREAM, 0);
-	if (fdSocket == -1)
+	if ((fdSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 		throw(std::runtime_error("Socket creation failed."));
 	return (fdSocket);
 }
 
-void bindSocket(int fdSocket, int port, in_addr_t host)
+void ServerConfig::bindSocket(void)
 {
-	struct sockaddr_in	serverAddr;
 	int					yes = 1;
 
-	if (setsockopt(fdSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1)
+	if (setsockopt(this->_serverSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1)
 		throw (std::runtime_error("Setsockopt failed."));
-	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_addr.s_addr = host;
-	serverAddr.sin_port = htons(port);
-	if (bind(fdSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1)
+	memset(&this->_serverAddr, 0, sizeof(this->_serverAddr));
+	this->_serverAddr.sin_family = AF_INET;
+	this->_serverAddr.sin_addr.s_addr = this->_host;
+	this->_serverAddr.sin_port = htons(this->_port);
+	if (bind(this->_serverSocket, (struct sockaddr *)&this->_serverAddr, sizeof(this->_serverAddr)) == -1)
 		throw (std::runtime_error("Socket binding failed."));
 }
 
 void ServerConfig::startServer(void)
 {
 	this->_serverSocket = createSocket();
-	bindSocket(this->_serverSocket, this->_port, this->_host);
+	bindSocket();
 	std::cout << "Server '" << this->_primaryServerName << "' started on "
 		<< this->_host % 256 << "." << this->_host / 256 % 256 << "."
 		<< this->_host / 65536 % 256 << "." << this->_host / 16777216 << ":"
