@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:17:04 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/09 11:12:45 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/09 13:54:55 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,6 +43,8 @@ class ServerMaster
 		void	addFdToSet(fd_set &set, int fd);
 		void	removeFdFromSet(fd_set &set, int fd);
 		void	closeConnection(const int clientSocket);
+
+		void	selectServerRules(std::string serverNameReceived, unsigned short portReceived, in_addr_t hostReceived, int clientSocket);
 
 		std::string					_configContent;
 		std::vector<std::string>	_serverBlocks;

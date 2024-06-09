@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/09 13:40:46 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/09 14:30:48 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -257,6 +257,20 @@ void	ServerMaster::listenForConnections(void)
 	}
 }
 
+//void ServerMaster::selectServerRules(std::string serverNameReceived, unsigned short portReceived, in_addr_t hostReceived, int clientSocket)
+//{
+//	std::map<int, ServerConfig>::iterator serverConfigIt;
+//	
+//	for (serverConfigIt = this->_servers.begin(); serverConfigIt != this->_servers.end(); serverConfigIt++)
+//	{
+//		if (serverConfigIt->second.getPort() == portReceived)
+//			break ;
+//	}
+//	if (serverConfigIt == this->_servers.end())
+//		closeConnection(clientSocket);
+//	
+//}
+
 /**
  * inet_ntop(AF_INET, &clientAddr, buf, INET_ADDRSTRLEN) is a call
  * to the inet_ntop function, which converts a network address structure
@@ -267,6 +281,7 @@ void	ServerMaster::acceptConnection(int serverSocket)
 	char		buff[INET_ADDRSTRLEN];
 	Client				newClient;
 	struct sockaddr_in	clientAddr;
+	struct sockaddr_in	serverAddr;
 	socklen_t			lenClientAddr;
 	int					clientSocket;
 
@@ -274,6 +289,10 @@ void	ServerMaster::acceptConnection(int serverSocket)
 	clientSocket = accept(serverSocket, (struct sockaddr *)&clientAddr, &lenClientAddr);
 	if (clientSocket == -1)
 		throw(std::runtime_error("Accepting connection failed."));
+	if (getsockname(clientSocket, (struct sockaddr *)&serverAddr, &lenClientAddr) == -1)
+		throw(std::runtime_error("Getsockname failed."));
+	newClient.setPortConnectedOn(ntohs(serverAddr.sin_port));
+	std::cout << "Client connected to server port: " << newClient.getPortConnectedOn() << std::endl;
 	newClient.updateTimeLastMessage();
 	addFdToSet(this->_readFds, clientSocket);
 	if (fcntl(clientSocket, F_SETFL, O_NONBLOCK) < 0) // so that the sockets don't block each other in nested while on recv
