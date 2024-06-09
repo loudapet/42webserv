@@ -6,20 +6,12 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 10:01:22 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/09 13:40:03 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/09 16:11:14 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ServerMaster.hpp"
 #include "webserv.hpp"
-
-bool runWebserv = true;
-
-void	handleSigint(int sigNum)
-{
-	if (sigNum == SIGINT)
-		runWebserv = false;
-}
 
 int	main(int argc, char **argv)
 {
@@ -31,7 +23,6 @@ int	main(int argc, char **argv)
 	{
 		try
 		{
-			signal(SIGINT, handleSigint);
 			if (argc == 1)
 				configFile = "config_files/default.conf";
 			else

@@ -43,21 +43,21 @@ std::vector<std::string>	splitServerBlock(std::string &serverBlock)
 }
 
 
-bool	isValidWildcardName(std::vector<std::string> &serverNames)
-{
-	for (size_t i = 0; i < serverNames.size(); i++)
-	{
-		if (serverNames[i].find("*") != std::string::npos)
-		{
-			if (serverNames[i][0] != '*' && serverNames[i][serverNames[i].length() - 1] != '*')
-				return (false);
-			else
-				if (serverNames[i][1] != '.' && serverNames[i][serverNames[i].length() - 2] != '.')
-					return (false);
-		}
-	}
-	return (true);
-}
+//bool	isValidWildcardName(std::vector<std::string> &serverNames)
+//{
+//	for (size_t i = 0; i < serverNames.size(); i++)
+//	{
+//		if (serverNames[i].find("*") != std::string::npos)
+//		{
+//			if (serverNames[i][0] != '*' && serverNames[i][serverNames[i].length() - 1] != '*')
+//				return (false);
+//			else
+//				if (serverNames[i][1] != '.' && serverNames[i][serverNames[i].length() - 2] != '.')
+//					return (false);
+//		}
+//	}
+//	return (true);
+//}
 
 ServerConfig::ServerConfig(std::string &serverBlock)
 {
@@ -101,8 +101,9 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 					throw (std::runtime_error("Config parser: Duplicate server_name directive."));
 				this->_serverNames = extractVectorUntilSemicolon(serverBlockElements, i + 1);
 				validateElement(this->_serverNames.back());
-				if (!isValidWildcardName(this->_serverNames))
-					throw (std::runtime_error("Config parser: Invalid server name."));
+			//  QUESTION: wildcards in server names?
+			//	if (!isValidWildcardName(this->_serverNames))
+			//		throw (std::runtime_error("Config parser: Invalid server name."));
 				if (this->_serverNames.size() > 0)
 					this->_primaryServerName = this->_serverNames[0];
 				i += this->_serverNames.size(); // not -1 bcs there is the directive name to skip too
@@ -110,6 +111,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 			else if (serverBlockElements[i] == "host" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
 			{
+				// QUESTION: detect addresses that will fail sock binding?
 				if (this->_host != 0)
 					throw (std::runtime_error("Config parser: Duplicate host directive."));
 				if (serverBlockElements[i + 1] == "localhost")
