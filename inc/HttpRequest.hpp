@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/05 15:47:16 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/10 09:57:46 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,14 +78,25 @@ typedef struct StartLine
 	std::string 		httpVersion; // "HTTP/" DIGIT "." DIGIT
 } startLine_t;
 
+typedef struct KeepAlive
+{
+	int			timeout;
+	int			maxRequests;
+} keep_alive_t;
+
 class HttpRequest
 {
 	private:
-		startLine_t	startLine;
-		stringmap_t	headerFields;
-		std::string	finalPath; // used to access the resource after URI with location's root
-		bool		allowedDirListing;
-		bool		isRedirect;
+		startLine_t		startLine;
+		stringmap_t		headerFields;
+		octets_t		requestBody;
+		std::string		targetResource; // used to access the resource after URI with location's root
+		bool			closeConnection;
+		bool			allowedDirListing;
+		bool			isRedirect;
+		long			contentLength;
+		//keep_alive_t	keepAliveParams;	
+		//bool			interimResponse;
 		enum MessageFraming		messageFraming;
 		void	parseStartLine(std::string startLine);
 		void	parseMethod(std::string& token);
@@ -99,6 +110,8 @@ class HttpRequest
 
 		void	validateResourceAccess();
 		void	validateMessageFraming();
+		void	manageExpectations();
+		void	validateConnectionOption();
 
 	public:
 		HttpRequest();
@@ -108,6 +121,7 @@ class HttpRequest
 
 		stringpair_t	parseHeader(octets_t header);
 		void			validateHeader();
+		void			readRequestBody(octets_t bufferedBody);
 };
 
 std::ostream &operator<<(std::ostream &os, octets_t &vec);

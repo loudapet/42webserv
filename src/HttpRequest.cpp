@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/05 16:04:18 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/10 10:20:40 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,6 +46,7 @@ std::string	trim(const std::string& str)
 	return (str.substr(strBegin, strRange));
 }
 
+// upgrade to handle backslashes and quotes as literals
 std::vector<std::string>	splitQuotedString(const std::string& str, char sep)
 {
 	if (std::count(str.begin(), str.end(), '\"') % 2)
@@ -169,6 +170,7 @@ stringpair_t	HttpRequest::parseAuthority(std::string& authority, HostLocation pa
 	std::string		host("");
 	std::string		port("");
 	size_t			portPos = authority.find_first_of(":");
+	int	i = 0;
 	if (portPos == std::string::npos)
 	{
 		host = std::string(authority);
@@ -187,6 +189,12 @@ stringpair_t	HttpRequest::parseAuthority(std::string& authority, HostLocation pa
 		port = std::string(authority.begin() + portPos + 1, authority.end());
 		if (port == "")
 			port = DEFAULT_PORT;
+		else
+		{
+			while (port[i] == '0') // delete leading zeros from port
+				i++;
+			port.erase(0, i);
+		}	
 	}
 	if (host.find_first_not_of(allowedChars) != std::string::npos)
 	{
@@ -195,12 +203,12 @@ stringpair_t	HttpRequest::parseAuthority(std::string& authority, HostLocation pa
 		else
 			throw(std::invalid_argument("400 Bad Request: Invalid host name in host header field"));
 	}
-	if (port.find_first_not_of(DIGITS) != std::string::npos)
+	if (port.find_first_not_of(DIGITS) != std::string::npos || strtol(port.c_str(), NULL, 10) > 65535)
 	{
 		if (parseLocation == URI)
-			throw(std::invalid_argument("400 Bad Request: Invalid port format in URI"));
+			throw(std::invalid_argument("400 Bad Request: Invalid port in URI"));
 		else
-			throw(std::invalid_argument("400 Bad Request: Invalid port format in host header field"));
+			throw(std::invalid_argument("400 Bad Request: Invalid port in host header field"));
 	}
 	std::transform(host.begin(), host.end(), host.begin(), tolower); // case-insensitive
 	return(std::make_pair(host, port));
@@ -351,7 +359,7 @@ void	HttpRequest::parseFieldSection(std::vector<std::string>& fields)
 }
 
 //host header field needs additional checks
-// 1/ host from header needs to be parsed and percent-encoding has to be resolved
+// 1/ host from header needs to be parsed and percent-encoding has to be resolved (the latter is not specified by RFC but it's a nice-to-have feature)
 // 2/ that does not need ot be done if there already is a host under requestLine.authority - but it should probably still be checked for invalid characters and separators
 // 3/ identify comma-separated hosts (or automatically consider them as a singleton field)
 stringpair_t	HttpRequest::resolveHost(void)
@@ -423,57 +431,98 @@ static void	invalidateNullBytes(octets_t& line)
 
 stringpair_t	HttpRequest::parseHeader(octets_t header)
 {
-	try
+	trimHeaderEmptyLines(header);
+	std::vector<std::string>		splitLines;
+	bool							startLine = true;
+	bool							endLine = false;
+	octets_t::iterator				nl = std::find(header.begin(), header.end(), '\n');
+	octets_t 						line;
+	stringpair_t					authority;
+	while (nl != header.end())
 	{
-		trimHeaderEmptyLines(header);
-		std::vector<std::string>		splitLines;
-		bool							startLine = true;
-		bool							endLine = false;
-		octets_t::iterator				nl = std::find(header.begin(), header.end(), '\n');
-		octets_t 						line;
-		stringpair_t					authority;
-		while (nl != header.end())
+		octets_t line(header.begin(), nl);
+		invalidateBareCR(line);
+		invalidateNullBytes(line);
+		if (line.size() == 0 || (line.size() == 1 && line[0] == '\r')) // indicates the end of field section
 		{
-			octets_t line(header.begin(), nl);
-			invalidateBareCR(line);
-			invalidateNullBytes(line);
-			if (line.size() == 0 || (line.size() == 1 && line[0] == '\r')) // indicates the end of field section
-			{
-				endLine = true;
-				break ;
-			}
-			if (startLine)
-				this->parseStartLine(std::string(line.begin(), line.end()));
-			if (!startLine)
-				splitLines.push_back(std::string(line.begin(), line.end()));
-			header.erase(header.begin(), nl + 1);
-			nl = std::find(header.begin(), header.end(), '\n');
-			/*
-			A sender MUST NOT send whitespace between the start-line and the first header field.
-			A recipient that receives whitespace between the start-line and the first header field
-			MUST either reject the message as invalid ...
-			*/
-			if (startLine && isspace(*header.begin()))
-				throw (std::invalid_argument("400 Bad Request: Dangerous whitespace detected"));
-			startLine = false;
+			endLine = true;
+			break ;
 		}
 		if (startLine)
-			throw (std::invalid_argument("400 Bad Request: Empty start line"));
-		if (nl == header.end() && !endLine) // the loop should only exit if there's a valid CRLF
-			throw (std::invalid_argument("400 Bad Request: Missing empty CRLF"));
-		if (std::distance(header.begin(), nl) == 1 && *header.begin() != '\r')
-			throw (std::invalid_argument("400 Bad Request: Improperly terminated header-field section"));
-		this->parseFieldSection(splitLines);
-		authority = this->resolveHost();
-		std::cout << this->startLine << this->headerFields << std::endl;
-		std::cout << "Final host:\t" << authority.first << std::endl;
-		std::cout << "Final port:\t" << authority.second << std::endl;
-		return (authority);
+			this->parseStartLine(std::string(line.begin(), line.end()));
+		if (!startLine)
+			splitLines.push_back(std::string(line.begin(), line.end()));
+		header.erase(header.begin(), nl + 1);
+		nl = std::find(header.begin(), header.end(), '\n');
+		/*
+		A sender MUST NOT send whitespace between the start-line and the first header field.
+		A recipient that receives whitespace between the start-line and the first header field
+		MUST either reject the message as invalid ...
+		*/
+		if (startLine && isspace(*header.begin()))
+			throw (std::invalid_argument("400 Bad Request: Dangerous whitespace detected"));
+		startLine = false;
 	}
-	catch(const std::invalid_argument& e)
+	if (startLine)
+		throw (std::invalid_argument("400 Bad Request: Empty start line"));
+	if (nl == header.end() && !endLine) // the loop should only exit if there's a valid CRLF
+		throw (std::invalid_argument("400 Bad Request: Missing empty CRLF"));
+	if (std::distance(header.begin(), nl) == 1 && *header.begin() != '\r')
+		throw (std::invalid_argument("400 Bad Request: Improperly terminated header-field section"));
+	this->parseFieldSection(splitLines);
+	authority = this->resolveHost();
+	std::cout << this->startLine << this->headerFields << std::endl;
+	std::cout << "Final host:\t" << authority.first << std::endl;
+	std::cout << "Final port:\t" << authority.second << std::endl;
+	return (authority);
+}
+
+// has to be present before anything that can keep a persistent connection,
+// e.g. Expect, 3xx responses
+// handling contradicting values is implementation-specific; we just search for "close", otherwise the connection is kept alive - should be done the other way around for 1.0
+// also checks for Keep-Alive header if close isn't specified
+void	HttpRequest::validateConnectionOption(void)
+{
+	std::string							allowedChars(std::string(DIGITS) + std::string(ALPHA) + std::string(TOKEN) + "=");
+	stringmap_t::iterator				connection = this->headerFields.find("connection");
+	stringmap_t::iterator				keepAlive = this->headerFields.find("keep-alive");
+	std::vector<std::string>			values;
+	std::vector<std::string>::iterator	option;
+	std::vector<std::string>::iterator	param;
+	std::vector<std::string>			paramValues;
+	if (connection != this->headerFields.end())
 	{
-		std::cerr << e.what() << '\n';
-		return (std::make_pair(std::string(""), std::string(DEFAULT_PORT)));
+		values = splitQuotedString(connection->second, ',');
+		for (option = values.begin(); option != values.end(); option++)
+		{
+			*option = trim(*option);
+			if (option->find_first_not_of(allowedChars) != std::string::npos)
+				throw (std::invalid_argument("400 Bad Request: Invalid characters in Connection header field"));
+			std::transform(option->begin(), option->end(), option->begin(), tolower);
+		}
+		if (std::find(values.begin(), values.end(), "close") != values.end())
+			closeConnection = true;
+		else
+			closeConnection = false;
+	}
+	else
+		this->closeConnection = false;
+	if (keepAlive != this->headerFields.end() && std::find(values.begin(), values.end(), "keep-alive") != values.end() 
+			&& !this->closeConnection) // only apply this when keep-alive option is set in Connection and close wasn't indicated
+	{
+		values = splitQuotedString(keepAlive->second, ',');
+		for (param = values.begin(); param != values.end(); param++)
+		{
+			*param = trim(*param);
+			if (param->find_first_not_of(allowedChars) != std::string::npos)
+				throw (std::invalid_argument("400 Bad Request: Invalid characters in Keep-Alive header field"));
+			std::transform(param->begin(), param->end(), param->begin(), tolower);
+			paramValues = splitQuotedString(*param, '=');
+			if (paramValues.size() == 2 && paramValues[0] == "max")
+				std::cout << "MAX REQUESTS/CLIENT PLACEHOLDER: " << paramValues[1] << std::endl;
+			else if (paramValues.size() == 2 && paramValues[0] == "timeout")
+				std::cout << "MAX TIMEOUT/CLIENT PLACEHOLDER: " << paramValues[1] << std::endl;
+		}
 	}
 }
 
@@ -482,22 +531,22 @@ void	HttpRequest::validateResourceAccess(void)
 {
 	if (*root.rbegin() == '/')
 		root.erase(root.end() - 1);
-	this->finalPath = root + this->startLine.requestTarget.absolutePath;
-	std::cout << "Final path:\t" << this->finalPath << std::endl;
+	this->targetResource = root + this->startLine.requestTarget.absolutePath;
+	std::cout << "Final path:\t" << this->targetResource << std::endl;
 	
 	if (!this->isRedirect && this->startLine.method == "GET")
 	{
 		int			validFile;
 		struct stat	fileCheckBuff;
-		validFile = stat(finalPath.c_str(), &fileCheckBuff);
+		validFile = stat(targetResource.c_str(), &fileCheckBuff);
 		if (validFile < 0)
 			throw (std::invalid_argument("404 Not Found"));
-		if (*finalPath.rbegin() != '/')
+		if (*targetResource.rbegin() != '/')
 		{
 			if (fileCheckBuff.st_mode & S_IFDIR)
 				throw (std::invalid_argument("301 Moved Permanently")); // will likely not be an exception, but a proper response handler
 		}
-		else if (*finalPath.rbegin() == '/' && !this->allowedDirListing)
+		else if (*targetResource.rbegin() == '/' && !this->allowedDirListing)
 			throw (std::invalid_argument("403 Forbidden: Autoindexing is off"));
 		else
 			;// autoindexing for GET
@@ -535,10 +584,23 @@ void	HttpRequest::validateMessageFraming(void)
 			throw (std::invalid_argument("413 Content Too Large: Content-Length is too big"));
 		if (error == EINVAL || bodySize < 0)
 			throw (std::invalid_argument("400 Bad Request: Invalid Content-Length value"));
-		
+		this->contentLength = bodySize;
+		this->messageFraming = CONTENT_LENGTH;
 	}
 	else
 		throw (std::invalid_argument("400 Bad Request: Invalid framing (depends on method)"));
+}
+
+void	HttpRequest::manageExpectations(void)
+{
+	stringmap_t::iterator	expectation = this->headerFields.find("expect");
+	if (expectation != this->headerFields.end())
+	{
+		if (expectation->second != "100-continue")
+			throw (std::invalid_argument("417 Expectation Failed"));
+		else
+			throw (std::invalid_argument("100 Continue")); // should probably be done differently
+	}
 }
 
 /*
@@ -547,17 +609,26 @@ void	HttpRequest::validateMessageFraming(void)
 */
 void	HttpRequest::validateHeader(void)
 {
-	try
+	if (this->startLine.method != "GET" && this->startLine.method != "POST"
+	&& this->startLine.method != "DELETE")
+		throw (std::invalid_argument("501 Not implemented"));
+	this->validateConnectionOption();
+	this->validateResourceAccess();
+	this->validateMessageFraming();
+	this->manageExpectations();
+}
+
+// make sure content-length is actually equal or smaller to the size of the buffered body, wait otherwise
+void	HttpRequest::readRequestBody(octets_t bufferedBody)
+{
+	if (this->messageFraming == CONTENT_LENGTH)
 	{
-		if (this->startLine.method != "GET" && this->startLine.method != "POST"
-		&& this->startLine.method != "DELETE")
-			throw (std::invalid_argument("501 Not implemented"));
-		this->validateResourceAccess();
-		this->validateMessageFraming();
+		this->requestBody = octets_t(bufferedBody.begin(), bufferedBody.begin() + this->contentLength);
+		std::cout << requestBody << std::endl;
 	}
-	catch(const std::invalid_argument& e)
+	else if (this->messageFraming == TRANSFER_ENCODING)
 	{
-		std::cerr << e.what() << '\n';
+		;
 	}
 }
 
