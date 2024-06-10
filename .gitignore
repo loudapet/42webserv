@@ -34,5 +34,9 @@
 # Custom
 obj/
 .vscode/
+cgi-bin/
+docs/
+
+# Executables
 parser
 client
