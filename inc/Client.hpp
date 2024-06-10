@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/14 19:17:59 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/09 14:22:48 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/10 11:16:58 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,7 @@ class Client
 		int				getClientSocket(void) const;
 		time_t			getTimeLastMessage(void) const;
 		const octets_t	&getReceivedData(void) const;
+		octets_t		getDataToParse(void) const;
 		unsigned short	getPortConnectedOn(void) const;
 
 		void		printReceivedData(void) const;

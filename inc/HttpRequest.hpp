@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/10 09:57:46 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/10 15:46:18 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <limits.h>
+#include <functional>
 #define UNDERLINE "\033[4m"
 #define	RESET "\033[0m"
 #define CR '\r'
@@ -94,7 +95,7 @@ class HttpRequest
 		bool			closeConnection;
 		bool			allowedDirListing;
 		bool			isRedirect;
-		long			contentLength;
+		size_t			contentLength;
 		//keep_alive_t	keepAliveParams;	
 		//bool			interimResponse;
 		enum MessageFraming		messageFraming;
@@ -119,9 +120,10 @@ class HttpRequest
 		HttpRequest& operator = (const HttpRequest& refObj);
 		~HttpRequest();
 
+		bool			readBody; // false = reading request line and headers, true = reading body
 		stringpair_t	parseHeader(octets_t header);
 		void			validateHeader();
-		void			readRequestBody(octets_t bufferedBody);
+		long			readRequestBody(octets_t bufferedBody);
 };
 
 std::ostream &operator<<(std::ostream &os, octets_t &vec);

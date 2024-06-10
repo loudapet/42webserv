@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 10:47:22 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/10 11:17:02 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,6 +77,11 @@ time_t	Client::getTimeLastMessage(void) const
 const octets_t	&Client::getReceivedData(void) const
 {
 	return (this->_receivedData);
+}
+
+octets_t	Client::getDataToParse(void) const
+{
+	return (this->_dataToParse);
 }
 
 void		Client::printReceivedData(void) const

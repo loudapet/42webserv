@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/10 11:06:13 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/10 15:46:36 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -331,7 +331,7 @@ void	HttpRequest::parseFieldSection(std::vector<std::string>& fields)
 		fieldValue = std::string(++fieldIter, it->end()); // to remove ':' from the value part
 		fieldValue = trim(fieldValue);
 		//valueIter = std::find_if_not(fieldValue.begin(), fieldValue.end(), isgraph);
-		valueIter = std::find_if(fieldValue.begin(), fieldValue.end(), std::not1(std::ptr_fun<int, int>(isgraph)));
+		valueIter = std::find_if(fieldValue.begin(), fieldValue.end(), std::not1(std::ptr_fun<int,int>(isgraph)));
 		while (valueIter != fieldValue.end())
 		{
 			/* std::bitset<8> x(*valueIter);
@@ -339,7 +339,7 @@ void	HttpRequest::parseFieldSection(std::vector<std::string>& fields)
 			if (*valueIter >> 7) // UTF-8 encoding starts with 1 in its most-significant byte
 			{
 				//valueIter = std::find_if_not(++valueIter, fieldValue.end(), isgraph);
-				valueIter = std::find_if(++valueIter, fieldValue.end(), std::not1(std::ptr_fun<int, int>(isgraph)));
+				valueIter = std::find_if(++valueIter, fieldValue.end(), std::not1(std::ptr_fun<int,int>(isgraph)));
 				continue;
 			}
 			if (!isblank(*valueIter))
@@ -347,7 +347,7 @@ void	HttpRequest::parseFieldSection(std::vector<std::string>& fields)
 			else if (isblank(*valueIter) && isblank(*(valueIter + 1)))
 				throw(std::invalid_argument("400 Bad Request: Invalid field value - multiple SP / HTAB detected"));
 			//valueIter = std::find_if_not(++valueIter, fieldValue.end(), isgraph);
-			valueIter = std::find_if(++valueIter, fieldValue.end(), std::not1(std::ptr_fun<int, int>(isgraph)));
+			valueIter = std::find_if(++valueIter, fieldValue.end(), std::not1(std::ptr_fun<int,int>(isgraph)));
 		}
 		if (!(this->headerFields.insert(std::make_pair(fieldName, fieldValue)).second)) // handle insertion of duplicates by concatenation
 		{
@@ -624,17 +624,21 @@ void	HttpRequest::validateHeader(void)
 }
 
 // make sure content-length is actually equal or smaller to the size of the buffered body, wait otherwise
-void	HttpRequest::readRequestBody(octets_t bufferedBody)
+long	HttpRequest::readRequestBody(octets_t bufferedBody)
 {
+	if (this->messageFraming == CONTENT_LENGTH && bufferedBody.size() < this->contentLength)
+		return (-1);
 	if (this->messageFraming == CONTENT_LENGTH)
-	{
+	{		
 		this->requestBody = octets_t(bufferedBody.begin(), bufferedBody.begin() + this->contentLength);
-		std::cout << requestBody << std::endl;
+		//std::cout << requestBody << std::endl;
+		return (this->requestBody.size());
 	}
 	else if (this->messageFraming == TRANSFER_ENCODING)
 	{
-		;
+		return (0);
 	}
+	return (0);
 }
 
 std::ostream &operator<<(std::ostream &os, octets_t &vec)

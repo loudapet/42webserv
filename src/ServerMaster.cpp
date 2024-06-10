@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 10:47:58 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/10 15:34:55 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -246,11 +246,17 @@ void	ServerMaster::listenForConnections(void)
 					handleDataFromClient(i);
 					if (this->_clients.find(i)->second.findValidHeaderEnd())
 					{
-						std::cout << "This will be sent to parser: ";
-						this->_clients.find(i)->second.printDataToParse();
-						this->_clients.find(i)->second.clearDataToParse();
-						std::cout << "This is what stays in the buffer: ";
-						this->_clients.find(i)->second.printReceivedData();
+						/* std::cout << "This will be sent to parser: ";\
+						this->_clients.find(i)->second.printDataToParse(); */
+						HttpRequest	request;
+						request.parseHeader(this->_clients.find(i)->second.getDataToParse());
+						// resolve ServerConfig to HttpRequest
+						this->_clients.find(i)->second.clearDataToParse(); // clears request line and header fields
+						request.validateHeader();
+						if (request.readRequestBody(this->_clients.find(i)->second.getReceivedData()) < 0)
+							request.readBody = true;
+						/* std::cout << "This is what stays in the buffer: ";
+						this->_clients.find(i)->second.printReceivedData(); */
 					}
 				}
 				else if (FD_ISSET(i, &writeFds) && this->_clients.count(i))
