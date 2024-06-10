@@ -33,7 +33,7 @@
 
 # Custom
 obj/
-.vscode/
+.vscode/settings.json
 cgi-bin/
 docs/
 

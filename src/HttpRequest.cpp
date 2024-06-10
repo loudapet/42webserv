@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/10 10:20:40 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/10 11:06:13 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -330,21 +330,24 @@ void	HttpRequest::parseFieldSection(std::vector<std::string>& fields)
 			throw(std::invalid_argument("400 Bad Request: Invalid field name"));
 		fieldValue = std::string(++fieldIter, it->end()); // to remove ':' from the value part
 		fieldValue = trim(fieldValue);
-		valueIter = std::find_if_not(fieldValue.begin(), fieldValue.end(), isgraph);
+		//valueIter = std::find_if_not(fieldValue.begin(), fieldValue.end(), isgraph);
+		valueIter = std::find_if(fieldValue.begin(), fieldValue.end(), std::not1(std::ptr_fun<int, int>(isgraph)));
 		while (valueIter != fieldValue.end())
 		{
 			/* std::bitset<8> x(*valueIter);
 			std::cout << x << std::endl; */
 			if (*valueIter >> 7) // UTF-8 encoding starts with 1 in its most-significant byte
 			{
-				valueIter = std::find_if_not(++valueIter, fieldValue.end(), isgraph);
+				//valueIter = std::find_if_not(++valueIter, fieldValue.end(), isgraph);
+				valueIter = std::find_if(++valueIter, fieldValue.end(), std::not1(std::ptr_fun<int, int>(isgraph)));
 				continue;
 			}
 			if (!isblank(*valueIter))
 				throw(std::invalid_argument("400 Bad Request: Invalid field value - CTL characters forbidden"));
 			else if (isblank(*valueIter) && isblank(*(valueIter + 1)))
 				throw(std::invalid_argument("400 Bad Request: Invalid field value - multiple SP / HTAB detected"));
-			valueIter = std::find_if_not(++valueIter, fieldValue.end(), isgraph);
+			//valueIter = std::find_if_not(++valueIter, fieldValue.end(), isgraph);
+			valueIter = std::find_if(++valueIter, fieldValue.end(), std::not1(std::ptr_fun<int, int>(isgraph)));
 		}
 		if (!(this->headerFields.insert(std::make_pair(fieldName, fieldValue)).second)) // handle insertion of duplicates by concatenation
 		{
@@ -549,7 +552,9 @@ void	HttpRequest::validateResourceAccess(void)
 		else if (*targetResource.rbegin() == '/' && !this->allowedDirListing)
 			throw (std::invalid_argument("403 Forbidden: Autoindexing is off"));
 		else
-			;// autoindexing for GET
+		{
+			// autoindexing for GET
+		}
 	}
 	// handle redirections, POST and DELETE
 }
