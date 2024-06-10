@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 11:17:02 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/10 17:44:20 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@ Client::Client(const Client& copy)
 	this->_receivedData = copy._receivedData;
 	this->_dataToParse = copy._dataToParse;
 	this->_portConnectedOn = copy._portConnectedOn;
+	this->_serverConfig = copy._serverConfig;
 }
 
 Client	&Client::operator = (const Client &src)
@@ -35,6 +36,7 @@ Client	&Client::operator = (const Client &src)
 		this->_receivedData = src._receivedData;
 		this->_dataToParse = src._dataToParse;
 		this->_portConnectedOn = src._portConnectedOn;
+		this->_serverConfig = src._serverConfig;
 	}
 	return (*this);
 }
@@ -64,6 +66,11 @@ void	Client::setPortConnectedOn(unsigned short portConnectedOn)
 	this->_portConnectedOn = portConnectedOn;
 }
 
+void	Client::setServerConfig(const ServerConfig &serverConfig)
+{
+	this->_serverConfig = serverConfig;
+}
+
 int	Client::getClientSocket(void) const
 {
 	return (this->_clientSocket);
@@ -82,6 +89,11 @@ const octets_t	&Client::getReceivedData(void) const
 octets_t	Client::getDataToParse(void) const
 {
 	return (this->_dataToParse);
+}
+
+const ServerConfig	&Client::getServerConfig(void) const
+{
+	return (this->_serverConfig);
 }
 
 void		Client::printReceivedData(void) const

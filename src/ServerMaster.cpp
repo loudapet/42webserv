@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 15:34:55 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/10 17:43:07 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -269,38 +269,69 @@ void	ServerMaster::listenForConnections(void)
 	}
 }
 
-void ServerMaster::selectServerRules(std::string serverNameReceived, unsigned short portReceived, in_addr_t hostReceived, int clientSocket)
+void ServerMaster::selectServerRules(std::pair<std::string, std::string> parserPair, int clientSocket)
 {
-	std::map<int, ServerConfig>::iterator	serverConfigIt;
-	bool									serverNameMatch;
-	
-	serverNameMatch = false;
-	for (serverConfigIt = this->_servers.begin(); serverConfigIt != this->_servers.end(); serverConfigIt++)
-	{
-		if (serverConfigIt->second.getPort() == portReceived)
-		{
-			if (serverConfigIt->second.getHost() == hostReceived)
-			{
+    unsigned short      portReceived;
+    std::istringstream  iss;
+    bool                match;
+    struct sockaddr_in  sa;
+    in_addr_t           hostReceived;
+    in_addr_t           host;
+    std::vector<std::string>    serverNames;
+	std::map<int, ServerConfig>::const_iterator it;
+	int					fdServerConfig;
 
-				for (size_t i = 0; i < serverConfigIt->second.getServerNames().size(); i++)
-				{
-					if (serverConfigIt->second.getServerNames()[i] == serverNameReceived && serverNameReceived != "")
-					{
-						serverNameMatch = true;
-						break ;
-					}
-				}
-			}
-		}
-	}
-	if (serverConfigIt == this->_servers.end())
-	{
-		closeConnection(clientSocket);
-		return ;
-	}
-	if (!serverNameMatch)
-		std::cout << "Warning: Server name mismatch. ServerConfig assigned based on port:host pair." << std::endl;
-	// QUESTION: how to assign the correct serverConfig to the client?
+    // match port
+    match = false;
+    iss.str(parserPair.second);
+    if (!(iss >> portReceived) || !iss.eof())
+        throw(std::runtime_error("Server rules: Port number is out of range for unsigned short."));
+    for (std::map<int, ServerConfig>::const_iterator it = this->_servers.begin(); it != this->_servers.end(); it++)
+    {
+        if (it->second.getPort() == portReceived)
+        {
+            match = true;
+            host = it->second.getHost();
+            serverNames = it->second.getServerNames();
+			fdServerConfig = it->first;
+            break ;
+        }
+    }
+    if (!match)
+    {
+        // Send RESPONSE
+        closeConnection(clientSocket);
+        return ;
+    }
+    // detect IP address vs server_name (hostname)
+    if (inet_pton(AF_INET, parserPair.first.c_str(), &(sa.sin_addr)) == 0)
+        throw(std::runtime_error("Server rules: Invalid host address."));
+    else // is host (IP address)
+    {
+        hostReceived = inet_addr(parserPair.first.data());
+        if (hostReceived == host)
+        {
+			this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
+            return ;
+        }
+        else
+        {
+            // Send RESPONSE
+            closeConnection(clientSocket);
+            return ;
+        }
+    }
+    // is server_name
+    for (size_t i = 0; i < serverNames.size(); i++)
+    {
+        if (parserPair.first == serverNames[i])
+        {
+			this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
+            return ;
+        }
+    }
+    // Send RESPONSE
+    closeConnection(clientSocket);
 }
 
 /**
