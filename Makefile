@@ -3,15 +3,15 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+         #
+#    By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/16 10:28:25 by plouda            #+#    #+#              #
-#    Updated: 2024/06/10 10:47:04 by aulicna          ###   ########.fr        #
+#    Updated: 2024/06/10 10:37:36 by plouda           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-NAME =  webserv
-SRCS =  ServerMaster.cpp ServerConfig.cpp Location.cpp Client.cpp Utils.cpp main.cpp
+NAME =	parser
+SRCS =	request.cpp HttpRequest.cpp
 
 BUILD_DIR = ./obj
 OBJS = $(addprefix $(BUILD_DIR)/, $(SRCS))
@@ -21,10 +21,10 @@ SRCS := $(addprefix $(SRCS_DIR)/, $(SRCS))
 COMP = c++ -g -Wall -Wextra -Werror -std=c++98
 SANITIZER := $(if $(shell test -f /usr/local/lib/liblsan.dylib),,-llsan)
 
-GREEN       =   $(shell printf "\033[1;32m")
-YELLOW      =   $(shell printf "\033[1;33m")
-CYAN        =   $(shell printf "\033[1;36m")
-RESET       =   $(shell printf "\033[0m")
+GREEN		=	$(shell printf "\033[1;32m")
+YELLOW		=	$(shell printf "\033[1;33m")
+CYAN		=	$(shell printf "\033[1;36m")
+RESET		=	$(shell printf "\033[0m")
 
 all: $(NAME)
 

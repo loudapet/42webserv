@@ -31,6 +31,12 @@
 *.out
 *.app
 
+# Custom
+obj/
+.vscode/
 cgi-bin/
 docs/
-.vscode/
+
+# Executables
+parser
+client
