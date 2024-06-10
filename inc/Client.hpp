@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/14 19:17:59 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 17:45:09 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/10 17:51:31 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 # define CLIENT_HPP
 
 # include "webserv.hpp"
-# include "ServerConfig.cpp"
+# include "ServerConfig.hpp"
 
 class Client
 {

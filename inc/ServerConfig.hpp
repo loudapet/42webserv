@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:21:17 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/09 11:07:10 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/10 17:54:16 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@ class Location;
 class ServerConfig
 {
 	public:
+		ServerConfig(void);
 		ServerConfig(std::string &serverBlock);
 		ServerConfig(const ServerConfig& copy);
 		ServerConfig	&operator=(const ServerConfig &src);
@@ -42,8 +43,6 @@ class ServerConfig
 		void startServer(void);
 
 	private:
-		ServerConfig(void);
-		
 		void	initServerConfig(void);
 		void	validateErrorPagesLine(std::vector<std::string> &errorPageLine);
 		void	completeLocations(void);

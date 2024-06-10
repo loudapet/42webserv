@@ -248,7 +248,7 @@ ServerConfig& ServerConfig::operator=(const ServerConfig& src)
 		this->_serverSocket = src._serverSocket;
 		this->_serverAddr = src._serverAddr;
 	}
-	return *this;
+	return (*this);
 }
 
 ServerConfig::~ServerConfig(void)
