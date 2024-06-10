@@ -6,11 +6,11 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/06 17:54:56 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/10 10:48:16 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "webserv.hpp"
+#include "../inc/webserv.hpp"
 
 bool	validateElement(std::string &element)
 {

@@ -6,11 +6,11 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/07 11:59:59 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/10 10:47:29 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Location.hpp"
+#include "../inc/Location.hpp"
 
 Location::Location(void)
 {

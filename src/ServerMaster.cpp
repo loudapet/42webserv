@@ -6,11 +6,11 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/09 16:15:58 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/10 10:47:58 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "ServerMaster.hpp"
+#include "../inc/ServerMaster.hpp"
 
 ServerMaster::ServerMaster(void)
 {

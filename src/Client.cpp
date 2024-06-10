@@ -6,11 +6,11 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/09 14:24:37 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/10 10:47:22 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Client.hpp"
+#include "../inc/Client.hpp"
 
 Client::Client(void): _clientSocket(-1), _timeLastMessage(time(NULL)), _receivedData(), _dataToParse(), _portConnectedOn(0)
 {

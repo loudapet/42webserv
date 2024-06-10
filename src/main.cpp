@@ -6,12 +6,12 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 10:01:22 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/09 16:11:14 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/10 10:47:41 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "ServerMaster.hpp"
-#include "webserv.hpp"
+#include "../inc/ServerMaster.hpp"
+#include "../inc/webserv.hpp"
 
 int	main(int argc, char **argv)
 {

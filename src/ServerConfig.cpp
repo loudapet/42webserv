@@ -10,8 +10,8 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "webserv.hpp"
-#include "ServerConfig.hpp"
+#include "../inc/webserv.hpp"
+#include "../inc/ServerConfig.hpp"
 
 ServerConfig::ServerConfig(void)
 {
