@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:17:04 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 17:44:25 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/11 11:19:17 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,7 @@ class ServerMaster
 		void	removeFdFromSet(fd_set &set, int fd);
 		void	closeConnection(const int clientSocket);
 
-		void	selectServerRules(std::pair<std::string, std::string> parserPair, int clientSocket);
+		void	selectServerRules(stringpair_t parserPair, int clientSocket);
 
 		std::string					_configContent;
 		std::vector<std::string>	_serverBlocks;

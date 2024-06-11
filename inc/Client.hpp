@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/14 19:17:59 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 17:51:31 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/11 11:32:11 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 
 # include "webserv.hpp"
 # include "ServerConfig.hpp"
+# include "HttpRequest.hpp"
 
 class Client
 {
@@ -36,13 +37,17 @@ class Client
 		octets_t		getDataToParse(void) const;
 		unsigned short		getPortConnectedOn(void) const;
 		const ServerConfig	&getServerConfig(void) const;
+		const HttpRequest	&getRequest(void) const;
 
 		void		printReceivedData(void) const;
 		void		printDataToParse(void) const;
 		void		clearReceivedData(void);
+		void		eraseRangeReceivedData(size_t start, size_t end);
 		void		clearDataToParse(void);
 		void		trimHeaderEmptyLines(void);
 		bool		findValidHeaderEnd(void);
+		
+		HttpRequest	request;
 
 	private:
 		int					_clientSocket;

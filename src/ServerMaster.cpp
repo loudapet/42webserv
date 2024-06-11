@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/11 10:13:13 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/11 12:26:53 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -222,9 +222,9 @@ void	ServerMaster::listenForConnections(void)
 	fd_set			readFds; // temp fds list for select()
 	fd_set			writeFds; // temp fds list for select()
 	struct timeval	selectTimer;
+	stringpair_t	parserPair;
 	
 	
-//	FD_SET(fdSocket, &this->_master); // add the listener to the master set
 	// main listening loop
 	while(42)
 	{
@@ -246,15 +246,15 @@ void	ServerMaster::listenForConnections(void)
 					handleDataFromClient(i);
 					if (this->_clients.find(i)->second.findValidHeaderEnd())
 					{
+						Client	&client = this->_clients.find(i)->second;
 						/* std::cout << "This will be sent to parser: ";\
 						this->_clients.find(i)->second.printDataToParse(); */
-						HttpRequest	request;
-						stringpair_t parserPair = request.parseHeader(this->_clients.find(i)->second.getDataToParse());
+						parserPair = client.request.parseHeader(client.getDataToParse());
 						selectServerRules(parserPair, i); // resolve ServerConfig to HttpRequest
-						this->_clients.find(i)->second.clearDataToParse(); // clears request line and header fields
-						request.validateHeader();
-						if (request.readRequestBody(this->_clients.find(i)->second.getReceivedData()) < 0)
-							request.readBody = true;
+						client.clearDataToParse(); // clears request line and header fields
+						client.request.validateHeader();
+						if (client.request.readRequestBody(client.getReceivedData()) < 0)
+							client.request.readBody = true;
 						/* std::cout << "This is what stays in the buffer: ";
 						this->_clients.find(i)->second.printReceivedData(); */
 					}
@@ -269,7 +269,7 @@ void	ServerMaster::listenForConnections(void)
 	}
 }
 
-void ServerMaster::selectServerRules(std::pair<std::string, std::string> parserPair, int clientSocket)
+void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 {
 	unsigned short		portReceived;
 	std::istringstream	iss;

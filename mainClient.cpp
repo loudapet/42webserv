@@ -30,7 +30,7 @@ int main(void)
 	struct sockaddr_in serverAddr;
 
 	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(8081); // Port number of the server
+	serverAddr.sin_port = htons(8002); // Port number of the server
 	serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1"); // IP address of the server
 
 	// Connect to the server
@@ -41,26 +41,26 @@ int main(void)
 		return (1);
 	}
 	// Send data to the server
-	//const char *message = "\nGET /index.html?%71=key#key HTTP/1.1\nHost: example.com\nConnection: close\n\n";
+	const char *message = "\nGET /index.html?%71=key#key HTTP/1.1\nHost: example.com\nConnection: close\n\n";
 	/* const char *message = "\nGET /testdir/test.html HTTP/1.1\nConnection: keep-alive\ntest:\n"
 							"Host: example.org:80\nConnection: low\ntest: no\n"
 							"Content-Length: 1\r\n\n"
 							"H"
 							"GET /testdir/test.html HTTP/1.1\nConnection: keep-alive\ntest:\n"
 							"Host: example.org:80\nConnection: low\ntest: no\n\n"; */
-	const char	*message = "\n\r\n\n\r\nGET /index.html HTTP/1.1\r\n"
-							"Host: %4ehello%E2%82%AC:90\r\n"
-							"User-Agent: Mozilla/5.0\n"
-							"Accept: text/html, */*\r\n"
-							"Accept-Language: en-us\n"
-							"Accept-Charset: \tISO-8859-1,utf-8\n"
-							"Connection: keep-alive , \r\n"
-							"Keep-Alive: max=100,timeout=30\n"
-							"Content-Length: 100\n"
-							"t: €h\n"
-							"\r\n"
-							"9\r\n"
-							"Mo";
+//	const char	*message = "\n\r\n\n\r\nGET /index.html HTTP/1.1\r\n"
+//							"Host: %4ehello%E2%82%AC:90\r\n"
+//							"User-Agent: Mozilla/5.0\n"
+//							"Accept: text/html, */*\r\n"
+//							"Accept-Language: en-us\n"
+//							"Accept-Charset: \tISO-8859-1,utf-8\n"
+//							"Connection: keep-alive , \r\n"
+//							"Keep-Alive: max=100,timeout=30\n"
+//							"Content-Length: 100\n"
+//							"t: €h\n"
+//							"\r\n"
+//							"9\r\n"
+//							"Mo";
 	if (send(clientSocket, message, strlen(message), 0) == -1)
 	{
 		std::cerr << "Error: Failed to send data\n";

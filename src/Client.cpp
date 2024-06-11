@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 17:44:20 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/11 11:33:19 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,9 +91,19 @@ octets_t	Client::getDataToParse(void) const
 	return (this->_dataToParse);
 }
 
+unsigned short	Client::getPortConnectedOn(void) const
+{
+	return (this->_portConnectedOn);
+}
+
 const ServerConfig	&Client::getServerConfig(void) const
 {
 	return (this->_serverConfig);
+}
+	
+const HttpRequest	&Client::getRequest(void) const
+{
+	return (this->request);
 }
 
 void		Client::printReceivedData(void) const
@@ -101,11 +111,6 @@ void		Client::printReceivedData(void) const
 	for (octets_t::const_iterator it = this->_receivedData.begin(); it != this->_receivedData.end(); it++)
 		std::cout << static_cast<char>(*it);
 	std::cout << std::endl;
-}
-
-unsigned short	Client::getPortConnectedOn(void) const
-{
-	return (this->_portConnectedOn);
 }
 
 void		Client::printDataToParse(void) const
@@ -117,6 +122,12 @@ void		Client::printDataToParse(void) const
 void	Client::clearReceivedData(void)
 {
 	this->_receivedData.clear();
+}
+
+void	Client::eraseRangeReceivedData(size_t start, size_t end)
+{
+	if (start <= end && start > 0 && end <= this->_receivedData.size())
+		this->_receivedData.erase(this->_receivedData.begin() + start, this->_receivedData.begin() + end);
 }
 
 void	Client::clearDataToParse(void)
