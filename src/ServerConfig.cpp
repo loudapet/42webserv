@@ -210,7 +210,7 @@ ServerConfig::ServerConfig(const ServerConfig& copy)
 {
 }
 
-ServerConfig& ServerConfig::operator=(const ServerConfig& src)
+ServerConfig& ServerConfig::operator = (const ServerConfig& src)
 {
 	if (this != &src)
 	{
@@ -313,7 +313,7 @@ void	ServerConfig::initServerConfig(void)
 
 void	ServerConfig::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
 {
-	short							tmpErrorCode;
+	short							errorCode;
 	std::istringstream				iss; // convert error code to short
 	std::string						errorPageFileName;
 	std::ifstream					errorPageFile;
@@ -331,19 +331,20 @@ void	ServerConfig::validateErrorPagesLine(std::vector<std::string> &errorPageLin
 					throw (std::runtime_error("Config parser: Invalid error page number."));
 			}
 			iss.str(errorPageLine[i]);
-			if (!(iss >> tmpErrorCode) || !iss.eof())
+			if (!(iss >> errorCode) || !iss.eof())
 				throw(std::runtime_error("Config parser: Error page number is out of range for short."));
 			iss.str("");
 			iss.clear();
-			if (tmpErrorCode < 400 || (tmpErrorCode > 426 && tmpErrorCode < 500) || tmpErrorCode > 505)
+			if (errorCode < 400 || (errorCode > 426 && errorCode < 500) || errorCode > 505)
 				throw(std::runtime_error("Config parser: Error page number is out of range of valid error pages."));
-			this->_errorPages[tmpErrorCode] = errorPageFileName;
+			this->_errorPages[errorCode] = errorPageFileName;
 		}
 	}
 }
 
 void	ServerConfig::completeLocations(void)
 {
+	
 	for (size_t i = 0; i < this->_locations.size(); i++)
 	{
 	// add server root if none defined
@@ -359,6 +360,11 @@ void	ServerConfig::completeLocations(void)
 		// what if difference between server and location scope directives - e.g. autoindex off in server but off in this->_locations[i]
 		if (this->_locations[i].getAutoindex() == -1)
 			this->_locations[i].setAutoindex(this->_autoindex);
+		for (std::map<short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
+		{
+			if (this->_locations[i].getErrorPages().find(it->first) == this->_locations[i].getErrorPages().end())
+				this->_locations[i].addErrorPage(it->first, it->second);
+		}
 	}
 }
 

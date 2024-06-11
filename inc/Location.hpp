@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:27 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/11 14:02:28 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/11 16:42:41 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,12 +40,13 @@ class Location
 		void	setRequestBodySizeLimit(int requestBodySizeLimit);
 		void	setAutoindex(int autoindex);
 		void	setCgiMap(std::map<std::string, std::string> &cgiMap);
-
+		void	addErrorPage(short errorCode, const std::string &errorPageFile);
 	
 	private:
 		Location(void);	
 		
 		void	initLocation(void);
+		void	validateErrorPagesLine(std::vector<std::string> &errorPageLine);
 
 		std::string							_path;
 		std::string							_root;

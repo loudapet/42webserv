@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/11 12:26:53 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/11 17:24:10 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -316,7 +316,7 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 		if (hostReceived == host)
 		{
 			this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
-			std::cout << "Choosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
+			// std::cout << "Choosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
 			return ;
 		}
 		else
@@ -334,7 +334,7 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 			if (parserPair.first == serverNames[i])
 			{
 				this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
-				std::cout << "Choosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
+				// std::cout << "Choosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
 				return ;
 			}
 		}
