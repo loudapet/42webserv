@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 18:15:19 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/11 10:13:13 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -248,15 +248,13 @@ void	ServerMaster::listenForConnections(void)
 					{
 						/* std::cout << "This will be sent to parser: ";\
 						this->_clients.find(i)->second.printDataToParse(); */
-				//		HttpRequest	request;
-				//		request.parseHeader(this->_clients.find(i)->second.getDataToParse());
-						stringpair_t parserPair = std::make_pair("localhost", "8002");
-						selectServerRules(parserPair, i);
-						// resolve ServerConfig to HttpRequest
+						HttpRequest	request;
+						stringpair_t parserPair = request.parseHeader(this->_clients.find(i)->second.getDataToParse());
+						selectServerRules(parserPair, i); // resolve ServerConfig to HttpRequest
 						this->_clients.find(i)->second.clearDataToParse(); // clears request line and header fields
-				//		request.validateHeader();
-				//		if (request.readRequestBody(this->_clients.find(i)->second.getReceivedData()) < 0)
-				//			request.readBody = true;
+						request.validateHeader();
+						if (request.readRequestBody(this->_clients.find(i)->second.getReceivedData()) < 0)
+							request.readBody = true;
 						/* std::cout << "This is what stays in the buffer: ";
 						this->_clients.find(i)->second.printReceivedData(); */
 					}
@@ -285,12 +283,17 @@ void ServerMaster::selectServerRules(std::pair<std::string, std::string> parserP
 
 	// match port
 	match = false;
-	iss.str(parserPair.second);
-	if (!(iss >> portReceived) || !iss.eof())
-		throw(std::runtime_error("Server rules: Port number is out of range for unsigned short."));
+	if (parserPair.second.empty())
+		portReceived = this->_clients.find(clientSocket)->second.getPortConnectedOn();
+	else
+	{
+		iss.str(parserPair.second);
+		if (!(iss >> portReceived) || !iss.eof())
+			throw(std::runtime_error("Server rules: Port number is out of range for unsigned short."));
+	}
 	for (std::map<int, ServerConfig>::const_iterator it = this->_servers.begin(); it != this->_servers.end(); it++)
 	{
-		if (it->second.getPort() == portReceived)
+		if (it->second.getPort() == portReceived && this->_clients.find(clientSocket)->second.getPortConnectedOn() == portReceived)
 		{
 			match = true;
 			host = it->second.getHost();
@@ -309,7 +312,6 @@ void ServerMaster::selectServerRules(std::pair<std::string, std::string> parserP
 	// detect IP address vs server_name (hostname)
 	if (inet_pton(AF_INET, parserPair.first.c_str(), &(sa.sin_addr)) > 0) // is host (IP address)
 	{
-		std::cout << "Is IP address." << std::endl;
 		hostReceived = inet_addr(parserPair.first.data());
 		if (hostReceived == host)
 		{
@@ -325,10 +327,8 @@ void ServerMaster::selectServerRules(std::pair<std::string, std::string> parserP
 			return ;
 		}
 	}
-	else
+	else // is server_name
 	{
-		std::cout << "Is server_name." << std::endl;
-		// is server_name
 		for (size_t i = 0; i < serverNames.size(); i++)
 		{
 			if (parserPair.first == serverNames[i])
@@ -342,7 +342,6 @@ void ServerMaster::selectServerRules(std::pair<std::string, std::string> parserP
 		std::cout << "Closing connection because of server_name mismatch." << std::endl;
 		closeConnection(clientSocket);
 	}
-
 }
 
 /**
