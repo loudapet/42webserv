@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:27 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/07 12:03:31 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/11 14:02:28 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,8 +31,9 @@ class Location
 		const std::set<std::string>					&getAllowMethods(void) const;
 		const std::vector<std::string>				&getCgiPath(void) const;
 		const std::vector<std::string>				&getCgiExt(void) const;
-		const std::string							&getReturn(void) const;
 		const std::map<std::string, std::string>	&getCgiMap(void) const;
+		const std::string							&getReturn(void) const;
+		const std::map<short, std::string>			&getErrorPages(void) const;
 
 		void	setRoot(const std::string &root);
 		void	setIndex(const std::vector<std::string> &index);
@@ -56,6 +57,7 @@ class Location
 		std::vector<std::string>			_cgiExt;
 		std::map<std::string, std::string>	_cgiMap;
 		std::string							_return;
+		std::map<short, std::string> 		_errorPages;
 
 };
 
