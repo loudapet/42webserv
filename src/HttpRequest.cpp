@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/10 15:46:36 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/11 09:29:22 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -174,7 +174,7 @@ stringpair_t	HttpRequest::parseAuthority(std::string& authority, HostLocation pa
 	if (portPos == std::string::npos)
 	{
 		host = std::string(authority);
-		port = DEFAULT_PORT;
+		port = "";
 	}
 	else if (portPos == 0)
 	{
@@ -187,9 +187,7 @@ stringpair_t	HttpRequest::parseAuthority(std::string& authority, HostLocation pa
 	{
 		host = std::string(authority.begin(), authority.begin() + portPos);
 		port = std::string(authority.begin() + portPos + 1, authority.end());
-		if (port == "")
-			port = DEFAULT_PORT;
-		else
+		if (port != "")
 		{
 			while (port[i] == '0') // delete leading zeros from port
 				i++;
@@ -626,6 +624,7 @@ void	HttpRequest::validateHeader(void)
 // make sure content-length is actually equal or smaller to the size of the buffered body, wait otherwise
 long	HttpRequest::readRequestBody(octets_t bufferedBody)
 {
+	long	bytesRead = 0;
 	if (this->messageFraming == CONTENT_LENGTH && bufferedBody.size() < this->contentLength)
 		return (-1);
 	if (this->messageFraming == CONTENT_LENGTH)
@@ -636,9 +635,13 @@ long	HttpRequest::readRequestBody(octets_t bufferedBody)
 	}
 	else if (this->messageFraming == TRANSFER_ENCODING)
 	{
-		return (0);
+		for (octets_t::iterator it = bufferedBody.begin(); it != bufferedBody.end() ; )
+		{
+			
+		}
+
 	}
-	return (0);
+	return (bytesRead);
 }
 
 std::ostream &operator<<(std::ostream &os, octets_t &vec)
