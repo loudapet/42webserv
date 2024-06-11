@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/11 09:29:22 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/11 15:34:53 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -585,13 +585,14 @@ void	HttpRequest::validateMessageFraming(void)
 		int	error = errno;
 		if (error == ERANGE || bodySize > INT_MAX) // update to max_body_size
 			throw (std::invalid_argument("413 Content Too Large: Content-Length is too big"));
-		if (error == EINVAL || bodySize < 0)
-			throw (std::invalid_argument("400 Bad Request: Invalid Content-Length value"));
 		this->contentLength = bodySize;
 		this->messageFraming = CONTENT_LENGTH;
 	}
 	else
-		throw (std::invalid_argument("400 Bad Request: Invalid framing (depends on method)"));
+	{
+		//if (this->startLine.method == "POST")
+		throw (std::invalid_argument("400 Bad Request: Invalid framing (depends on method - FIX)"));
+	}
 }
 
 void	HttpRequest::manageExpectations(void)
@@ -621,10 +622,11 @@ void	HttpRequest::validateHeader(void)
 	this->manageExpectations();
 }
 
-// make sure content-length is actually equal or smaller to the size of the buffered body, wait otherwise
-long	HttpRequest::readRequestBody(octets_t bufferedBody)
+// check max body size
+// also should check for valid characters  in extension(?)
+size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 {
-	long	bytesRead = 0;
+	size_t	bytesRead = 0;
 	if (this->messageFraming == CONTENT_LENGTH && bufferedBody.size() < this->contentLength)
 		return (-1);
 	if (this->messageFraming == CONTENT_LENGTH)
@@ -635,13 +637,108 @@ long	HttpRequest::readRequestBody(octets_t bufferedBody)
 	}
 	else if (this->messageFraming == TRANSFER_ENCODING)
 	{
-		for (octets_t::iterator it = bufferedBody.begin(); it != bufferedBody.end() ; )
+		std::cout << CLR2 << "Received: " << bufferedBody.size() << RESET << std::endl;
+		for (octets_t::iterator	it = bufferedBody.begin() ; it != bufferedBody.end() ; it = bufferedBody.begin())
 		{
-			
-		}
+			octets_t::iterator	newline = std::find(bufferedBody.begin(), bufferedBody.end(), '\n');
+			octets_t			chunkSizeLine(bufferedBody.begin(), newline);
+			size_t				tempBytesRead = chunkSizeLine.size() + 1;
+			octets_t::iterator	semicolon = std::find(chunkSizeLine.begin(), chunkSizeLine.end(), ';');
+			octets_t			chunkSizeOct(chunkSizeLine.begin(), semicolon); // ignore chunk-extension
+			std::cout << "Chunk size: " << chunkSizeOct << std::endl;
+			bufferedBody.erase(bufferedBody.begin(), newline + 1); // move to the beginning of the chunk
+			if (chunkSizeOct.size() > 0 && !isxdigit(chunkSizeOct[0]))
+				throw (std::invalid_argument("400 Bad Request: Invalid chunk size value (whitespace)")); // anything else than a hexdigit at the start isn't allowed
+			if (std::count(chunkSizeOct.begin(), chunkSizeOct.end(), '\0') > 0)
+				throw (std::invalid_argument("400 Bad Request: Invalid chunk size value (null byte)")); // needs special check prior to conversion to string
+			std::string		chunkSizeStr(chunkSizeOct.begin(), chunkSizeOct.end());
+			chunkSizeStr = trim(chunkSizeStr);
+			if (chunkSizeStr.find_first_not_of(HEXDIGITS) != std::string::npos)
+				throw (std::invalid_argument("400 Bad Request: Invalid chunk size value"));
+			errno = 0;
+			size_t chunkSize = strtoul(chunkSizeStr.c_str(), NULL, 16);
+			int	error = errno;
+			if (error == ERANGE || chunkSize > INT_MAX) // update to max_body_size too
+				throw (std::invalid_argument("413 Content Too Large: Chunk is too big"));
 
+			if (chunkSize == 0)
+			{
+				if (bufferedBody.size() >= 1 && bufferedBody[0] == '\n')
+				{
+					bufferedBody.erase(bufferedBody.begin(), bufferedBody.begin() + 1);
+					bytesRead++;
+					bytesRead += tempBytesRead;
+					this->readingBodyInProgress = false;
+					this->finishedRead = true;
+					return (bytesRead);
+				}
+				else if (bufferedBody.size() > 1 && bufferedBody[0] == '\r' && bufferedBody[1] == '\n')
+				{
+					bufferedBody.erase(bufferedBody.begin(), bufferedBody.begin() + 2);
+					bytesRead += 2;
+					bytesRead += tempBytesRead;
+					this->readingBodyInProgress = false;
+					this->finishedRead = true;
+					return (bytesRead);
+				}
+				else
+					throw (std::invalid_argument("400 Bad Request: Invalid delimitation of message body end"));
+			}
+			else if (chunkSize + 1 > bufferedBody.size()) // + 1 for newline (should be there as a proper delimiter)
+			{
+				this->readingBodyInProgress = true;
+				return (bytesRead);
+			}
+			else
+			{
+				std::cout << CLR1 << "HELLO" << RESET << std::endl;
+				octets_t::iterator	itr = bufferedBody.begin();
+				while (itr != bufferedBody.end() && static_cast<size_t>(std::distance(bufferedBody.begin(), itr)) < chunkSize)
+				{
+					this->requestBody.push_back(*itr);
+					itr++;
+				}						
+				bufferedBody.erase(bufferedBody.begin(), itr);
+				if (bufferedBody.size() >= 1)
+				{
+					if (bufferedBody.size() >= 1 && bufferedBody[0] == '\n')
+					{
+						bufferedBody.erase(bufferedBody.begin(), bufferedBody.begin() + 1);
+						bytesRead++;
+					}
+					else if (bufferedBody.size() > 1 && bufferedBody[0] == '\r' && bufferedBody[1] == '\n')
+					{
+						bufferedBody.erase(bufferedBody.begin(), bufferedBody.begin() + 2);
+						bytesRead += 2;
+					}
+					else
+					{
+						this->readingBodyInProgress = true;
+						return (bytesRead);
+					}
+					bytesRead += tempBytesRead + chunkSize;
+				}
+				else
+				{
+					this->readingBodyInProgress = true;
+					return (bytesRead);
+				}
+			}
+		}
 	}
 	return (bytesRead);
+}
+
+const octets_t&			HttpRequest::getRequestBody(void) const
+{
+	return (this->requestBody);
+}
+
+std::ostream &operator<<(std::ostream &os, const octets_t &vec)
+{
+	for (octets_t::const_iterator it = vec.begin(); it != vec.end(); it++)
+		os << *it;
+	return os;
 }
 
 std::ostream &operator<<(std::ostream &os, octets_t &vec)

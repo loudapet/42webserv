@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/10 15:46:18 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/11 15:34:27 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,9 @@
 #include <errno.h>
 #include <limits.h>
 #include <functional>
+# define CLR1 "\e[38;5;51m"
+# define CLR2 "\e[38;5;208m"
+# define CLR3 "\e[38;5;213m"
 #define UNDERLINE "\033[4m"
 #define	RESET "\033[0m"
 #define CR '\r'
@@ -120,12 +123,16 @@ class HttpRequest
 		HttpRequest& operator = (const HttpRequest& refObj);
 		~HttpRequest();
 
-		bool			readBody; // false = reading request line and headers, true = reading body
+		bool			finishedRead;
+		bool			readingBodyInProgress; // false = reading request line and headers, true = reading body
 		stringpair_t	parseHeader(octets_t header);
 		void			validateHeader();
-		long			readRequestBody(octets_t bufferedBody);
+		size_t			readRequestBody(octets_t bufferedBody);
+
+		const octets_t&		getRequestBody() const;
 };
 
+std::ostream &operator<<(std::ostream &os, const octets_t &vec);
 std::ostream &operator<<(std::ostream &os, octets_t &vec);
 std::ostream &operator<<(std::ostream &os, std::vector<octets_t> &vec);
 std::ostream &operator<<(std::ostream &os, std::vector<std::string> &vec);

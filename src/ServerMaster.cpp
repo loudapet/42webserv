@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 15:34:55 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/11 15:57:21 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -222,9 +222,9 @@ void	ServerMaster::listenForConnections(void)
 	fd_set			readFds; // temp fds list for select()
 	fd_set			writeFds; // temp fds list for select()
 	struct timeval	selectTimer;
+	stringpair_t	parserPair;
 	
 	
-//	FD_SET(fdSocket, &this->_master); // add the listener to the master set
 	// main listening loop
 	while(42)
 	{
@@ -244,19 +244,25 @@ void	ServerMaster::listenForConnections(void)
 				else if (FD_ISSET(i, &readFds) && this->_clients.count(i))
 				{
 					handleDataFromClient(i);
-					if (this->_clients.find(i)->second.findValidHeaderEnd())
+					size_t	bytesToDelete = 0;
+					Client	&client = this->_clients.find(i)->second;
+					// because /r/n is a valid ending, it goes to findValidHeaderEnd, which accidentally converts the rest of the buffer to dataToParse
+					// that's why we need to check if we're reading
+					if (!client.request.finishedRead && !client.request.readingBodyInProgress && this->_clients.find(i)->second.findValidHeaderEnd())
 					{
-						/* std::cout << "This will be sent to parser: ";\
-						this->_clients.find(i)->second.printDataToParse(); */
-						HttpRequest	request;
-						request.parseHeader(this->_clients.find(i)->second.getDataToParse());
-						// resolve ServerConfig to HttpRequest
-						this->_clients.find(i)->second.clearDataToParse(); // clears request line and header fields
-						request.validateHeader();
-						if (request.readRequestBody(this->_clients.find(i)->second.getReceivedData()) < 0)
-							request.readBody = true;
-						/* std::cout << "This is what stays in the buffer: ";
-						this->_clients.find(i)->second.printReceivedData(); */
+						parserPair = client.request.parseHeader(client.getDataToParse());
+						selectServerRules(parserPair, i); // resolve ServerConfig to HttpRequest
+						client.clearDataToParse(); // clears request line and header fields
+						client.request.validateHeader();
+						client.request.readingBodyInProgress = true;
+					}
+					if (client.request.readingBodyInProgress)
+					{
+						bytesToDelete = client.request.readRequestBody(client.getReceivedData());
+						std::cout << "BYTES TO DELETE " << bytesToDelete << std::endl;
+						client.eraseRangeReceivedData(0, bytesToDelete);
+						std::cout << "Request body: " << std::endl;
+						std::cout << client.request.getRequestBody() << std::endl;
 					}
 				}
 				else if (FD_ISSET(i, &writeFds) && this->_clients.count(i))
@@ -269,38 +275,79 @@ void	ServerMaster::listenForConnections(void)
 	}
 }
 
-void ServerMaster::selectServerRules(std::string serverNameReceived, unsigned short portReceived, in_addr_t hostReceived, int clientSocket)
+void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 {
-	std::map<int, ServerConfig>::iterator	serverConfigIt;
-	bool									serverNameMatch;
-	
-	serverNameMatch = false;
-	for (serverConfigIt = this->_servers.begin(); serverConfigIt != this->_servers.end(); serverConfigIt++)
-	{
-		if (serverConfigIt->second.getPort() == portReceived)
-		{
-			if (serverConfigIt->second.getHost() == hostReceived)
-			{
+	unsigned short		portReceived;
+	std::istringstream	iss;
+	bool				match;
+	struct sockaddr_in	sa;
+	in_addr_t			hostReceived;
+	in_addr_t				host;
+	std::vector<std::string>	serverNames;
+	std::map<int, ServerConfig>::const_iterator	it;
+	int			fdServerConfig;
 
-				for (size_t i = 0; i < serverConfigIt->second.getServerNames().size(); i++)
-				{
-					if (serverConfigIt->second.getServerNames()[i] == serverNameReceived && serverNameReceived != "")
-					{
-						serverNameMatch = true;
-						break ;
-					}
-				}
-			}
+	// match port
+	match = false;
+	if (parserPair.second.empty())
+		portReceived = this->_clients.find(clientSocket)->second.getPortConnectedOn();
+	else
+	{
+		iss.str(parserPair.second);
+		if (!(iss >> portReceived) || !iss.eof())
+			throw(std::runtime_error("Server rules: Port number is out of range for unsigned short."));
+	}
+	for (std::map<int, ServerConfig>::const_iterator it = this->_servers.begin(); it != this->_servers.end(); it++)
+	{
+		if (it->second.getPort() == portReceived && this->_clients.find(clientSocket)->second.getPortConnectedOn() == portReceived)
+		{
+			match = true;
+			host = it->second.getHost();
+			serverNames = it->second.getServerNames();
+			fdServerConfig = it->first;
+			break ;
 		}
 	}
-	if (serverConfigIt == this->_servers.end())
+	if (!match)
 	{
+		// Send RESPONSE
+		std::cout << "Closing connection because of port mismatch." << std::endl;
 		closeConnection(clientSocket);
 		return ;
 	}
-	if (!serverNameMatch)
-		std::cout << "Warning: Server name mismatch. ServerConfig assigned based on port:host pair." << std::endl;
-	// QUESTION: how to assign the correct serverConfig to the client?
+	// detect IP address vs server_name (hostname)
+	if (inet_pton(AF_INET, parserPair.first.c_str(), &(sa.sin_addr)) > 0) // is host (IP address)
+	{
+		hostReceived = inet_addr(parserPair.first.data());
+		if (hostReceived == host)
+		{
+			this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
+			//std::cout << "Choosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
+			return ;
+		}
+		else
+		{
+			// Send RESPONSE
+			std::cout << "Closing connection because of IP address mismatch." << std::endl;
+			closeConnection(clientSocket);
+			return ;
+		}
+	}
+	else // is server_name
+	{
+		for (size_t i = 0; i < serverNames.size(); i++)
+		{
+			if (parserPair.first == serverNames[i])
+			{
+				this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
+				//std::cout << "Choosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
+				return ;
+			}
+		}
+		// Send RESPONSE
+		std::cout << "Closing connection because of server_name mismatch." << std::endl;
+		closeConnection(clientSocket);
+	}
 }
 
 /**

@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 11:17:02 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/11 14:51:18 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@ Client::Client(const Client& copy)
 	this->_receivedData = copy._receivedData;
 	this->_dataToParse = copy._dataToParse;
 	this->_portConnectedOn = copy._portConnectedOn;
+	this->_serverConfig = copy._serverConfig;
 }
 
 Client	&Client::operator = (const Client &src)
@@ -35,6 +36,7 @@ Client	&Client::operator = (const Client &src)
 		this->_receivedData = src._receivedData;
 		this->_dataToParse = src._dataToParse;
 		this->_portConnectedOn = src._portConnectedOn;
+		this->_serverConfig = src._serverConfig;
 	}
 	return (*this);
 }
@@ -64,6 +66,11 @@ void	Client::setPortConnectedOn(unsigned short portConnectedOn)
 	this->_portConnectedOn = portConnectedOn;
 }
 
+void	Client::setServerConfig(const ServerConfig &serverConfig)
+{
+	this->_serverConfig = serverConfig;
+}
+
 int	Client::getClientSocket(void) const
 {
 	return (this->_clientSocket);
@@ -84,16 +91,26 @@ octets_t	Client::getDataToParse(void) const
 	return (this->_dataToParse);
 }
 
+unsigned short	Client::getPortConnectedOn(void) const
+{
+	return (this->_portConnectedOn);
+}
+
+const ServerConfig	&Client::getServerConfig(void) const
+{
+	return (this->_serverConfig);
+}
+	
+const HttpRequest	&Client::getRequest(void) const
+{
+	return (this->request);
+}
+
 void		Client::printReceivedData(void) const
 {
 	for (octets_t::const_iterator it = this->_receivedData.begin(); it != this->_receivedData.end(); it++)
 		std::cout << static_cast<char>(*it);
 	std::cout << std::endl;
-}
-
-unsigned short	Client::getPortConnectedOn(void) const
-{
-	return (this->_portConnectedOn);
 }
 
 void		Client::printDataToParse(void) const
@@ -105,6 +122,17 @@ void		Client::printDataToParse(void) const
 void	Client::clearReceivedData(void)
 {
 	this->_receivedData.clear();
+}
+
+void	Client::eraseRangeReceivedData(size_t start, size_t end)
+{
+	std::cout << "RECEIVED DATA " << this->_receivedData.size() << std::endl;
+	if (start <= end && start >= 0 && end <= this->_receivedData.size())
+	{
+		std::cout << "Show data to be deleted: " << std::endl;
+		std::cout << this->_receivedData << std::endl;
+		this->_receivedData.erase(this->_receivedData.begin() + start, this->_receivedData.begin() + end);
+	}
 }
 
 void	Client::clearDataToParse(void)
