@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/11 15:57:21 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/12 11:48:51 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -248,12 +248,12 @@ void	ServerMaster::listenForConnections(void)
 					Client	&client = this->_clients.find(i)->second;
 					// because /r/n is a valid ending, it goes to findValidHeaderEnd, which accidentally converts the rest of the buffer to dataToParse
 					// that's why we need to check if we're reading
-					if (!client.request.finishedRead && !client.request.readingBodyInProgress && this->_clients.find(i)->second.findValidHeaderEnd())
+					if (!client.request.requestComplete && !client.request.readingBodyInProgress && this->_clients.find(i)->second.findValidHeaderEnd())
 					{
 						parserPair = client.request.parseHeader(client.getDataToParse());
 						selectServerRules(parserPair, i); // resolve ServerConfig to HttpRequest
 						client.clearDataToParse(); // clears request line and header fields
-						client.request.validateHeader();
+						client.request.validateHeader(client.getServerConfig());
 						client.request.readingBodyInProgress = true;
 					}
 					if (client.request.readingBodyInProgress)

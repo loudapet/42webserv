@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/11 15:34:53 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/12 13:42:07 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,7 +106,7 @@ void resolvePercentEncoding(std::string& path, size_t& pos)
 	}
 }
 
-void	HttpRequest::resolveDotSegments(std::string& path)
+std::string	resolveDotSegments(std::string path, DotSegmentsResolution flag)
 {
 	std::stack<std::string>	segments;
 	std::stack<std::string>	output;
@@ -120,6 +120,8 @@ void	HttpRequest::resolveDotSegments(std::string& path)
 		{
 			if (output.size() > 1)
 				output.pop();
+			else if (flag == CONFIG)
+				throw(std::invalid_argument("Path above root"));
 			else
 				throw(std::invalid_argument("400 Bad Request: Invalid relative reference"));
 		}
@@ -133,8 +135,7 @@ void	HttpRequest::resolveDotSegments(std::string& path)
 		newPath.insert(0, output.top());
 		output.pop();
 	}
-	this->startLine.requestTarget.absolutePath = newPath;
-	return ;
+	return (newPath);
 }
 
 void	HttpRequest::validateURIElements(void)
@@ -270,7 +271,7 @@ void	HttpRequest::parseRequestTarget(std::string& uri)
 	if (this->startLine.requestTarget.absolutePath == "")
 		this->startLine.requestTarget.absolutePath = "/";
 	validateURIElements();
-	resolveDotSegments(this->startLine.requestTarget.absolutePath);
+	this->startLine.requestTarget.absolutePath = resolveDotSegments(this->startLine.requestTarget.absolutePath, REQUEST);
 	return ;
 }
 
@@ -472,7 +473,7 @@ stringpair_t	HttpRequest::parseHeader(octets_t header)
 		throw (std::invalid_argument("400 Bad Request: Improperly terminated header-field section"));
 	this->parseFieldSection(splitLines);
 	authority = this->resolveHost();
-	std::cout << this->startLine << this->headerFields << std::endl;
+	//std::cout << this->startLine << this->headerFields << std::endl;
 	std::cout << "Final host:\t" << authority.first << std::endl;
 	std::cout << "Final port:\t" << authority.second << std::endl;
 	return (authority);
@@ -528,8 +529,9 @@ void	HttpRequest::validateConnectionOption(void)
 }
 
 // http://hello//testdir/a will get redirected to /testdir/a/
-void	HttpRequest::validateResourceAccess(void)
+void	HttpRequest::validateResourceAccess(const Location& location)
 {
+	std::cout << location.getPath() << std::endl;
 	if (*root.rbegin() == '/')
 		root.erase(root.end() - 1);
 	this->targetResource = root + this->startLine.requestTarget.absolutePath;
@@ -563,7 +565,7 @@ void	HttpRequest::validateMessageFraming(void)
 	stringmap_t::iterator	contentLength = this->headerFields.find("content-length");
 	std::vector<std::string>	values;
 	if (transferEncoding != this->headerFields.end() && contentLength != this->headerFields.end())
-		throw (std::invalid_argument("404 Bad Request: Ambiguous message framing"));
+		throw (std::invalid_argument("400 Bad Request: Ambiguous message framing"));
 	if (transferEncoding != this->headerFields.end())
 	{
 		values = splitQuotedString(transferEncoding->second, ',');
@@ -610,14 +612,19 @@ void	HttpRequest::manageExpectations(void)
 /*
 1) method check based on string comparison once the server block rules are matched, also needs 405 Method Not Allowed if applicable
 2) merge paths and check access to URI based on allowed methods
+
+Q: what happens if methods in config are not valid?
 */
-void	HttpRequest::validateHeader(void)
+void	HttpRequest::validateHeader(const ServerConfig& serverConfig)
 {
-	if (this->startLine.method != "GET" && this->startLine.method != "POST"
-	&& this->startLine.method != "DELETE")
+	std::set<std::string>	allowedMethods = serverConfig.getLocations()[0].getAllowMethods();
+	if (std::find(allowedMethods.begin(), allowedMethods.end(), this->startLine.method) == allowedMethods.end())
 		throw (std::invalid_argument("501 Not implemented"));
+/* 	if (this->startLine.method != "GET" && this->startLine.method != "POST"
+		&& this->startLine.method != "DELETE")
+		throw (std::invalid_argument("501 Not implemented")); */
 	this->validateConnectionOption();
-	this->validateResourceAccess();
+	this->validateResourceAccess(serverConfig.getLocations()[0]);
 	this->validateMessageFraming();
 	this->manageExpectations();
 }
@@ -628,11 +635,15 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 {
 	size_t	bytesRead = 0;
 	if (this->messageFraming == CONTENT_LENGTH && bufferedBody.size() < this->contentLength)
-		return (-1);
+	{
+		this->readingBodyInProgress = true;
+		return (0);
+	}
 	if (this->messageFraming == CONTENT_LENGTH)
 	{		
 		this->requestBody = octets_t(bufferedBody.begin(), bufferedBody.begin() + this->contentLength);
-		//std::cout << requestBody << std::endl;
+		this->readingBodyInProgress = false;
+		this->requestComplete = true;
 		return (this->requestBody.size());
 	}
 	else if (this->messageFraming == TRANSFER_ENCODING)
@@ -666,19 +677,17 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 				if (bufferedBody.size() >= 1 && bufferedBody[0] == '\n')
 				{
 					bufferedBody.erase(bufferedBody.begin(), bufferedBody.begin() + 1);
-					bytesRead++;
-					bytesRead += tempBytesRead;
+					bytesRead += tempBytesRead + 1;
 					this->readingBodyInProgress = false;
-					this->finishedRead = true;
+					this->requestComplete = true;
 					return (bytesRead);
 				}
 				else if (bufferedBody.size() > 1 && bufferedBody[0] == '\r' && bufferedBody[1] == '\n')
 				{
 					bufferedBody.erase(bufferedBody.begin(), bufferedBody.begin() + 2);
-					bytesRead += 2;
-					bytesRead += tempBytesRead;
+					bytesRead += tempBytesRead + 2;
 					this->readingBodyInProgress = false;
-					this->finishedRead = true;
+					this->requestComplete = true;
 					return (bytesRead);
 				}
 				else
@@ -691,7 +700,6 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 			}
 			else
 			{
-				std::cout << CLR1 << "HELLO" << RESET << std::endl;
 				octets_t::iterator	itr = bufferedBody.begin();
 				while (itr != bufferedBody.end() && static_cast<size_t>(std::distance(bufferedBody.begin(), itr)) < chunkSize)
 				{
@@ -727,6 +735,11 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 		}
 	}
 	return (bytesRead);
+}
+
+const std::string&			HttpRequest::getAbsolutePath(void) const
+{
+	return (this->startLine.requestTarget.absolutePath);
 }
 
 const octets_t&			HttpRequest::getRequestBody(void) const
