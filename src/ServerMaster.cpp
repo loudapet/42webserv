@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/11 17:24:10 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/12 11:48:51 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -244,19 +244,25 @@ void	ServerMaster::listenForConnections(void)
 				else if (FD_ISSET(i, &readFds) && this->_clients.count(i))
 				{
 					handleDataFromClient(i);
-					if (this->_clients.find(i)->second.findValidHeaderEnd())
+					size_t	bytesToDelete = 0;
+					Client	&client = this->_clients.find(i)->second;
+					// because /r/n is a valid ending, it goes to findValidHeaderEnd, which accidentally converts the rest of the buffer to dataToParse
+					// that's why we need to check if we're reading
+					if (!client.request.requestComplete && !client.request.readingBodyInProgress && this->_clients.find(i)->second.findValidHeaderEnd())
 					{
-						Client	&client = this->_clients.find(i)->second;
-						/* std::cout << "This will be sent to parser: ";\
-						this->_clients.find(i)->second.printDataToParse(); */
 						parserPair = client.request.parseHeader(client.getDataToParse());
 						selectServerRules(parserPair, i); // resolve ServerConfig to HttpRequest
 						client.clearDataToParse(); // clears request line and header fields
-						client.request.validateHeader();
-						if (client.request.readRequestBody(client.getReceivedData()) < 0)
-							client.request.readBody = true;
-						/* std::cout << "This is what stays in the buffer: ";
-						this->_clients.find(i)->second.printReceivedData(); */
+						client.request.validateHeader(client.getServerConfig());
+						client.request.readingBodyInProgress = true;
+					}
+					if (client.request.readingBodyInProgress)
+					{
+						bytesToDelete = client.request.readRequestBody(client.getReceivedData());
+						std::cout << "BYTES TO DELETE " << bytesToDelete << std::endl;
+						client.eraseRangeReceivedData(0, bytesToDelete);
+						std::cout << "Request body: " << std::endl;
+						std::cout << client.request.getRequestBody() << std::endl;
 					}
 				}
 				else if (FD_ISSET(i, &writeFds) && this->_clients.count(i))
@@ -316,8 +322,8 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 		if (hostReceived == host)
 		{
 			this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
-			// std::cout << "Choosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
-			return ;
+			//std::cout << "Choosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
+      return ;
 		}
 		else
 		{
@@ -334,7 +340,7 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 			if (parserPair.first == serverNames[i])
 			{
 				this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
-				// std::cout << "Choosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
+				//std::cout << "Choosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
 				return ;
 			}
 		}

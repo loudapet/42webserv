@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webserv.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/07 11:55:34 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/12 13:52:15 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,12 +61,12 @@ std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::stri
 void		fileIsValidAndAccessible(const std::string &path, const std::string &exceptionMessage);
 std::string	dirIsValidAndAccessible(const std::string &path, const std::string &accessMessage, const std::string &dirOrFileMessage);
 
-inline std::ostream &operator << (std::ostream &o, std::vector<std::string> &stringVectorToPrint)
+/* inline std::ostream &operator << (std::ostream &o, std::vector<std::string> &stringVectorToPrint)
 {
 	for (size_t i = 0; i < stringVectorToPrint.size(); i++)
 		o << stringVectorToPrint[i] << std::endl;
 	return (o);
-}
+} */
 
 inline std::ostream &operator << (std::ostream &o, const std::vector<std::string> &stringVectorToPrint)
 {

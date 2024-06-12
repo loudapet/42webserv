@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/10 15:46:18 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/12 13:28:35 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,10 @@
 #include <errno.h>
 #include <limits.h>
 #include <functional>
+#include "ServerConfig.hpp"
+# define CLR1 "\e[38;5;51m"
+# define CLR2 "\e[38;5;208m"
+# define CLR3 "\e[38;5;213m"
 #define UNDERLINE "\033[4m"
 #define	RESET "\033[0m"
 #define CR '\r'
@@ -46,6 +50,12 @@ typedef std::pair<std::string,std::string> stringpair_t;
 typedef std::map<std::string,std::string> stringmap_t;
 octets_t	convertStringToOctets(std::string& str);
 
+enum	DotSegmentsResolution
+{
+	CONFIG,
+	REQUEST
+};
+
 enum	MessageFraming
 {
 	TRANSFER_ENCODING,
@@ -58,18 +68,12 @@ enum	HostLocation
 	HEADER_FIELD
 };
 
-enum	MessageType
-{
-	REQUEST = 1,
-	RESPONSE = 2
-};
-
 typedef struct RequestTarget
 {
-	stringpair_t authority;
-	std::string	absolutePath;
-	std::string	query;
-	std::string	fragment;
+	stringpair_t 	authority;
+	std::string		absolutePath;
+	std::string		query;
+	std::string		fragment;
 } request_target_t;
 
 typedef struct StartLine
@@ -88,31 +92,30 @@ typedef struct KeepAlive
 class HttpRequest
 {
 	private:
-		startLine_t		startLine;
-		stringmap_t		headerFields;
-		octets_t		requestBody;
-		std::string		targetResource; // used to access the resource after URI with location's root
-		bool			closeConnection;
-		bool			allowedDirListing;
-		bool			isRedirect;
-		size_t			contentLength;
-		//keep_alive_t	keepAliveParams;	
-		//bool			interimResponse;
+		startLine_t				startLine;
+		stringmap_t				headerFields;
+		octets_t				requestBody;
+		std::string				targetResource; // used to access the resource after URI with location's root
+		bool					closeConnection;
+		bool					allowedDirListing;
+		bool					isRedirect;
+		size_t					contentLength;
+		//keep_alive_t			keepAliveParams;
+		//bool					interimResponse;
 		enum MessageFraming		messageFraming;
-		void	parseStartLine(std::string startLine);
-		void	parseMethod(std::string& token);
-		stringpair_t	parseAuthority(std::string& authority, HostLocation parseLocation);
-		void	parseRequestTarget(std::string& token);
-		void	parseHttpVersion(std::string& token);
-		void	validateURIElements(void);
-		void	resolveDotSegments(std::string& path);
-		void	parseFieldSection(std::vector<std::string>& fields);
-		stringpair_t	resolveHost();
+		void					parseStartLine(std::string startLine);
+		void					parseMethod(std::string& token);
+		stringpair_t			parseAuthority(std::string& authority, HostLocation parseLocation);
+		void					parseRequestTarget(std::string& token);
+		void					parseHttpVersion(std::string& token);
+		void					validateURIElements(void);
+		void					parseFieldSection(std::vector<std::string>& fields);
+		stringpair_t			resolveHost();
 
-		void	validateResourceAccess();
-		void	validateMessageFraming();
-		void	manageExpectations();
-		void	validateConnectionOption();
+		void					validateResourceAccess(const Location& location);
+		void					validateMessageFraming();
+		void					manageExpectations();
+		void					validateConnectionOption();
 
 	public:
 		HttpRequest();
@@ -120,12 +123,17 @@ class HttpRequest
 		HttpRequest& operator = (const HttpRequest& refObj);
 		~HttpRequest();
 
-		bool			readBody; // false = reading request line and headers, true = reading body
-		stringpair_t	parseHeader(octets_t header);
-		void			validateHeader();
-		long			readRequestBody(octets_t bufferedBody);
+		bool					requestComplete;
+		bool					readingBodyInProgress; // false = reading request line and headers, true = reading body
+		stringpair_t			parseHeader(octets_t header);
+		void					validateHeader(const ServerConfig& serverConfig);
+		size_t					readRequestBody(octets_t bufferedBody);
+
+		const octets_t&			getRequestBody() const;
+		const std::string&		getAbsolutePath() const;
 };
 
+std::ostream &operator<<(std::ostream &os, const octets_t &vec);
 std::ostream &operator<<(std::ostream &os, octets_t &vec);
 std::ostream &operator<<(std::ostream &os, std::vector<octets_t> &vec);
 std::ostream &operator<<(std::ostream &os, std::vector<std::string> &vec);
