@@ -41,7 +41,7 @@ int main(void)
 		return (1);
 	}
 	// Send data to the server
-	//const char *message = "\nGET /index.html?%71=key#key HTTP/1.1\nHost: example.com\nConnection: close\n\n";
+	const char *message = "\nGET /index.html?%71=key#key HTTP/1.1\nHost: example.com\nConnection: close\n\n";
 	/* const char *message = "\nGET /testdir/test.html HTTP/1.1\nConnection: keep-alive\ntest:\n"
 							"Host: example.org:80\nConnection: low\ntest: no\n"
 							"Content-Length: 1\r\n\n"

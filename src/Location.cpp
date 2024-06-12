@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 10:47:29 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/12 14:28:23 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,7 @@ Location::Location(std::string locationPath, std::vector<std::string> locationSc
 	std::vector<std::string>	allowMethodsLine;
 	std::string 				validMethodsArray[] = {"GET", "POST", "DELETE"};
 	std::set<std::string> 		validMethods(validMethodsArray, validMethodsArray + sizeof(validMethodsArray) / sizeof(validMethodsArray[0]));
+	std::vector<std::string>	errorPageLine; // to validate error page lines
 
 	initLocation();
 	rbslInConfig = false;
@@ -71,7 +72,6 @@ Location::Location(std::string locationPath, std::vector<std::string> locationSc
 					throw(std::runtime_error("Config parser: Invalid method '" + allowMethodsLine[i] + "'."));
 				if (!this->_allowMethods.insert(allowMethodsLine[i]).second)
 					throw(std::runtime_error("Config parser: Duplicate method '" + allowMethodsLine[i] + "'."));
-				this->_allowMethods.insert(allowMethodsLine[i]);
 			}
 			i += allowMethodsLine.size(); // not -1 bcs there is the directive to skip too
 			allowMethodsLine.clear();
@@ -94,6 +94,13 @@ Location::Location(std::string locationPath, std::vector<std::string> locationSc
 			this->_return = locationScope[i + 1];
 			i++;
 		}
+		else if (locationScope[i] == "error_page")
+		{
+			errorPageLine = extractVectorUntilSemicolon(locationScope, i);
+			validateErrorPagesLine(errorPageLine);
+			i += errorPageLine.size() - 1;
+			errorPageLine.clear();
+		}
 		else if (locationScope[i] != "{" && locationScope[i] != "}")
 		{
 			//std::cout << "unsupported: " << locationScope[i] << std::endl;
@@ -105,32 +112,34 @@ Location::Location(std::string locationPath, std::vector<std::string> locationSc
 
 Location::Location(const Location& copy)
 {
-	this->_path = copy.getPath();
-	this->_root = copy.getRoot();
-	this->_index = copy.getIndex();
-	this->_requestBodySizeLimit = copy.getRequestBodySizeLimit();
-	this->_autoindex = copy.getAutoindex();
-	this->_allowMethods = copy.getAllowMethods();
-	this->_cgiPath = copy.getCgiPath();
-	this->_cgiExt = copy.getCgiExt();
-	this->_cgiMap = copy.getCgiMap();
-	this->_return = copy.getReturn();
+	this->_path = copy._path;
+	this->_root = copy._root;
+	this->_index = copy._index;
+	this->_requestBodySizeLimit = copy._requestBodySizeLimit;
+	this->_autoindex = copy._autoindex;
+	this->_allowMethods = copy._allowMethods;
+	this->_cgiPath = copy._cgiPath;
+	this->_cgiExt = copy._cgiExt;
+	this->_cgiMap = copy._cgiMap;
+	this->_return = copy._return;
+	this->_errorPages = copy._errorPages;
 }
 
-Location	&Location::operator = (const Location &src)
+Location &Location::operator = (const Location &src)
 {
 	if (this != &src)
 	{
-		this->_path = src.getPath();
-		this->_root = src.getRoot();
-		this->_index = src.getIndex();
-		this->_requestBodySizeLimit = src.getRequestBodySizeLimit();
-		this->_autoindex = src.getAutoindex();
-		this->_allowMethods = src.getAllowMethods();
-		this->_cgiPath = src.getCgiPath();
-		this->_cgiExt = src.getCgiExt();
-		this->_cgiMap = src.getCgiMap();
-		this->_return = src.getReturn();
+		this->_path = src._path;
+		this->_root = src._root;
+		this->_index = src._index;
+		this->_requestBodySizeLimit = src._requestBodySizeLimit;
+		this->_autoindex = src._autoindex;
+		this->_allowMethods = src._allowMethods;
+		this->_cgiPath = src._cgiPath;
+		this->_cgiExt = src._cgiExt;
+		this->_cgiMap = src._cgiMap;
+		this->_return = src._return;
+		this->_errorPages = src._errorPages;
 	}
 	return (*this);
 }
@@ -182,14 +191,19 @@ const std::vector<std::string>		&Location::getCgiExt(void) const
 	return (this->_cgiExt);
 }
 
+const std::map<std::string, std::string>	&Location::getCgiMap(void) const
+{
+	return (this->_cgiMap);
+}
+
 const std::string		&Location::getReturn(void) const
 {
 	return (this->_return);
 }
 
-const std::map<std::string, std::string>	&Location::getCgiMap(void) const
+const std::map<short, std::string>	&Location::getErrorPages(void) const
 {
-	return (this->_cgiMap);
+	return (this->_errorPages);
 }
 
 void	Location::setRoot(const std::string &root)
@@ -217,6 +231,16 @@ void	Location::setCgiMap(std::map<std::string, std::string> &cgiMap)
 	this->_cgiMap = cgiMap;
 }
 
+void	Location::setAllowMethods(const std::set<std::string> &allowMethods)
+{
+	this->_allowMethods = allowMethods;
+}
+
+void	Location::addErrorPage(short errorCode, const std::string &errorPageFile)
+{
+	this->_errorPages[errorCode] = errorPageFile;
+}
+
 void	Location::initLocation(void)
 {
 	this->_path = "";
@@ -229,13 +253,47 @@ void	Location::initLocation(void)
 	this->_cgiExt = std::vector<std::string>();
 	this->_cgiMap = std::map<std::string, std::string>();
 	this->_return = "";
+	this->_errorPages = std::map<short, std::string>();
+}
+		
+void	Location::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
+{
+	short							tmpErrorCode;
+	std::istringstream				iss; // convert error code to short
+	std::string						errorPageFileName;
+	std::ifstream					errorPageFile;
+
+	if (errorPageLine.size() < 3)
+		throw(std::runtime_error("Config parser (location): Invalid formatting of error_page directive."));
+	errorPageFileName = errorPageLine.back();
+	if (validateElement(errorPageFileName))
+	{
+		for (size_t i = 1; i < errorPageLine.size() - 1; i++) // -1 to ignore the page itself
+		{
+			for (size_t j = 0; j < errorPageLine[i].size(); j++)
+			{
+				if (!std::isdigit(errorPageLine[i][j]))
+					throw (std::runtime_error("Config parser (location): Invalid error page number."));
+			}
+			iss.str(errorPageLine[i]);
+			if (!(iss >> tmpErrorCode) || !iss.eof())
+				throw(std::runtime_error("Config parser (location): Error page number is out of range for short."));
+			iss.str("");
+			iss.clear();
+			if (tmpErrorCode < 400 || (tmpErrorCode > 426 && tmpErrorCode < 500) || tmpErrorCode > 505)
+				throw(std::runtime_error("Config parser (location): Error page number is out of range of valid error pages."));
+			this->_errorPages[tmpErrorCode] = errorPageFileName;
+		}
+	}
 }
 
 std::ostream &operator << (std::ostream &o, Location const &instance)
 {
 	std::map<std::string, std::string>	cgiMap;
+	std::map<short, std::string>		errorPages;
 
 	cgiMap = instance.getCgiMap();
+	errorPages = instance.getErrorPages();
 	o << "*** Location ***" << '\n'
 		<< "path: " << instance.getPath() << '\n'
 		<< "root: " << instance.getRoot() << '\n'
@@ -248,6 +306,17 @@ std::ostream &operator << (std::ostream &o, Location const &instance)
 		<< "cgi_map: \n";
 	for (std::map<std::string, std::string>::iterator it = cgiMap.begin(); it != cgiMap.end(); it++)
 		o << it->first << ": " << it->second << '\n';
-	o << "return: " << instance.getReturn();
+	o << "return: " << instance.getReturn() << '\n';
+	o << "error pages: ";
+	if (errorPages.size() > 0)
+		o << "\n";
+	for (std::map<short, std::string>::const_iterator it = errorPages.begin(); it != errorPages.end(); ++it)
+	{
+		o << it->first << ": " << it->second;
+		std::map<short, std::string>::const_iterator next_it = it;
+		next_it++;
+		if (next_it != errorPages.end())
+			o << '\n';
+	}
 	return (o);
 }
