@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/14 19:17:59 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 11:16:58 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/11 14:17:26 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,8 @@
 # define CLIENT_HPP
 
 # include "webserv.hpp"
+# include "ServerConfig.hpp"
+# include "HttpRequest.hpp"
 
 class Client
 {
@@ -27,19 +29,25 @@ class Client
 		void	updateTimeLastMessage(void);
 		void	updateReceivedData(uint8_t *recvBuf, ssize_t &bytesReceived);
 		void	setPortConnectedOn(unsigned short portConnectedOn);
+		void	setServerConfig(const ServerConfig &serverConfig);
 
-		int				getClientSocket(void) const;
-		time_t			getTimeLastMessage(void) const;
-		const octets_t	&getReceivedData(void) const;
+		int					getClientSocket(void) const;
+		time_t				getTimeLastMessage(void) const;
+		const octets_t		&getReceivedData(void) const;
 		octets_t		getDataToParse(void) const;
-		unsigned short	getPortConnectedOn(void) const;
+		unsigned short		getPortConnectedOn(void) const;
+		const ServerConfig	&getServerConfig(void) const;
+		const HttpRequest	&getRequest(void) const;
 
 		void		printReceivedData(void) const;
 		void		printDataToParse(void) const;
 		void		clearReceivedData(void);
+		void		eraseRangeReceivedData(size_t start, size_t end);
 		void		clearDataToParse(void);
 		void		trimHeaderEmptyLines(void);
 		bool		findValidHeaderEnd(void);
+		
+		HttpRequest	request;
 
 	private:
 		int					_clientSocket;
@@ -47,6 +55,7 @@ class Client
 		octets_t			_receivedData;
 		octets_t			_dataToParse;
 		unsigned short		_portConnectedOn;
+		ServerConfig		_serverConfig;
 
 };
 

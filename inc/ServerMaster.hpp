@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:17:04 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 11:20:50 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/11 11:19:17 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,7 @@ class ServerMaster
 		void	removeFdFromSet(fd_set &set, int fd);
 		void	closeConnection(const int clientSocket);
 
-		void	selectServerRules(std::string serverNameReceived, unsigned short portReceived, in_addr_t hostReceived, int clientSocket);
+		void	selectServerRules(stringpair_t parserPair, int clientSocket);
 
 		std::string					_configContent;
 		std::vector<std::string>	_serverBlocks;

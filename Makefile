@@ -6,7 +6,7 @@
 #    By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/16 10:28:25 by plouda            #+#    #+#              #
-#    Updated: 2024/06/10 11:25:40 by plouda           ###   ########.fr        #
+#    Updated: 2024/06/12 13:50:31 by plouda           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -52,13 +52,22 @@ obj/%.o: src/%.cpp | objdir
 objdir:
 	@mkdir -p obj
 
+client:
+	@echo "$(CYAN)Compiling client..$(RESET)"
+	@$(COMP) mainClient.cpp -o client
+	@echo "$(GREEN)Compilation of 'client' successful.$(RESET)"
+
+cleanclient:
+	@rm -f client
+	@echo "$(YELLOW)Executable 'client' successfully removed.$(RESET)"
+
 clean:
 	@rm -rf ./obj
 	@echo "$(YELLOW)Object files successfully removed.$(RESET)"
 
 fclean: clean
 	@rm -f $(NAME)
-	@echo "$(YELLOW)Executable successfully removed.$(RESET)"
+	@echo "$(YELLOW)Executable '${NAME}' successfully removed.$(RESET)"
 
 re: fclean all
 
