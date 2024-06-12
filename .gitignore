@@ -41,3 +41,4 @@ docs/
 parser
 client
 webserver
+client.dSYM
