@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/11 16:47:35 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/12 14:28:23 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,7 +72,6 @@ Location::Location(std::string locationPath, std::vector<std::string> locationSc
 					throw(std::runtime_error("Config parser: Invalid method '" + allowMethodsLine[i] + "'."));
 				if (!this->_allowMethods.insert(allowMethodsLine[i]).second)
 					throw(std::runtime_error("Config parser: Duplicate method '" + allowMethodsLine[i] + "'."));
-				this->_allowMethods.insert(allowMethodsLine[i]);
 			}
 			i += allowMethodsLine.size(); // not -1 bcs there is the directive to skip too
 			allowMethodsLine.clear();
@@ -230,6 +229,11 @@ void	Location::setAutoindex(int autoindex)
 void	Location::setCgiMap(std::map<std::string, std::string> &cgiMap)
 {
 	this->_cgiMap = cgiMap;
+}
+
+void	Location::setAllowMethods(const std::set<std::string> &allowMethods)
+{
+	this->_allowMethods = allowMethods;
 }
 
 void	Location::addErrorPage(short errorCode, const std::string &errorPageFile)

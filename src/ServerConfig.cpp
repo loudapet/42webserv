@@ -51,11 +51,16 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	std::map<short, std::string>	tmpErrorPages;
 	bool							rbslInConfig;
 	bool							autoindexInConfig;
+	bool						allowMethodsInConfig;
+	std::vector<std::string>	allowMethodsLine;
+	std::string 				validMethodsArray[] = {"GET", "POST", "DELETE"};
+	std::set<std::string> 		validMethods(validMethodsArray, validMethodsArray + sizeof(validMethodsArray) / sizeof(validMethodsArray[0]));
 	
 	initServerConfig();
 	inLocationBlock = false;
 	rbslInConfig = false;
 	autoindexInConfig = false;
+	allowMethodsInConfig = false;
 	serverBlockElements = splitServerBlock(serverBlock);
 	// std::cout << "elements: \n" << serverBlockElements << std::endl;
 	// add check for minimal number of elements for the config to be valid
@@ -162,6 +167,22 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				locationScope.clear();
 			//	inLocationBlock = true;
 			}
+			else if (serverBlockElements[i] == "allow_methods")
+			{
+				if (allowMethodsInConfig)
+					throw(std::runtime_error("Config parser: Duplicate allow_methods directive in a location block."));
+				allowMethodsLine = extractVectorUntilSemicolon(serverBlockElements, i + 1);
+				validateElement(allowMethodsLine.back());
+				for (size_t i = 0; i < allowMethodsLine.size(); i++)
+				{
+					if (validMethods.find(allowMethodsLine[i]) == validMethods.end())
+						throw(std::runtime_error("Config parser: Invalid method '" + allowMethodsLine[i] + "'."));
+					if (!this->_allowMethods.insert(allowMethodsLine[i]).second)
+						throw(std::runtime_error("Config parser: Duplicate method '" + allowMethodsLine[i] + "'."));
+				}
+				i += allowMethodsLine.size(); // not -1 bcs there is the directive to skip too
+				allowMethodsLine.clear();
+			}
 			else if (serverBlockElements[i] != "{" && serverBlockElements[i] != "}")
 			{
 				if (!inLocationBlock)
@@ -190,7 +211,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	completeLocations();
 	validateLocations();
 	// QUESTION: validate mandatory directives
-	// std::cout << *this << std::endl;
+	std::cout << *this << std::endl;
 }
 
 ServerConfig::ServerConfig(const ServerConfig& copy)
@@ -204,6 +225,7 @@ ServerConfig::ServerConfig(const ServerConfig& copy)
 		_errorPages(copy._errorPages),
 		_requestBodySizeLimit(copy._requestBodySizeLimit),
 		_autoindex(copy._autoindex),
+		_allowMethods(copy._allowMethods),
 		_locations(copy._locations),
 		_serverSocket(copy._serverSocket),
 		_serverAddr(copy._serverAddr)
@@ -224,6 +246,7 @@ ServerConfig& ServerConfig::operator = (const ServerConfig& src)
 		this->_errorPages = src._errorPages;
 		this->_requestBodySizeLimit = src._requestBodySizeLimit;
 		this->_autoindex = src._autoindex;
+		this->_allowMethods = src._allowMethods;
 		this->_locations = src._locations;
 		this->_serverSocket = src._serverSocket;
 		this->_serverAddr = src._serverAddr;
@@ -284,6 +307,11 @@ int	ServerConfig::getRequestBodySizeLimit(void) const
 bool	ServerConfig::getAutoindex(void) const
 {
 	return (this->_autoindex);
+}
+
+const std::set<std::string>			&ServerConfig::getAllowMethods(void) const
+{
+	return (this->_allowMethods);
 }
 
 const std::vector<Location>	&ServerConfig::getLocations(void) const
@@ -365,6 +393,8 @@ void	ServerConfig::completeLocations(void)
 			if (this->_locations[i].getErrorPages().find(it->first) == this->_locations[i].getErrorPages().end())
 				this->_locations[i].addErrorPage(it->first, it->second);
 		}
+		if (this->_locations[i].getAllowMethods().size() == 0)
+			this->_locations[i].setAllowMethods(this->_allowMethods);
 	}
 }
 
@@ -497,7 +527,8 @@ std::ostream &operator << (std::ostream &o, ServerConfig const &instance)
 	for (std::map<short, std::string>::const_iterator it = errorPages.begin(); it != errorPages.end(); ++it)
 		o << it->first << ": " << it->second << '\n';
 	o << "client_max_body_size (requestBodySizeLimit): " << instance.getRequestBodySizeLimit() << '\n'
-		<< "autoindex: " << instance.getAutoindex() << '\n';
+		<< "autoindex: " << instance.getAutoindex() << '\n'
+		<< "allow_methods: " << instance.getAllowMethods() << '\n';
 	for (size_t i = 0; i < locations.size(); i++)
 		o << locations[i] << '\n';
 	return (o);
