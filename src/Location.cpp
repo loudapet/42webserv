@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/14 13:26:40 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/14 15:52:11 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,7 @@ Location::Location(void)
 	this->_cgiExt = std::vector<std::string>();
 	this->_cgiMap = std::map<std::string, std::string>();
 	this->_return = "";
-	this->_errorPages = std::map<short, std::string>(); // WARNING: init to global defaults
+	this->_errorPages = std::map<unsigned short, std::string>(); // WARNING: init to global defaults
 }
 
 Location::Location(std::string locationPath, std::vector<std::string> locationScope)
@@ -275,7 +275,6 @@ void	Location::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
 	short							tmpErrorCode;
 	std::istringstream				iss; // convert error code to short
 	std::string						errorPageFileName;
-	std::ifstream					errorPageFile;
 
 	if (errorPageLine.size() < 3)
 		throw(std::runtime_error("Config parser (location): Invalid formatting of error_page directive."));
