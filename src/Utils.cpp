@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 10:48:16 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/14 12:20:39 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -159,4 +159,39 @@ std::string	dirIsValidAndAccessible(const std::string &path, const std::string &
 	if (path[path.size() - 1] != '/')
 		return (path + "/");
 	return (path);
+}
+
+std::string	resolveDotSegments(std::string path, DotSegmentsResolution flag)
+{
+	std::stack<std::string>	segments;
+	std::stack<std::string>	output;
+	std::stringstream	input(path);
+	std::string			buffer;
+	std::string			newPath;
+	if (flag == CONFIG)
+		output.push("./");
+	else
+		output.push("/");
+	while (std::getline(input, buffer, '/'))
+	{
+		if (buffer == "..")
+		{
+			if (output.size() > 1)
+				output.pop();
+			else if (flag == CONFIG)
+				throw(std::invalid_argument("Config parser: Path above root.")); // will be caught in main
+			else
+				throw(std::invalid_argument("400 Bad Request: Invalid relative reference")); //rewrite to custom exception
+		}
+		else if (buffer != "." && buffer != "")
+			output.push(buffer + std::string("/"));
+	}
+	if (*(output.top().rbegin()) == '/' && *(path.rbegin()) != '/' && output.top().size() > 0)
+		output.top().erase(output.top().size() - 1, 1);
+	while (output.size() > 0)
+	{
+		newPath.insert(0, output.top());
+		output.pop();
+	}
+	return (newPath);
 }

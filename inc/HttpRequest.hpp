@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/12 13:28:35 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/14 13:30:07 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,9 +28,11 @@
 #include <limits.h>
 #include <functional>
 #include "ServerConfig.hpp"
+#include "Location.hpp"
 # define CLR1 "\e[38;5;51m"
 # define CLR2 "\e[38;5;208m"
 # define CLR3 "\e[38;5;213m"
+# define CLR4 "\e[38;5;161m"
 #define UNDERLINE "\033[4m"
 #define	RESET "\033[0m"
 #define CR '\r'
@@ -49,12 +51,6 @@ typedef std::vector<uint8_t> octets_t;
 typedef std::pair<std::string,std::string> stringpair_t;
 typedef std::map<std::string,std::string> stringmap_t;
 octets_t	convertStringToOctets(std::string& str);
-
-enum	DotSegmentsResolution
-{
-	CONFIG,
-	REQUEST
-};
 
 enum	MessageFraming
 {
@@ -126,7 +122,7 @@ class HttpRequest
 		bool					requestComplete;
 		bool					readingBodyInProgress; // false = reading request line and headers, true = reading body
 		stringpair_t			parseHeader(octets_t header);
-		void					validateHeader(const ServerConfig& serverConfig);
+		void					validateHeader(const Location& location);
 		size_t					readRequestBody(octets_t bufferedBody);
 
 		const octets_t&			getRequestBody() const;

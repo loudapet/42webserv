@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:21:17 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/12 12:27:09 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/14 12:35:12 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,8 +15,6 @@
 
 # include "Location.hpp"
 # include <iostream>
-
-class Location;
 
 class ServerConfig
 {

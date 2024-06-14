@@ -202,6 +202,8 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 		this->_host = inet_addr(std::string("127.0.0.1").data());
 	if (this->_index.size() == 0)
 		this->_index.push_back("index.html");
+	if (this->_allowMethods.size() == 0)
+		this->_allowMethods.insert("GET");
 	// validate files now that you have the root
 	for (size_t i = 0; i < this->_index.size(); i++)
 		fileIsValidAndAccessible(this->getRoot() + this->_index[i], "Index ");
@@ -211,7 +213,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	completeLocations();
 	validateLocations();
 	// QUESTION: validate mandatory directives
-	std::cout << *this << std::endl;
+	//std::cout << *this << std::endl;
 }
 
 ServerConfig::ServerConfig(const ServerConfig& copy)
@@ -423,6 +425,8 @@ void	ServerConfig::validateLocations(void)
 
 	for (size_t i = 0; i < this->_locations.size(); i++)
 	{
+		resolveDotSegments(this->_locations[i].getPath(), CONFIG);
+		resolveDotSegments(this->_locations[i].getRoot(), CONFIG);
 		// validate location
 		if (this->_locations[i].getPath() != "/cgi-bin")
 		{
@@ -430,13 +434,17 @@ void	ServerConfig::validateLocations(void)
 			if (this->_locations[i].getPath()[0] != '/')
 				throw(std::runtime_error("Config parser: Invalid location path."));
 			if (!this->_locations[i].getReturn().empty())
-				dirIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getReturn(),
+			{
+		//		dirIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getReturn(),
+				dirIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + this->_locations[i].getReturn(), CONFIG),
 					"Cannot access location return path.", "Location return path is not a directory.");
+			}
 			else
 			{
 				// validate index (and path)
 				for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)
-					fileIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], "Index");
+				//	fileIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], "Index");
+					fileIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], CONFIG), "Index");
 			}
 		}
 		else // is cgi-bin
@@ -445,7 +453,8 @@ void	ServerConfig::validateLocations(void)
 				throw(std::runtime_error("Config parser: Missing cgi_path, cgi_ext or index directive in cgi-bin location."));
 			// validate index (and path)
 			for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)
-				fileIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], "Index");
+			//	fileIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], "Index");
+				fileIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], CONFIG), "Index");
 			if (this->_locations[i].getCgiPath().size() != this->_locations[i].getCgiExt().size())
 				throw(std::runtime_error("Config parser: Mismatch between cgi_path and cgi_ext in cgi-bin location."));
 			// only allowed cgi_ext

@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:27 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/12 14:27:39 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/14 13:18:30 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@
 class Location
 {
 	public:
+		Location(void);	
 		Location(std::string locationPath, std::vector<std::string> locationScope);
 		Location(const Location& copy);
 		Location	&operator=(const Location &src);
@@ -35,6 +36,7 @@ class Location
 		const std::string							&getReturn(void) const;
 		const std::map<short, std::string>			&getErrorPages(void) const;
 
+		void	setPath(const std::string &path);
 		void	setRoot(const std::string &root);
 		void	setIndex(const std::vector<std::string> &index);
 		void	setRequestBodySizeLimit(int requestBodySizeLimit);
@@ -44,7 +46,6 @@ class Location
 		void	addErrorPage(short errorCode, const std::string &errorPageFile);
 	
 	private:
-		Location(void);	
 		
 		void	initLocation(void);
 		void	validateErrorPagesLine(std::vector<std::string> &errorPageLine);

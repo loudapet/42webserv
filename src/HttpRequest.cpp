@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/12 13:42:07 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/14 13:30:58 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -104,38 +104,6 @@ void resolvePercentEncoding(std::string& path, size_t& pos)
 		else					
 			throw(std::invalid_argument("400 Bad Request: Invalid percent encoding"));
 	}
-}
-
-std::string	resolveDotSegments(std::string path, DotSegmentsResolution flag)
-{
-	std::stack<std::string>	segments;
-	std::stack<std::string>	output;
-	std::stringstream	input(path);
-	std::string			buffer;
-	std::string			newPath;
-	output.push("/");
-	while (std::getline(input, buffer, '/'))
-	{
-		if (buffer == "..")
-		{
-			if (output.size() > 1)
-				output.pop();
-			else if (flag == CONFIG)
-				throw(std::invalid_argument("Path above root"));
-			else
-				throw(std::invalid_argument("400 Bad Request: Invalid relative reference"));
-		}
-		else if (buffer != "." && buffer != "")
-			output.push(buffer + std::string("/"));
-	}
-	if (*(output.top().rbegin()) == '/' && *(path.rbegin()) != '/' && output.top().size() > 0)
-		output.top().erase(output.top().size() - 1, 1);
-	while (output.size() > 0)
-	{
-		newPath.insert(0, output.top());
-		output.pop();
-	}
-	return (newPath);
 }
 
 void	HttpRequest::validateURIElements(void)
@@ -615,16 +583,16 @@ void	HttpRequest::manageExpectations(void)
 
 Q: what happens if methods in config are not valid?
 */
-void	HttpRequest::validateHeader(const ServerConfig& serverConfig)
+void	HttpRequest::validateHeader(const Location& location)
 {
-	std::set<std::string>	allowedMethods = serverConfig.getLocations()[0].getAllowMethods();
+	std::set<std::string>	allowedMethods = location.getAllowMethods();
 	if (std::find(allowedMethods.begin(), allowedMethods.end(), this->startLine.method) == allowedMethods.end())
 		throw (std::invalid_argument("501 Not implemented"));
 /* 	if (this->startLine.method != "GET" && this->startLine.method != "POST"
 		&& this->startLine.method != "DELETE")
 		throw (std::invalid_argument("501 Not implemented")); */
 	this->validateConnectionOption();
-	this->validateResourceAccess(serverConfig.getLocations()[0]);
+	this->validateResourceAccess(location);
 	this->validateMessageFraming();
 	this->manageExpectations();
 }

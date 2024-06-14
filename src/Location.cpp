@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/12 14:28:23 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/14 13:26:40 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,17 @@
 
 Location::Location(void)
 {
-	return ;
+	this->_path = "";
+	this->_root = "./";
+	this->_index = std::vector<std::string>(1, "index.html");
+	this->_requestBodySizeLimit = REQUEST_BODY_SIZE_LIMIT;
+	this->_autoindex = 0;
+	this->_allowMethods.insert("GET");
+	this->_cgiPath = std::vector<std::string>();
+	this->_cgiExt = std::vector<std::string>();
+	this->_cgiMap = std::map<std::string, std::string>();
+	this->_return = "";
+	this->_errorPages = std::map<short, std::string>(); // WARNING: init to global defaults
 }
 
 Location::Location(std::string locationPath, std::vector<std::string> locationScope)
@@ -158,7 +168,6 @@ const std::string	&Location::getPath(void) const
 const std::string	&Location::getRoot(void) const
 {
 	return (this->_root);
-
 }
 
 const std::vector<std::string>	&Location::getIndex(void) const
@@ -204,6 +213,11 @@ const std::string		&Location::getReturn(void) const
 const std::map<short, std::string>	&Location::getErrorPages(void) const
 {
 	return (this->_errorPages);
+}
+
+void	Location::setPath(const std::string &path)
+{
+	this->_path = path;
 }
 
 void	Location::setRoot(const std::string &root)

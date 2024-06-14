@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/12 14:16:21 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/12 16:48:38 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,8 @@ Client::Client(const Client& copy)
 	this->_dataToParse = copy._dataToParse;
 	this->_portConnectedOn = copy._portConnectedOn;
 	this->_serverConfig = copy._serverConfig;
+
+	this->request = copy.request;
 }
 
 Client	&Client::operator = (const Client &src)
@@ -37,6 +39,8 @@ Client	&Client::operator = (const Client &src)
 		this->_dataToParse = src._dataToParse;
 		this->_portConnectedOn = src._portConnectedOn;
 		this->_serverConfig = src._serverConfig;
+
+		this->request = src.request;
 	}
 	return (*this);
 }
@@ -127,7 +131,7 @@ void	Client::clearReceivedData(void)
 void	Client::eraseRangeReceivedData(size_t start, size_t end)
 {
 	//std::cout << "RECEIVED DATA " << this->_receivedData.size() << std::endl;
-	if (start <= end && start >= 0 && end <= this->_receivedData.size())
+	if (start <= end && end <= this->_receivedData.size())
 	{
 		//std::cout << "Show data to be deleted: " << std::endl;
 		std::cout << this->_receivedData << std::endl;
