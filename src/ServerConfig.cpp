@@ -211,7 +211,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	completeLocations();
 	validateLocations();
 	// QUESTION: validate mandatory directives
-	std::cout << *this << std::endl;
+	//std::cout << *this << std::endl;
 }
 
 ServerConfig::ServerConfig(const ServerConfig& copy)

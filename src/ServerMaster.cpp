@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/12 11:48:51 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/14 10:37:11 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -245,25 +245,46 @@ void	ServerMaster::listenForConnections(void)
 				{
 					handleDataFromClient(i);
 					size_t	bytesToDelete = 0;
+					if (this->_clients.find(i) == this->_clients.end()) // temp fix for a closed client
+					{
+						std::cout << CLR4 << "I have been closed" << RESET << std::endl;
+						continue;
+					}
 					Client	&client = this->_clients.find(i)->second;
-					// because /r/n is a valid ending, it goes to findValidHeaderEnd, which accidentally converts the rest of the buffer to dataToParse
-					// that's why we need to check if we're reading
-					if (!client.request.requestComplete && !client.request.readingBodyInProgress && this->_clients.find(i)->second.findValidHeaderEnd())
-					{
-						parserPair = client.request.parseHeader(client.getDataToParse());
-						selectServerRules(parserPair, i); // resolve ServerConfig to HttpRequest
-						client.clearDataToParse(); // clears request line and header fields
-						client.request.validateHeader(client.getServerConfig());
-						client.request.readingBodyInProgress = true;
+					try
+					{	
+						if (!client.request.requestComplete && !client.request.readingBodyInProgress && this->_clients.find(i)->second.findValidHeaderEnd())
+						{
+							parserPair = client.request.parseHeader(client.getDataToParse());
+							selectServerRules(parserPair, i); // resolve ServerConfig to HttpRequest
+							client.clearDataToParse(); // clears request line and header fields
+							client.request.validateHeader(client.getServerConfig());
+							client.request.readingBodyInProgress = true;
+						}
+						std::cout << CLR3 << "VALUE OF BOOL: "<< client.request.readingBodyInProgress << RESET << std::endl;
+						if (client.request.readingBodyInProgress)
+						{
+							bytesToDelete = client.request.readRequestBody(client.getReceivedData());
+							std::cout << "BYTES TO DELETE " << bytesToDelete << std::endl;
+							client.eraseRangeReceivedData(0, bytesToDelete);
+							std::cout << CLR4 << "Request body: " << RESET << std::endl;
+							std::cout << client.request.getRequestBody() << std::endl;
+						}
+						if (client.request.requestComplete)
+						{
+							const char*	buff = "HTTP/1.1 200 OK\r\n\r\n";
+							if (send(i, buff, strlen(buff), 0) == -1)
+								std::cerr << "Error sending acknowledgement to client." << std::endl;
+						}
 					}
-					if (client.request.readingBodyInProgress)
+					catch(const std::invalid_argument& e)
 					{
-						bytesToDelete = client.request.readRequestBody(client.getReceivedData());
-						std::cout << "BYTES TO DELETE " << bytesToDelete << std::endl;
-						client.eraseRangeReceivedData(0, bytesToDelete);
-						std::cout << "Request body: " << std::endl;
-						std::cout << client.request.getRequestBody() << std::endl;
+						const char*	buff = "HTTP/1.1 400 Bad Request\r\n\r\n";
+						if (send(i, buff, strlen(buff), 0) == -1)
+							std::cerr << "Error sending acknowledgement to client." << std::endl;
+						std::cerr << e.what() << '\n';
 					}
+					
 				}
 				else if (FD_ISSET(i, &writeFds) && this->_clients.count(i))
 				{
@@ -389,7 +410,7 @@ void	ServerMaster::acceptConnection(int serverSocket)
 void	ServerMaster::handleDataFromClient(const int clientSocket)
 {
 	uint8_t							recvBuf[CLIENT_MESSAGE_BUFF]; // Buffer to store received data
-	const char						*confirmReceived = "Well received!\n";
+	//const char						*confirmReceived = "Well received!\n";
 	ssize_t							bytesReceived;
 	
 	memset(recvBuf, 0, sizeof(recvBuf)); // clear the receive buffer
@@ -412,8 +433,8 @@ void	ServerMaster::handleDataFromClient(const int clientSocket)
 		std::cout << std::endl;
 		
 		// send acknowledgement to the client 
-		if (send(clientSocket, confirmReceived, strlen(confirmReceived), 0) == -1)
-			std::cerr << "Error sending acknowledgement to client." << std::endl;
+		// if (send(clientSocket, confirmReceived, strlen(confirmReceived), 0) == -1)
+		// 	std::cerr << "Error sending acknowledgement to client." << std::endl;
 	}
 }
 
