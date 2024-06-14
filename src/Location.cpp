@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/14 15:52:11 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/14 17:40:21 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -210,7 +210,7 @@ const std::string		&Location::getReturn(void) const
 	return (this->_return);
 }
 
-const std::map<short, std::string>	&Location::getErrorPages(void) const
+const std::map<unsigned short, std::string>	&Location::getErrorPages(void) const
 {
 	return (this->_errorPages);
 }
@@ -267,7 +267,7 @@ void	Location::initLocation(void)
 	this->_cgiExt = std::vector<std::string>();
 	this->_cgiMap = std::map<std::string, std::string>();
 	this->_return = "";
-	this->_errorPages = std::map<short, std::string>();
+	this->_errorPages = std::map<unsigned short, std::string>();
 }
 		
 void	Location::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
@@ -303,7 +303,7 @@ void	Location::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
 std::ostream &operator << (std::ostream &o, Location const &instance)
 {
 	std::map<std::string, std::string>	cgiMap;
-	std::map<short, std::string>		errorPages;
+	std::map<unsigned short, std::string>		errorPages;
 
 	cgiMap = instance.getCgiMap();
 	errorPages = instance.getErrorPages();
@@ -323,10 +323,10 @@ std::ostream &operator << (std::ostream &o, Location const &instance)
 	o << "error pages: ";
 	if (errorPages.size() > 0)
 		o << "\n";
-	for (std::map<short, std::string>::const_iterator it = errorPages.begin(); it != errorPages.end(); ++it)
+	for (std::map<unsigned short, std::string>::const_iterator it = errorPages.begin(); it != errorPages.end(); ++it)
 	{
 		o << it->first << ": " << it->second;
-		std::map<short, std::string>::const_iterator next_it = it;
+		std::map<unsigned short, std::string>::const_iterator next_it = it;
 		next_it++;
 		if (next_it != errorPages.end())
 			o << '\n';

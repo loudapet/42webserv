@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webserv.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/14 12:36:39 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/14 17:38:06 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 # include <vector>
 # include <map>
 # include <set>
+# include <stack>
 # include <unistd.h>
 # include <stdexcept>
 # include <sys/types.h>
@@ -34,13 +35,16 @@
 # include <arpa/inet.h>
 # include <limits.h>
 
-extern bool runWebserv;
+enum	DotSegmentsResolution
+{
+	CONFIG,
+	REQUEST
+};
 
 typedef std::vector<uint8_t> octets_t;
 typedef std::pair<std::string,std::string> stringpair_t;
 typedef std::map<std::string,std::string> stringmap_t;
 octets_t	convertStringToOctets(std::string& str);
-
 
 # define PORT_SERVER 8000
 # define CONNECTION_TIMEOUT 20
@@ -63,6 +67,7 @@ std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::stri
 
 void		fileIsValidAndAccessible(const std::string &path, const std::string &exceptionMessage);
 std::string	dirIsValidAndAccessible(const std::string &path, const std::string &accessMessage, const std::string &dirOrFileMessage);
+std::string	resolveDotSegments(std::string path, DotSegmentsResolution flag);
 
 /* inline std::ostream &operator << (std::ostream &o, std::vector<std::string> &stringVectorToPrint)
 {

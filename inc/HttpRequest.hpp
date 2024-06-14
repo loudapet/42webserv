@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/14 13:30:07 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/14 17:37:52 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <functional>
+#include "webserv.hpp"
 #include "ServerConfig.hpp"
 #include "Location.hpp"
 # define CLR1 "\e[38;5;51m"

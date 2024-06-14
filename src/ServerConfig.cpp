@@ -48,7 +48,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	bool							inLocationBlock;
 	struct sockaddr_in				sa; // validate IP address
 	std::vector<std::string>		errorPageLine; // to validate error page lines
-	std::map<short, std::string>	tmpErrorPages;
+	std::map<unsigned short, std::string>	tmpErrorPages;
 	bool							rbslInConfig;
 	bool							autoindexInConfig;
 	bool						allowMethodsInConfig;
@@ -207,7 +207,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	// validate files now that you have the root
 	for (size_t i = 0; i < this->_index.size(); i++)
 		fileIsValidAndAccessible(this->getRoot() + this->_index[i], "Index ");
-	for (std::map<short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
+	for (std::map<unsigned short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
 		fileIsValidAndAccessible(this->getRoot() + it->second, "Error page file");
 	// the location is completed only here as access to the server values is needed
 	completeLocations();
@@ -296,7 +296,7 @@ const std::vector<std::string>	&ServerConfig::getIndex(void) const
 	return (this->_index);
 }
 	
-const std::map<short, std::string>	&ServerConfig::getErrorPages(void) const
+const std::map<unsigned short, std::string>	&ServerConfig::getErrorPages(void) const
 {
 	return (this->_errorPages);
 }
@@ -335,7 +335,7 @@ void	ServerConfig::initServerConfig(void)
 	this->_host = 0;
 	this->_root = "";
 	this->_index = std::vector<std::string>();
-	this->_errorPages = std::map<short, std::string>();
+	this->_errorPages = std::map<unsigned short, std::string>();
 	this->_requestBodySizeLimit = REQUEST_BODY_SIZE_LIMIT;
 	this->_autoindex = false;
 	this->_locations = std::vector<Location>();
@@ -390,7 +390,7 @@ void	ServerConfig::completeLocations(void)
 		// what if difference between server and location scope directives - e.g. autoindex off in server but off in this->_locations[i]
 		if (this->_locations[i].getAutoindex() == -1)
 			this->_locations[i].setAutoindex(this->_autoindex);
-		for (std::map<short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
+		for (std::map<unsigned short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
 		{
 			if (this->_locations[i].getErrorPages().find(it->first) == this->_locations[i].getErrorPages().end())
 				this->_locations[i].addErrorPage(it->first, it->second);
@@ -517,7 +517,7 @@ void ServerConfig::startServer(void)
 std::ostream &operator << (std::ostream &o, ServerConfig const &instance)
 {
 	unsigned int					host;
-	std::map<short, std::string>	errorPages;
+	std::map<unsigned short, std::string>	errorPages;
 	std::vector<Location>			locations;
 	
 	host = instance.getHost();
@@ -533,7 +533,7 @@ std::ostream &operator << (std::ostream &o, ServerConfig const &instance)
 		<< "root: " << instance.getRoot() << '\n'
 		<< "index: " << instance.getIndex() << '\n'
 		<< "error pages: \n";
-	for (std::map<short, std::string>::const_iterator it = errorPages.begin(); it != errorPages.end(); ++it)
+	for (std::map<unsigned short, std::string>::const_iterator it = errorPages.begin(); it != errorPages.end(); ++it)
 		o << it->first << ": " << it->second << '\n';
 	o << "client_max_body_size (requestBodySizeLimit): " << instance.getRequestBodySizeLimit() << '\n'
 		<< "autoindex: " << instance.getAutoindex() << '\n'
