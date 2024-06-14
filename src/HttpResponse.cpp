@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/14 16:48:23 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/14 18:42:24 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -104,7 +104,7 @@ std::string	HttpResponse::readErrorPage(const Location &location)
 		}
 	}
 	ss << "<html>\r\n"
-	   << "<head><title>" << this->statusLine.statusCode << " " << this->statusLine.reasonPhrase << "</title></head>\n"
+	   << "<head><title>" << this->statusLine.statusCode << " " << this->statusLine.reasonPhrase << "</title></head>\r\n"
 	   << "<body>\r\n"
 	   << "<center><h1>" << this->statusLine.statusCode << this->statusLine.reasonPhrase << "</h1></center>\r\n"
 	   << "</html>\r\n";

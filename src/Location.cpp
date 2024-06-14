@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/14 17:40:21 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/14 18:24:43 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -133,6 +133,7 @@ Location::Location(const Location& copy)
 	this->_cgiMap = copy._cgiMap;
 	this->_return = copy._return;
 	this->_errorPages = copy._errorPages;
+	this->_isRedirect = copy._isRedirect;
 }
 
 Location &Location::operator = (const Location &src)
@@ -150,6 +151,7 @@ Location &Location::operator = (const Location &src)
 		this->_cgiMap = src._cgiMap;
 		this->_return = src._return;
 		this->_errorPages = src._errorPages;
+		this->_isRedirect = src._isRedirect;
 	}
 	return (*this);
 }
@@ -215,6 +217,11 @@ const std::map<unsigned short, std::string>	&Location::getErrorPages(void) const
 	return (this->_errorPages);
 }
 
+bool	Location::getIsRedirect(void) const
+{
+	return (this->_isRedirect);
+}
+
 void	Location::setPath(const std::string &path)
 {
 	this->_path = path;
@@ -268,6 +275,7 @@ void	Location::initLocation(void)
 	this->_cgiMap = std::map<std::string, std::string>();
 	this->_return = "";
 	this->_errorPages = std::map<unsigned short, std::string>();
+	this->_isRedirect = false;
 }
 		
 void	Location::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
