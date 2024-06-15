@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/14 17:37:52 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/15 18:26:34 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -128,6 +128,8 @@ class HttpRequest
 
 		const octets_t&			getRequestBody() const;
 		const std::string&		getAbsolutePath() const;
+
+		void					resetRequestObject(void);
 };
 
 std::ostream &operator<<(std::ostream &os, const octets_t &vec);

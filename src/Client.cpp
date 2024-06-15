@@ -6,13 +6,13 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/12 16:48:38 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/15 18:26:58 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/Client.hpp"
 
-Client::Client(void): _clientSocket(-1), _timeLastMessage(time(NULL)), _receivedData(), _dataToParse(), _portConnectedOn(0)
+Client::Client(void): _clientSocket(-1), _timeLastMessage(time(NULL)), _receivedData(), _receivedHeader(), _portConnectedOn(0)
 {
 	return ;
 }
@@ -22,10 +22,9 @@ Client::Client(const Client& copy)
 	this->_clientSocket = copy._clientSocket;
 	this->_timeLastMessage = copy._timeLastMessage;
 	this->_receivedData = copy._receivedData;
-	this->_dataToParse = copy._dataToParse;
+	this->_receivedHeader = copy._receivedHeader;
 	this->_portConnectedOn = copy._portConnectedOn;
 	this->_serverConfig = copy._serverConfig;
-
 	this->request = copy.request;
 }
 
@@ -36,10 +35,9 @@ Client	&Client::operator = (const Client &src)
 		this->_clientSocket = src._clientSocket;
 		this->_timeLastMessage = src._timeLastMessage;
 		this->_receivedData = src._receivedData;
-		this->_dataToParse = src._dataToParse;
+		this->_receivedHeader = src._receivedHeader;
 		this->_portConnectedOn = src._portConnectedOn;
 		this->_serverConfig = src._serverConfig;
-
 		this->request = src.request;
 	}
 	return (*this);
@@ -90,9 +88,9 @@ const octets_t	&Client::getReceivedData(void) const
 	return (this->_receivedData);
 }
 
-octets_t	Client::getDataToParse(void) const
+octets_t	Client::getReceivedHeader(void) const
 {
-	return (this->_dataToParse);
+	return (this->_receivedHeader);
 }
 
 unsigned short	Client::getPortConnectedOn(void) const
@@ -117,9 +115,9 @@ void		Client::printReceivedData(void) const
 	std::cout << std::endl;
 }
 
-void		Client::printDataToParse(void) const
+void		Client::printReceivedHeader(void) const
 {
-	for (octets_t::const_iterator it = this->_dataToParse.begin(); it != this->_dataToParse.end(); it++)
+	for (octets_t::const_iterator it = this->_receivedHeader.begin(); it != this->_receivedHeader.end(); it++)
 		std::cout << static_cast<char>(*it);
 	std::cout << std::endl;
 }
@@ -139,9 +137,9 @@ void	Client::eraseRangeReceivedData(size_t start, size_t end)
 	}
 }
 
-void	Client::clearDataToParse(void)
+void	Client::clearReceivedHeader(void)
 {
-	this->_dataToParse.clear();
+	this->_receivedHeader.clear();
 }
 
 void	Client::trimHeaderEmptyLines(void)
@@ -157,7 +155,7 @@ void	Client::trimHeaderEmptyLines(void)
 	}
 }
 
-bool Client::findValidHeaderEnd(void)
+void Client::separateValidHeader(void)
 {
 	std::string sequences[] = {"\r\n\n", "\n\n", "\n\r\n", "\r\n\r\n"};
 	std::vector<unsigned char>::iterator endOfSequence;
@@ -172,9 +170,9 @@ bool Client::findValidHeaderEnd(void)
 			break;
 		}
 	}
-	if (endOfSequence == this->_receivedData.end())
-		return (false);
-	this->_dataToParse.insert(this->_dataToParse.end(), this->_receivedData.begin(), sequenceEnd);
+// we can be sure that the sequence will be found since this function is called only once hasValidHeaderEnd returns true
+//	if (endOfSequence == this->_receivedData.end())
+//		return (false);
+	this->_receivedHeader.insert(this->_receivedHeader.end(), this->_receivedData.begin(), sequenceEnd);
 	this->_receivedData.erase(this->_receivedData.begin(), sequenceEnd);
-	return (true);
 }

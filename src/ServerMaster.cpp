@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/14 13:29:12 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/15 18:12:10 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -249,6 +249,8 @@ const Location matchLocation(const std::string &absolutePath, const std::vector<
 	return (locations[bestMatchIndex]);
 }
 
+
+
 void	ServerMaster::listenForConnections(void)
 {
 	fd_set			readFds; // temp fds list for select()
@@ -285,30 +287,37 @@ void	ServerMaster::listenForConnections(void)
 					Client	&client = this->_clients.find(i)->second;
 					try
 					{	
-						if (!client.request.requestComplete && !client.request.readingBodyInProgress && this->_clients.find(i)->second.findValidHeaderEnd())
+						while (client.getReceivedData().size() > 0) // won't go back to select until it processes all the data in the buffer
 						{
-							parserPair = client.request.parseHeader(client.getDataToParse());
-							selectServerRules(parserPair, i); // resolve ServerConfig to HttpRequest
-							client.clearDataToParse(); // clears request line and header fields
+							if (!client.request.requestComplete && !client.request.readingBodyInProgress && !hasValidHeaderEnd(client.getReceivedData())) // client hasn't sent a valid header yet so we need to go back to select
+								break ;
+							if (!client.request.requestComplete && !client.request.readingBodyInProgress) // client has sent a valid header, this is the first while iteration, so we parse it
+							{
+								client.separateValidHeader(); // separates the header from the body, header is stored in dataToParse, body in receivedData
+								parserPair = client.request.parseHeader(client.getReceivedHeader());
+								selectServerRules(parserPair, i); // resolve ServerConfig to HttpRequest
+								client.clearReceivedHeader(); // clears request line and header fields
 
-							// match location
-							client.request.validateHeader(matchLocation(client.request.getAbsolutePath(), client.getServerConfig().getLocations()));
-							client.request.readingBodyInProgress = true;
-						}
-						std::cout << CLR3 << "VALUE OF BOOL: "<< client.request.readingBodyInProgress << RESET << std::endl;
-						if (client.request.readingBodyInProgress)
-						{
-							bytesToDelete = client.request.readRequestBody(client.getReceivedData());
-							std::cout << "BYTES TO DELETE " << bytesToDelete << std::endl;
-							client.eraseRangeReceivedData(0, bytesToDelete);
-							std::cout << CLR4 << "Request body: " << RESET << std::endl;
-							std::cout << client.request.getRequestBody() << std::endl;
-						}
-						if (client.request.requestComplete)
-						{
-							const char*	buff = "HTTP/1.1 200 OK\r\n\r\n";
-							if (send(i, buff, strlen(buff), 0) == -1)
-								std::cerr << "Error sending acknowledgement to client." << std::endl;
+								// match location
+								client.request.validateHeader(matchLocation(client.request.getAbsolutePath(), client.getServerConfig().getLocations()));
+								client.request.readingBodyInProgress = true;
+							}
+							std::cout << CLR3 << "VALUE OF BOOL: "<< client.request.readingBodyInProgress << RESET << std::endl;
+							if (client.request.readingBodyInProgress) // processing request body
+							{
+								bytesToDelete = client.request.readRequestBody(client.getReceivedData());
+								std::cout << "BYTES TO DELETE " << bytesToDelete << std::endl;
+								client.eraseRangeReceivedData(0, bytesToDelete);
+								std::cout << CLR4 << "Request body: " << RESET << std::endl;
+								std::cout << client.request.getRequestBody() << std::endl;
+							}
+							if (client.request.requestComplete)
+							{
+								const char*	buff = "HTTP/1.1 200 OK\r\n\r\n";
+								if (send(i, buff, strlen(buff), 0) == -1)
+									std::cerr << "Error sending acknowledgement to client." << std::endl;
+								client.request.resetRequestObject(); // reset request object for the next request, resetting requestComplete and readingBodyInProgress flags is particularly important
+							}
 						}
 					}
 					catch(const std::invalid_argument& e)
@@ -378,7 +387,7 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 		{
 			this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
 			//std::cout << "Choosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
-      return ;
+    		return ;
 		}
 		else
 		{

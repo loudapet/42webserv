@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/14 17:38:06 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/15 17:37:58 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,9 +65,10 @@ std::vector<std::string>	validateIndex(const std::vector<std::string> &indexes, 
 
 std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::string> &mainVector, size_t pos);
 
-void		fileIsValidAndAccessible(const std::string &path, const std::string &exceptionMessage);
-std::string	dirIsValidAndAccessible(const std::string &path, const std::string &accessMessage, const std::string &dirOrFileMessage);
-std::string	resolveDotSegments(std::string path, DotSegmentsResolution flag);
+void						fileIsValidAndAccessible(const std::string &path, const std::string &exceptionMessage);
+std::string					dirIsValidAndAccessible(const std::string &path, const std::string &accessMessage, const std::string &dirOrFileMessage);
+std::string					resolveDotSegments(std::string path, DotSegmentsResolution flag);
+bool						hasValidHeaderEnd(const octets_t &receivedData);
 
 /* inline std::ostream &operator << (std::ostream &o, std::vector<std::string> &stringVectorToPrint)
 {

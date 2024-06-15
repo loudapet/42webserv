@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/14 12:20:39 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/15 17:37:41 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -194,4 +194,18 @@ std::string	resolveDotSegments(std::string path, DotSegmentsResolution flag)
 		output.pop();
 	}
 	return (newPath);
+}
+
+bool hasValidHeaderEnd(const octets_t &receivedData)
+{
+	std::string sequences[] = {"\r\n\n", "\n\n", "\n\r\n", "\r\n\r\n"};
+	std::vector<unsigned char>::const_iterator endOfSequence;
+
+	for (int i = 0; i < 4; ++i)
+	{
+		endOfSequence = std::search(receivedData.begin(), receivedData.end(), sequences[i].begin(), sequences[i].end());
+		if (endOfSequence != receivedData.end())
+			return (true);
+	}
+	return (false);
 }
