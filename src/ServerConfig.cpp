@@ -343,7 +343,7 @@ void	ServerConfig::initServerConfig(void)
 
 void	ServerConfig::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
 {
-	short							errorCode;
+	unsigned short					errorCode;
 	std::istringstream				iss; // convert error code to short
 	std::string						errorPageFileName;
 	std::ifstream					errorPageFile;
@@ -362,11 +362,11 @@ void	ServerConfig::validateErrorPagesLine(std::vector<std::string> &errorPageLin
 			}
 			iss.str(errorPageLine[i]);
 			if (!(iss >> errorCode) || !iss.eof())
-				throw(std::runtime_error("Config parser: Error page number is out of range for short."));
+				throw(std::runtime_error("Config parser: Error page number is out of range for valid error codes."));
 			iss.str("");
 			iss.clear();
 			if (errorCode < 400 || (errorCode > 426 && errorCode < 500) || errorCode > 505)
-				throw(std::runtime_error("Config parser: Error page number is out of range of valid error pages."));
+				throw(std::runtime_error("Config parser: Error page number is out of range for valid error pages."));
 			this->_errorPages[errorCode] = errorPageFileName;
 		}
 	}
@@ -433,13 +433,13 @@ void	ServerConfig::validateLocations(void)
 			// simple check for path validity, the rest of the path will be checked later with root and index file
 			if (this->_locations[i].getPath()[0] != '/')
 				throw(std::runtime_error("Config parser: Invalid location path."));
-			if (!this->_locations[i].getReturn().empty())
+			if (!this->_locations[i].getReturnURLOrBody().empty() && this->_locations[i].getReturnCode() != 302)
 			{
 		//		dirIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getReturn(),
-				dirIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + this->_locations[i].getReturn(), CONFIG),
+				dirIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + this->_locations[i].getReturnURLOrBody(), CONFIG),
 					"Cannot access location return path.", "Location return path is not a directory.");
 			}
-			else
+			else if (!this->_locations[i].getIsRedirect())
 			{
 				// validate index (and path)
 				for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)
