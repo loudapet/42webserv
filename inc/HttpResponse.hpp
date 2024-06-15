@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/14 15:11:18 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/15 08:53:11 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,8 +14,11 @@
 #define HTTPRESPONSE_HPP
 #include <iostream>
 #include <ctime>
+#include "Location.hpp"
 #include "webserv.hpp"
 
+class HttpRequest;
+//#include "HttpRequest.hpp"
 typedef struct StatusLine
 {
 	std::string 	httpVersion; // "HTTP/" DIGIT "." DIGIT
@@ -39,7 +42,7 @@ class HttpResponse
 
 		const statusLine_t&	getStatusLine()	const;
 		void				throwResponseException(unsigned short status, std::string reason, std::string details);
-		void				prepareResponseHeaders();
+		void				prepareResponseHeaders(const HttpRequest& request);
 
 		class ResponseException : public std::invalid_argument
 		{

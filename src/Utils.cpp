@@ -3,14 +3,21 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 10:48:16 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/14 15:43:51 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/webserv.hpp"
+
+std::string	itoa(size_t num)
+{
+	std::stringstream ss;
+    ss << num;
+	return (std::string(ss.str()));
+}
 
 bool	validateElement(std::string &element)
 {

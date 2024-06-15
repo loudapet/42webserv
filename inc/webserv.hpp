@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/14 12:36:39 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/15 08:49:01 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,7 @@ typedef std::vector<uint8_t> octets_t;
 typedef std::pair<std::string,std::string> stringpair_t;
 typedef std::map<std::string,std::string> stringmap_t;
 octets_t	convertStringToOctets(std::string& str);
+std::string	itoa(size_t num);
 
 
 # define PORT_SERVER 8000
