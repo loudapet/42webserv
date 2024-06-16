@@ -45,6 +45,7 @@ typedef std::vector<uint8_t> octets_t;
 typedef std::pair<std::string,std::string> stringpair_t;
 typedef std::map<std::string,std::string> stringmap_t;
 octets_t	convertStringToOctets(std::string& str);
+std::string	itoa(size_t num);
 
 # define PORT_SERVER 8000
 # define CONNECTION_TIMEOUT 20

@@ -6,7 +6,7 @@
 #    By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/16 10:28:25 by plouda            #+#    #+#              #
-#    Updated: 2024/06/13 11:21:46 by plouda           ###   ########.fr        #
+#    Updated: 2024/06/14 17:44:48 by plouda           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -17,7 +17,8 @@ SRCS =	HttpRequest.cpp \
 		main.cpp \
 		ServerConfig.cpp \
 		ServerMaster.cpp \
-		Utils.cpp
+		Utils.cpp \
+		HttpResponse.cpp
 
 BUILD_DIR = ./obj
 OBJS = $(addprefix $(BUILD_DIR)/, $(SRCS))

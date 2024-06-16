@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/14 16:44:11 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/15 08:53:11 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,9 +14,10 @@
 #define HTTPRESPONSE_HPP
 #include <iostream>
 #include <ctime>
-#include "webserv.hpp"
 #include "Location.hpp"
+#include "webserv.hpp"
 
+class HttpRequest;
 typedef struct StatusLine
 {
 	std::string 	httpVersion; // "HTTP/" DIGIT "." DIGIT
@@ -40,7 +41,7 @@ class HttpResponse
 
 		const statusLine_t&	getStatusLine()	const;
 		void				throwResponseException(unsigned short status, std::string reason, std::string details);
-		void				prepareResponseHeaders();
+		void				prepareResponseHeaders(const HttpRequest& request);
 		std::string			readErrorPage(const Location &location);
 
 		class ResponseException : public std::invalid_argument

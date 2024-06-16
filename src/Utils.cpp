@@ -3,7 +3,7 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
 /*   Updated: 2024/06/15 17:37:41 by aulicna          ###   ########.fr       */
@@ -11,6 +11,13 @@
 /* ************************************************************************** */
 
 #include "../inc/webserv.hpp"
+
+std::string	itoa(size_t num)
+{
+	std::stringstream ss;
+    ss << num;
+	return (std::string(ss.str()));
+}
 
 bool	validateElement(std::string &element)
 {

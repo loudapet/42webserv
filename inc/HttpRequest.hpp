@@ -27,8 +27,10 @@
 #include <errno.h>
 #include <limits.h>
 #include <functional>
-#include "webserv.hpp"
+#include <dirent.h>
 #include "ServerConfig.hpp"
+#include "webserv.hpp"
+#include "HttpResponse.hpp"
 #include "Location.hpp"
 # define CLR1 "\e[38;5;51m"
 # define CLR2 "\e[38;5;208m"
@@ -48,10 +50,11 @@
 #define TOKEN "!#$%&'*+-.^_`|~"
 #define DEFAULT_PORT "8080"
 
-typedef std::vector<uint8_t> octets_t;
-typedef std::pair<std::string,std::string> stringpair_t;
-typedef std::map<std::string,std::string> stringmap_t;
-octets_t	convertStringToOctets(std::string& str);
+enum	ConnectionStatus
+{
+	CLOSE,
+	KEEP_ALIVE
+};
 
 enum	MessageFraming
 {
@@ -73,12 +76,12 @@ typedef struct RequestTarget
 	std::string		fragment;
 } request_target_t;
 
-typedef struct StartLine
+typedef struct RequestLine
 {
 	std::string			method; // GET, POST, DELETE
 	request_target_t	requestTarget; // origin-form / absolute form
 	std::string 		httpVersion; // "HTTP/" DIGIT "." DIGIT
-} startLine_t;
+} requestLine_t;
 
 typedef struct KeepAlive
 {
@@ -89,18 +92,19 @@ typedef struct KeepAlive
 class HttpRequest
 {
 	private:
-		startLine_t				startLine;
+		requestLine_t			requestLine;
 		stringmap_t				headerFields;
 		octets_t				requestBody;
 		std::string				targetResource; // used to access the resource after URI with location's root
-		bool					closeConnection;
+		std::set<std::string>	allowedMethods;
+		ConnectionStatus		connectionStatus;
 		bool					allowedDirListing;
 		bool					isRedirect;
 		size_t					contentLength;
 		//keep_alive_t			keepAliveParams;
 		//bool					interimResponse;
 		enum MessageFraming		messageFraming;
-		void					parseStartLine(std::string startLine);
+		void					parseRequestLine(std::string requestLine);
 		void					parseMethod(std::string& token);
 		stringpair_t			parseAuthority(std::string& authority, HostLocation parseLocation);
 		void					parseRequestTarget(std::string& token);
@@ -120,25 +124,26 @@ class HttpRequest
 		HttpRequest& operator = (const HttpRequest& refObj);
 		~HttpRequest();
 
+		HttpResponse			response;
 		bool					requestComplete;
 		bool					readingBodyInProgress; // false = reading request line and headers, true = reading body
 		stringpair_t			parseHeader(octets_t header);
 		void					validateHeader(const Location& location);
 		size_t					readRequestBody(octets_t bufferedBody);
 
-		const octets_t&			getRequestBody() const;
-		const std::string&		getAbsolutePath() const;
-
-		void					resetRequestObject(void);
+		const octets_t&					getRequestBody() const;
+		const std::string&				getAbsolutePath() const;
+		const ConnectionStatus&			getConnectionStatus() const;
+		const std::set<std::string>&	getAllowedMethods() const;
+		void							resetRequestObject(void);
 };
 
 std::ostream &operator<<(std::ostream &os, const octets_t &vec);
 std::ostream &operator<<(std::ostream &os, octets_t &vec);
 std::ostream &operator<<(std::ostream &os, std::vector<octets_t> &vec);
 std::ostream &operator<<(std::ostream &os, std::vector<std::string> &vec);
-std::ostream &operator<<(std::ostream &os, startLine_t &startLine);
+std::ostream &operator<<(std::ostream &os, requestLine_t &requestLine);
 std::ostream &operator<<(std::ostream &os, std::map<std::string, std::string> &fieldSection);
-
 
 typedef void(HttpRequest::*ParseToken)(std::string&);
 

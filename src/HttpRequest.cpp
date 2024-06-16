@@ -11,6 +11,8 @@
 /* ************************************************************************** */
 
 #include "../inc/HttpRequest.hpp"
+#include "../inc/HttpResponse.hpp"
+
 
 std::string	root = "./docs";
 
@@ -77,9 +79,12 @@ std::vector<std::string>	splitQuotedString(const std::string& str, char sep)
 void	HttpRequest::parseMethod(std::string& token)
 {
 	if (token == "GET" || token == "POST" || token == "DELETE")
-		this->startLine.method = token;
+		this->requestLine.method = token;
+	else if (token == "HEAD" || token == "PUT" || token == "CONNECT"
+			|| token == "OPTIONS" || token == "PATCH" || token == "TRACE")
+		throw(std::invalid_argument("501 Not Implemented: Method not supported"));
 	else
-		throw(std::invalid_argument("400 Bad Request: Invalid method")); // should probably be Not implemented
+		throw(std::invalid_argument("400 Bad Request"));
 }
 
 void resolvePercentEncoding(std::string& path, size_t& pos)
@@ -112,10 +117,10 @@ void	HttpRequest::validateURIElements(void)
 	std::string		extraAllowedChars("?#\0\0", 4);
 	std::string		allowedChars(std::string(UNRESERVED) + std::string(PCHAR_EXTRA)
 									+ std::string(SUBDELIMS));
-	std::string*	elements[] = 	{&this->startLine.requestTarget.absolutePath,
-									&this->startLine.requestTarget.query,
-									&this->startLine.requestTarget.fragment,
-									&this->startLine.requestTarget.authority.first};
+	std::string*	elements[] = 	{&this->requestLine.requestTarget.absolutePath,
+									&this->requestLine.requestTarget.query,
+									&this->requestLine.requestTarget.fragment,
+									&this->requestLine.requestTarget.authority.first};
 	for (size_t i = 0; i < 4; i++)
 	{
 		pos = (*(elements)[i]).find_first_not_of(allowedChars);
@@ -184,8 +189,8 @@ stringpair_t	HttpRequest::parseAuthority(std::string& authority, HostLocation pa
 void	HttpRequest::parseRequestTarget(std::string& uri)
 {
 	//the following two lines should be in the constructor
-	this->startLine.requestTarget.authority.first = "";
-	this->startLine.requestTarget.authority.second = "";
+	this->requestLine.requestTarget.authority.first = "";
+	this->requestLine.requestTarget.authority.second = "";
 	if (uri.find_first_of('/') != 0)
 	{
 		std::string scheme(uri.begin(), uri.begin() + 7);
@@ -203,7 +208,7 @@ void	HttpRequest::parseRequestTarget(std::string& uri)
 				std::string	authority = std::string(uri.begin(), std::find_first_of(uri.begin(), uri.end(), delimiters.begin(), delimiters.end()));
 				if (authority.size() == 0)
 					throw(std::invalid_argument("400 Bad Request: Authority required"));
-				this->startLine.requestTarget.authority = this->parseAuthority(authority, URI);
+				this->requestLine.requestTarget.authority = this->parseAuthority(authority, URI);
 				uri.erase(0, authority.size());
 			}
 		}
@@ -214,32 +219,32 @@ void	HttpRequest::parseRequestTarget(std::string& uri)
 		queryPos = uri.end();
 	if (queryPos == uri.end() && fragmentPos == uri.end())
 	{
-		this->startLine.requestTarget.absolutePath = std::string(uri.begin(), uri.end());
-		this->startLine.requestTarget.query = std::string("");
-		this->startLine.requestTarget.fragment = std::string("");
+		this->requestLine.requestTarget.absolutePath = std::string(uri.begin(), uri.end());
+		this->requestLine.requestTarget.query = std::string("");
+		this->requestLine.requestTarget.fragment = std::string("");
 	}
 	else if (queryPos != uri.end() && fragmentPos != uri.end())
 	{
-		this->startLine.requestTarget.absolutePath = std::string(uri.begin(), queryPos);
-		this->startLine.requestTarget.query = std::string(queryPos, fragmentPos);
-		this->startLine.requestTarget.fragment = std::string(fragmentPos, uri.end());
+		this->requestLine.requestTarget.absolutePath = std::string(uri.begin(), queryPos);
+		this->requestLine.requestTarget.query = std::string(queryPos, fragmentPos);
+		this->requestLine.requestTarget.fragment = std::string(fragmentPos, uri.end());
 	}
 	else if (queryPos != uri.end() && fragmentPos == uri.end())
 	{
-		this->startLine.requestTarget.absolutePath = std::string(uri.begin(), queryPos);
-		this->startLine.requestTarget.query = std::string(queryPos, uri.end());
-		this->startLine.requestTarget.fragment = std::string("");
+		this->requestLine.requestTarget.absolutePath = std::string(uri.begin(), queryPos);
+		this->requestLine.requestTarget.query = std::string(queryPos, uri.end());
+		this->requestLine.requestTarget.fragment = std::string("");
 	}
 	else if (queryPos == uri.end() && fragmentPos != uri.end())
 	{
-		this->startLine.requestTarget.absolutePath = std::string(uri.begin(), fragmentPos);
-		this->startLine.requestTarget.query = std::string("");
-		this->startLine.requestTarget.fragment = std::string(fragmentPos, uri.end());
+		this->requestLine.requestTarget.absolutePath = std::string(uri.begin(), fragmentPos);
+		this->requestLine.requestTarget.query = std::string("");
+		this->requestLine.requestTarget.fragment = std::string(fragmentPos, uri.end());
 	}
-	if (this->startLine.requestTarget.absolutePath == "")
-		this->startLine.requestTarget.absolutePath = "/";
+	if (this->requestLine.requestTarget.absolutePath == "")
+		this->requestLine.requestTarget.absolutePath = "/";
 	validateURIElements();
-	this->startLine.requestTarget.absolutePath = resolveDotSegments(this->startLine.requestTarget.absolutePath, REQUEST);
+	this->requestLine.requestTarget.absolutePath = resolveDotSegments(this->requestLine.requestTarget.absolutePath, REQUEST);
 	return ;
 }
 
@@ -253,25 +258,25 @@ void	HttpRequest::parseHttpVersion(std::string& token)
 	std::string	version(slash + 1, std::find_if(token.begin(), token.end(), isspace));
 	if (version != "1.1")
 		throw(std::invalid_argument("505 Version Not Supported"));
-	this->startLine.httpVersion = token;
+	this->requestLine.httpVersion = token;
 }
 
-void	HttpRequest::parseStartLine(std::string startLine)
+void	HttpRequest::parseRequestLine(std::string requestLine)
 {
 	std::vector<std::string>	startLineTokens;
-	std::string::iterator		space = std::find(startLine.begin(), startLine.end(), SP);
+	std::string::iterator		space = std::find(requestLine.begin(), requestLine.end(), SP);
 	ParseToken					parse[3] = {&HttpRequest::parseMethod,
 									&HttpRequest::parseRequestTarget,
 									&HttpRequest::parseHttpVersion};
 
-	while (space != startLine.end() || startLine.size() != 0) // size != 0 to grab the last segment
+	while (space != requestLine.end() || requestLine.size() != 0) // size != 0 to grab the last segment
 	{
-		std::string token(startLine.begin(), space);
+		std::string token(requestLine.begin(), space);
 		startLineTokens.push_back(token);
-		while (space != startLine.end() && isspace(*space))
+		while (space != requestLine.end() && isspace(*space))
 			space++;
-		startLine.erase(startLine.begin(), space);
-		space = std::find(startLine.begin(), startLine.end(), SP);
+		requestLine.erase(requestLine.begin(), space);
+		space = std::find(requestLine.begin(), requestLine.end(), SP);
 	}
 	if (startLineTokens.size() != 3)
 		throw(std::invalid_argument("400 Bad Request: Invalid start line"));
@@ -345,10 +350,10 @@ stringpair_t	HttpRequest::resolveHost(void)
 		pos = hostHeader.first.find('%', pos);
 	}
 
-	if (this->startLine.requestTarget.authority.first != "")
+	if (this->requestLine.requestTarget.authority.first != "")
 	{
-		authority.first = this->startLine.requestTarget.authority.first;
-		authority.second = this->startLine.requestTarget.authority.second;
+		authority.first = this->requestLine.requestTarget.authority.first;
+		authority.second = this->requestLine.requestTarget.authority.second;
 	}
 	else if (hostHeader.first != "")
 	{
@@ -419,7 +424,7 @@ stringpair_t	HttpRequest::parseHeader(octets_t header)
 			break ;
 		}
 		if (startLine)
-			this->parseStartLine(std::string(line.begin(), line.end()));
+			this->parseRequestLine(std::string(line.begin(), line.end()));
 		if (!startLine)
 			splitLines.push_back(std::string(line.begin(), line.end()));
 		header.erase(header.begin(), nl + 1);
@@ -441,7 +446,7 @@ stringpair_t	HttpRequest::parseHeader(octets_t header)
 		throw (std::invalid_argument("400 Bad Request: Improperly terminated header-field section"));
 	this->parseFieldSection(splitLines);
 	authority = this->resolveHost();
-	//std::cout << this->startLine << this->headerFields << std::endl;
+	//std::cout << this->requestLine << this->headerFields << std::endl;
 	std::cout << "Final host:\t" << authority.first << std::endl;
 	std::cout << "Final port:\t" << authority.second << std::endl;
 	return (authority);
@@ -471,14 +476,14 @@ void	HttpRequest::validateConnectionOption(void)
 			std::transform(option->begin(), option->end(), option->begin(), tolower);
 		}
 		if (std::find(values.begin(), values.end(), "close") != values.end())
-			closeConnection = true;
+			connectionStatus = CLOSE;
 		else
-			closeConnection = false;
+			connectionStatus = KEEP_ALIVE;
 	}
 	else
-		this->closeConnection = false;
+		this->connectionStatus = KEEP_ALIVE;
 	if (keepAlive != this->headerFields.end() && std::find(values.begin(), values.end(), "keep-alive") != values.end() 
-			&& !this->closeConnection) // only apply this when keep-alive option is set in Connection and close wasn't indicated
+			&& this->connectionStatus == KEEP_ALIVE) // only apply this when keep-alive option is set in Connection and close wasn't indicated
 	{
 		values = splitQuotedString(keepAlive->second, ',');
 		for (param = values.begin(); param != values.end(); param++)
@@ -499,13 +504,14 @@ void	HttpRequest::validateConnectionOption(void)
 // http://hello//testdir/a will get redirected to /testdir/a/
 void	HttpRequest::validateResourceAccess(const Location& location)
 {
+	this->allowedDirListing = location.getAutoindex();
 	std::cout << location.getPath() << std::endl;
 	if (*root.rbegin() == '/')
 		root.erase(root.end() - 1);
-	this->targetResource = root + this->startLine.requestTarget.absolutePath;
-	std::cout << "Final path:\t" << this->targetResource << std::endl;
+	this->targetResource = root + this->requestLine.requestTarget.absolutePath;
+	std::cout << CLR3 << "Final path:\t" << this->targetResource << RESET << std::endl;
 	
-	if (!this->isRedirect && this->startLine.method == "GET")
+	if (!this->isRedirect && this->requestLine.method == "GET")
 	{
 		int			validFile;
 		struct stat	fileCheckBuff;
@@ -521,7 +527,15 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 			throw (std::invalid_argument("403 Forbidden: Autoindexing is off"));
 		else
 		{
-			// autoindexing for GET
+			// autoindexing for GET - should go into response
+			DIR*	dirPtr;
+			dirPtr = opendir(this->targetResource.c_str());
+			if (dirPtr == NULL)
+				throw (std::runtime_error("Failed to open directory"));
+			for (dirent* dir = readdir(dirPtr); dir != NULL; dir = readdir(dirPtr))
+				std::cout << CLR2 << dir->d_name << RESET << std::endl;
+			if (closedir(dirPtr))
+				throw (std::runtime_error("Failed to close directory"));
 		}
 	}
 	// handle redirections, POST and DELETE
@@ -560,8 +574,8 @@ void	HttpRequest::validateMessageFraming(void)
 	}
 	else
 	{
-		//if (this->startLine.method == "POST")
-		throw (std::invalid_argument("400 Bad Request: Invalid framing (depends on method - FIX)"));
+		if (this->requestLine.method == "POST")
+			throw (std::invalid_argument("400 Bad Request: Invalid framing (depends on method - FIX)"));
 	}
 }
 
@@ -580,17 +594,14 @@ void	HttpRequest::manageExpectations(void)
 /*
 1) method check based on string comparison once the server block rules are matched, also needs 405 Method Not Allowed if applicable
 2) merge paths and check access to URI based on allowed methods
-
 Q: what happens if methods in config are not valid?
 */
 void	HttpRequest::validateHeader(const Location& location)
 {
 	std::set<std::string>	allowedMethods = location.getAllowMethods();
-	if (std::find(allowedMethods.begin(), allowedMethods.end(), this->startLine.method) == allowedMethods.end())
-		throw (std::invalid_argument("501 Not implemented"));
-/* 	if (this->startLine.method != "GET" && this->startLine.method != "POST"
-		&& this->startLine.method != "DELETE")
-		throw (std::invalid_argument("501 Not implemented")); */
+	this->allowedMethods = allowedMethods;
+	if (std::find(allowedMethods.begin(), allowedMethods.end(), this->requestLine.method) == allowedMethods.end())
+		throw (std::invalid_argument("405 Method Not Allowed"));
 	this->validateConnectionOption();
 	this->validateResourceAccess(location);
 	this->validateMessageFraming();
@@ -705,15 +716,30 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 			}
 		}
 	}
+	else // when body is not present
+	{
+		this->readingBodyInProgress = false;
+		this->requestComplete = true;
+	}
 	return (bytesRead);
 }
 
 const std::string&			HttpRequest::getAbsolutePath(void) const
 {
-	return (this->startLine.requestTarget.absolutePath);
+	return (this->requestLine.requestTarget.absolutePath);
 }
 
-const octets_t&			HttpRequest::getRequestBody(void) const
+const ConnectionStatus &HttpRequest::getConnectionStatus() const
+{
+	return (this->connectionStatus);
+}
+
+const std::set<std::string> &HttpRequest::getAllowedMethods() const
+{
+	return (this->allowedMethods);
+}
+
+const octets_t &HttpRequest::getRequestBody(void) const
 {
 	return (this->requestBody);
 }
@@ -746,16 +772,16 @@ std::ostream &operator<<(std::ostream &os, std::vector<std::string> &vec)
 	return os;
 }
 
-std::ostream &operator<<(std::ostream &os, startLine_t& startLine)
+std::ostream &operator<<(std::ostream &os, requestLine_t& requestLine)
 {
 	os << UNDERLINE << "Start line" << RESET << std::endl;
-	os << "method: " << startLine.method << std::endl;
-	os << "request-target host: " << startLine.requestTarget.authority.first << std::endl;
-	os << "request-target port: " << startLine.requestTarget.authority.second << std::endl;
-	os << "request-target path: " << startLine.requestTarget.absolutePath << std::endl;
-	os << "request-target query: " << startLine.requestTarget.query << std::endl;
-	os << "request-target fragment: " << startLine.requestTarget.fragment << std::endl;
-	os << "http-version: " << startLine.httpVersion << std::endl;
+	os << "method: " << requestLine.method << std::endl;
+	os << "request-target host: " << requestLine.requestTarget.authority.first << std::endl;
+	os << "request-target port: " << requestLine.requestTarget.authority.second << std::endl;
+	os << "request-target path: " << requestLine.requestTarget.absolutePath << std::endl;
+	os << "request-target query: " << requestLine.requestTarget.query << std::endl;
+	os << "request-target fragment: " << requestLine.requestTarget.fragment << std::endl;
+	os << "http-version: " << requestLine.httpVersion << std::endl;
 	return os;
 }
 
