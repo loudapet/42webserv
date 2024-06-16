@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/12 14:28:23 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/15 13:20:16 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,19 @@
 
 Location::Location(void)
 {
-	return ;
+	this->_path = "";
+	this->_root = "./";
+	this->_index = std::vector<std::string>(1, "index.html");
+	this->_requestBodySizeLimit = REQUEST_BODY_SIZE_LIMIT;
+	this->_autoindex = 0;
+	this->_allowMethods.insert("GET");
+	this->_cgiPath = std::vector<std::string>();
+	this->_cgiExt = std::vector<std::string>();
+	this->_cgiMap = std::map<std::string, std::string>();
+	this->_returnURL = "";
+	this->_returnCode = -1;
+	this->_isRedirect = false;
+	this->_errorPages = std::map<unsigned short, std::string>(); // WARNING: init to global defaults
 }
 
 Location::Location(std::string locationPath, std::vector<std::string> locationScope)
@@ -26,6 +38,8 @@ Location::Location(std::string locationPath, std::vector<std::string> locationSc
 	std::string 				validMethodsArray[] = {"GET", "POST", "DELETE"};
 	std::set<std::string> 		validMethods(validMethodsArray, validMethodsArray + sizeof(validMethodsArray) / sizeof(validMethodsArray[0]));
 	std::vector<std::string>	errorPageLine; // to validate error page lines
+	std::istringstream			iss; // convert error code to short
+	unsigned short				tmpReturnCode;
 
 	initLocation();
 	rbslInConfig = false;
@@ -88,10 +102,35 @@ Location::Location(std::string locationPath, std::vector<std::string> locationSc
 			validateElement(this->_cgiExt.back());
 			i += this->_cgiExt.size(); // not -1 bcs there is the directive name to skip too
 		}
+		else if (locationScope[i] == "return" && (i + 2) < locationScope.size()
+			&& locationScope[i + 1].find_first_of(";") == std::string::npos && validateElement(locationScope[i + 2]))
+		{
+			// source: https://nginx.org/en/docs/http/ngx_http_rewrite_module.html#return
+			for (size_t j = 0; j < locationScope[i + 1].size(); j++)
+			{
+				if (!std::isdigit(locationScope[i + 1][j]))
+					throw (std::runtime_error("Config parser: Invalid return code."));
+			}
+			iss.str(locationScope[i + 1]);
+			if (!(iss >> tmpReturnCode) || !iss.eof())
+				throw(std::runtime_error("Config parser: Return code is out of range for valid return codes."));
+			iss.str("");
+			iss.clear();
+			if (tmpReturnCode < 100 || tmpReturnCode > 599)
+				throw(std::runtime_error("Config parser: Return code is out of range of valid return codes."));
+			this->_returnCode = tmpReturnCode;
+			this->_returnURL = locationScope[i + 2];		
+			this->_isRedirect = true;
+			i += 2;						
+		}
 		else if (locationScope[i] == "return" && (i + 1) < locationScope.size()
 			&& validateElement(locationScope[i + 1]))
 		{
-			this->_return = locationScope[i + 1];
+			this->_returnCode = 302;
+			this->_returnURL = locationScope[i + 1];
+			if (this->_returnURL.substr(0, 7) != "http://" && this->_returnURL.substr(0, 8) != "https://")
+				throw(std::runtime_error("Config parser: Invalid URL in return directive. A URL for temporary redirect with the code 302 should start with the 'http://' or 'https://'."));
+			this->_isRedirect = true;
 			i++;
 		}
 		else if (locationScope[i] == "error_page")
@@ -121,7 +160,9 @@ Location::Location(const Location& copy)
 	this->_cgiPath = copy._cgiPath;
 	this->_cgiExt = copy._cgiExt;
 	this->_cgiMap = copy._cgiMap;
-	this->_return = copy._return;
+	this->_returnURL = copy._returnURL;
+	this->_returnCode = copy._returnCode;
+	this->_isRedirect = copy._isRedirect;
 	this->_errorPages = copy._errorPages;
 }
 
@@ -138,7 +179,9 @@ Location &Location::operator = (const Location &src)
 		this->_cgiPath = src._cgiPath;
 		this->_cgiExt = src._cgiExt;
 		this->_cgiMap = src._cgiMap;
-		this->_return = src._return;
+		this->_returnURL = src._returnURL;
+		this->_returnCode = src._returnCode;
+		this->_isRedirect = src._isRedirect;
 		this->_errorPages = src._errorPages;
 	}
 	return (*this);
@@ -158,7 +201,6 @@ const std::string	&Location::getPath(void) const
 const std::string	&Location::getRoot(void) const
 {
 	return (this->_root);
-
 }
 
 const std::vector<std::string>	&Location::getIndex(void) const
@@ -196,14 +238,29 @@ const std::map<std::string, std::string>	&Location::getCgiMap(void) const
 	return (this->_cgiMap);
 }
 
-const std::string		&Location::getReturn(void) const
+const std::string		&Location::getReturnURLOrBody(void) const
 {
-	return (this->_return);
+	return (this->_returnURL);
 }
 
-const std::map<short, std::string>	&Location::getErrorPages(void) const
+int	Location::getReturnCode(void) const
+{
+	return (this->_returnCode);
+}
+
+bool	Location::getIsRedirect(void) const
+{
+	return (this->_isRedirect);
+}
+
+const std::map<unsigned short, std::string>	&Location::getErrorPages(void) const
 {
 	return (this->_errorPages);
+}
+
+void	Location::setPath(const std::string &path)
+{
+	this->_path = path;
 }
 
 void	Location::setRoot(const std::string &root)
@@ -252,8 +309,10 @@ void	Location::initLocation(void)
 	this->_cgiPath = std::vector<std::string>();
 	this->_cgiExt = std::vector<std::string>();
 	this->_cgiMap = std::map<std::string, std::string>();
-	this->_return = "";
-	this->_errorPages = std::map<short, std::string>();
+	this->_returnURL = "";
+	this->_returnCode = -1;
+	this->_isRedirect = false;
+	this->_errorPages = std::map<unsigned short, std::string>();
 }
 		
 void	Location::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
@@ -261,7 +320,6 @@ void	Location::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
 	short							tmpErrorCode;
 	std::istringstream				iss; // convert error code to short
 	std::string						errorPageFileName;
-	std::ifstream					errorPageFile;
 
 	if (errorPageLine.size() < 3)
 		throw(std::runtime_error("Config parser (location): Invalid formatting of error_page directive."));
@@ -290,7 +348,7 @@ void	Location::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
 std::ostream &operator << (std::ostream &o, Location const &instance)
 {
 	std::map<std::string, std::string>	cgiMap;
-	std::map<short, std::string>		errorPages;
+	std::map<unsigned short, std::string>		errorPages;
 
 	cgiMap = instance.getCgiMap();
 	errorPages = instance.getErrorPages();
@@ -306,14 +364,14 @@ std::ostream &operator << (std::ostream &o, Location const &instance)
 		<< "cgi_map: \n";
 	for (std::map<std::string, std::string>::iterator it = cgiMap.begin(); it != cgiMap.end(); it++)
 		o << it->first << ": " << it->second << '\n';
-	o << "return: " << instance.getReturn() << '\n';
+	o << "return: " << instance.getReturnCode() << " " << instance.getReturnURLOrBody() << '\n';
 	o << "error pages: ";
 	if (errorPages.size() > 0)
 		o << "\n";
-	for (std::map<short, std::string>::const_iterator it = errorPages.begin(); it != errorPages.end(); ++it)
+	for (std::map<unsigned short, std::string>::const_iterator it = errorPages.begin(); it != errorPages.end(); ++it)
 	{
 		o << it->first << ": " << it->second;
-		std::map<short, std::string>::const_iterator next_it = it;
+		std::map<unsigned short, std::string>::const_iterator next_it = it;
 		next_it++;
 		if (next_it != errorPages.end())
 			o << '\n';

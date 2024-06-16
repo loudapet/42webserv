@@ -94,8 +94,7 @@ void	HttpResponse::prepareResponseHeaders(const HttpRequest& request)
 				methods.append(", ");
 		}
 		this->headerFields.insert(std::make_pair("Allow:", methods));
-	}
-	
+	}	
 }
 
 HttpResponse::ResponseException::ResponseException() : std::invalid_argument("")
@@ -106,4 +105,30 @@ HttpResponse::ResponseException::ResponseException() : std::invalid_argument("")
 const char *HttpResponse::ResponseException::what() const throw()
 {
 	return ("Response exception thrown, proper response sent to the client\n");
+}
+
+std::string	HttpResponse::readErrorPage(const Location &location)
+{
+	const std::map<unsigned short, std::string> &errorPages = location.getErrorPages();
+	std::ifstream											errorPageFile;
+	std::stringstream										buff;
+	std::map<unsigned short, std::string>::const_iterator	it;
+	std::stringstream										ss;
+	
+	it = errorPages.find(this->statusLine.statusCode);
+	if (it != errorPages.end())
+	{
+		errorPageFile.open(it->second.c_str());
+		if (errorPageFile)
+		{
+			buff << errorPageFile.rdbuf();
+			return (buff.str());
+		}
+	}
+	ss << "<html>\r\n"
+	   << "<head><title>" << this->statusLine.statusCode << " " << this->statusLine.reasonPhrase << "</title></head>\r\n"
+	   << "<body>\r\n"
+	   << "<center><h1>" << this->statusLine.statusCode << this->statusLine.reasonPhrase << "</h1></center>\r\n"
+	   << "</html>\r\n";
+	return (ss.str());
 }

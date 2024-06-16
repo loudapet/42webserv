@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/14 19:17:59 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/13 09:32:32 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/15 18:12:10 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,18 +34,18 @@ class Client
 		int					getClientSocket(void) const;
 		time_t				getTimeLastMessage(void) const;
 		const octets_t		&getReceivedData(void) const;
-		octets_t			getDataToParse(void) const;
+		octets_t			getReceivedHeader(void) const;
 		unsigned short		getPortConnectedOn(void) const;
 		const ServerConfig	&getServerConfig(void) const;
 		const HttpRequest	&getRequest(void) const;
 
 		void		printReceivedData(void) const;
-		void		printDataToParse(void) const;
+		void		printReceivedHeader(void) const;
 		void		clearReceivedData(void);
 		void		eraseRangeReceivedData(size_t start, size_t end);
-		void		clearDataToParse(void);
+		void		clearReceivedHeader(void);
 		void		trimHeaderEmptyLines(void);
-		bool		findValidHeaderEnd(void);
+		void		separateValidHeader(void);
 		
 		HttpRequest	request;
 
@@ -53,7 +53,7 @@ class Client
 		int					_clientSocket;
 		time_t				_timeLastMessage;
 		octets_t			_receivedData;
-		octets_t			_dataToParse;
+		octets_t			_receivedHeader;
 		unsigned short		_portConnectedOn;
 		ServerConfig		_serverConfig;
 

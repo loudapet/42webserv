@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/15 08:58:14 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/15 18:26:34 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,7 @@
 #include "ServerConfig.hpp"
 #include "webserv.hpp"
 #include "HttpResponse.hpp"
+#include "Location.hpp"
 # define CLR1 "\e[38;5;51m"
 # define CLR2 "\e[38;5;208m"
 # define CLR3 "\e[38;5;213m"
@@ -53,12 +54,6 @@ enum	ConnectionStatus
 {
 	CLOSE,
 	KEEP_ALIVE
-};
-
-enum	DotSegmentsResolution
-{
-	CONFIG,
-	REQUEST
 };
 
 enum	MessageFraming
@@ -133,13 +128,14 @@ class HttpRequest
 		bool					requestComplete;
 		bool					readingBodyInProgress; // false = reading request line and headers, true = reading body
 		stringpair_t			parseHeader(octets_t header);
-		void					validateHeader(const ServerConfig& serverConfig);
+		void					validateHeader(const Location& location);
 		size_t					readRequestBody(octets_t bufferedBody);
 
-		const octets_t&				getRequestBody() const;
-		const std::string&			getAbsolutePath() const;
-		const ConnectionStatus&		getConnectionStatus() const;
+		const octets_t&					getRequestBody() const;
+		const std::string&				getAbsolutePath() const;
+		const ConnectionStatus&			getConnectionStatus() const;
 		const std::set<std::string>&	getAllowedMethods() const;
+		void							resetRequestObject(void);
 };
 
 std::ostream &operator<<(std::ostream &os, const octets_t &vec);

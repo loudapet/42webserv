@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:27 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/12 14:27:39 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/15 13:11:17 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@
 class Location
 {
 	public:
+		Location(void);	
 		Location(std::string locationPath, std::vector<std::string> locationScope);
 		Location(const Location& copy);
 		Location	&operator=(const Location &src);
@@ -32,9 +33,12 @@ class Location
 		const std::vector<std::string>				&getCgiPath(void) const;
 		const std::vector<std::string>				&getCgiExt(void) const;
 		const std::map<std::string, std::string>	&getCgiMap(void) const;
-		const std::string							&getReturn(void) const;
-		const std::map<short, std::string>			&getErrorPages(void) const;
+		const std::string							&getReturnURLOrBody(void) const;
+		int											getReturnCode(void) const;
+		bool										getIsRedirect(void) const;
+		const std::map<unsigned short, std::string>	&getErrorPages(void) const;
 
+		void	setPath(const std::string &path);
 		void	setRoot(const std::string &root);
 		void	setIndex(const std::vector<std::string> &index);
 		void	setRequestBodySizeLimit(int requestBodySizeLimit);
@@ -44,23 +48,23 @@ class Location
 		void	addErrorPage(short errorCode, const std::string &errorPageFile);
 	
 	private:
-		Location(void);	
 		
 		void	initLocation(void);
 		void	validateErrorPagesLine(std::vector<std::string> &errorPageLine);
 
-		std::string							_path;
-		std::string							_root;
-		std::vector<std::string>			_index;
-		int									_requestBodySizeLimit;
-		int									_autoindex;
-		std::set<std::string>				_allowMethods;
-		std::vector<std::string>			_cgiPath;
-		std::vector<std::string>			_cgiExt;
-		std::map<std::string, std::string>	_cgiMap;
-		std::string							_return;
-		std::map<short, std::string> 		_errorPages;
-
+		std::string								_path;
+		std::string								_root;
+		std::vector<std::string>				_index;
+		int										_requestBodySizeLimit;
+		int										_autoindex;
+		std::set<std::string>					_allowMethods;
+		std::vector<std::string>				_cgiPath;
+		std::vector<std::string>				_cgiExt;
+		std::map<std::string, std::string>		_cgiMap;
+		std::string								_returnURL;
+		int										_returnCode;
+		bool									_isRedirect;
+		std::map<unsigned short, std::string>	_errorPages;
 };
 
 std::ostream &operator << (std::ostream &o, Location const &instance);

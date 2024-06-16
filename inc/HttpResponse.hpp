@@ -18,7 +18,6 @@
 #include "webserv.hpp"
 
 class HttpRequest;
-//#include "HttpRequest.hpp"
 typedef struct StatusLine
 {
 	std::string 	httpVersion; // "HTTP/" DIGIT "." DIGIT
@@ -43,6 +42,7 @@ class HttpResponse
 		const statusLine_t&	getStatusLine()	const;
 		void				throwResponseException(unsigned short status, std::string reason, std::string details);
 		void				prepareResponseHeaders(const HttpRequest& request);
+		std::string			readErrorPage(const Location &location);
 
 		class ResponseException : public std::invalid_argument
 		{

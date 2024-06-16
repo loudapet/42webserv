@@ -48,7 +48,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	bool							inLocationBlock;
 	struct sockaddr_in				sa; // validate IP address
 	std::vector<std::string>		errorPageLine; // to validate error page lines
-	std::map<short, std::string>	tmpErrorPages;
+	std::map<unsigned short, std::string>	tmpErrorPages;
 	bool							rbslInConfig;
 	bool							autoindexInConfig;
 	bool						allowMethodsInConfig;
@@ -202,10 +202,12 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 		this->_host = inet_addr(std::string("127.0.0.1").data());
 	if (this->_index.size() == 0)
 		this->_index.push_back("index.html");
+	if (this->_allowMethods.size() == 0)
+		this->_allowMethods.insert("GET");
 	// validate files now that you have the root
 	for (size_t i = 0; i < this->_index.size(); i++)
 		fileIsValidAndAccessible(this->getRoot() + this->_index[i], "Index ");
-	for (std::map<short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
+	for (std::map<unsigned short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
 		fileIsValidAndAccessible(this->getRoot() + it->second, "Error page file");
 	// the location is completed only here as access to the server values is needed
 	completeLocations();
@@ -294,7 +296,7 @@ const std::vector<std::string>	&ServerConfig::getIndex(void) const
 	return (this->_index);
 }
 	
-const std::map<short, std::string>	&ServerConfig::getErrorPages(void) const
+const std::map<unsigned short, std::string>	&ServerConfig::getErrorPages(void) const
 {
 	return (this->_errorPages);
 }
@@ -333,7 +335,7 @@ void	ServerConfig::initServerConfig(void)
 	this->_host = 0;
 	this->_root = "";
 	this->_index = std::vector<std::string>();
-	this->_errorPages = std::map<short, std::string>();
+	this->_errorPages = std::map<unsigned short, std::string>();
 	this->_requestBodySizeLimit = REQUEST_BODY_SIZE_LIMIT;
 	this->_autoindex = false;
 	this->_locations = std::vector<Location>();
@@ -341,7 +343,7 @@ void	ServerConfig::initServerConfig(void)
 
 void	ServerConfig::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
 {
-	short							errorCode;
+	unsigned short					errorCode;
 	std::istringstream				iss; // convert error code to short
 	std::string						errorPageFileName;
 	std::ifstream					errorPageFile;
@@ -360,11 +362,11 @@ void	ServerConfig::validateErrorPagesLine(std::vector<std::string> &errorPageLin
 			}
 			iss.str(errorPageLine[i]);
 			if (!(iss >> errorCode) || !iss.eof())
-				throw(std::runtime_error("Config parser: Error page number is out of range for short."));
+				throw(std::runtime_error("Config parser: Error page number is out of range for valid error codes."));
 			iss.str("");
 			iss.clear();
 			if (errorCode < 400 || (errorCode > 426 && errorCode < 500) || errorCode > 505)
-				throw(std::runtime_error("Config parser: Error page number is out of range of valid error pages."));
+				throw(std::runtime_error("Config parser: Error page number is out of range for valid error pages."));
 			this->_errorPages[errorCode] = errorPageFileName;
 		}
 	}
@@ -388,7 +390,7 @@ void	ServerConfig::completeLocations(void)
 		// what if difference between server and location scope directives - e.g. autoindex off in server but off in this->_locations[i]
 		if (this->_locations[i].getAutoindex() == -1)
 			this->_locations[i].setAutoindex(this->_autoindex);
-		for (std::map<short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
+		for (std::map<unsigned short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
 		{
 			if (this->_locations[i].getErrorPages().find(it->first) == this->_locations[i].getErrorPages().end())
 				this->_locations[i].addErrorPage(it->first, it->second);
@@ -423,20 +425,26 @@ void	ServerConfig::validateLocations(void)
 
 	for (size_t i = 0; i < this->_locations.size(); i++)
 	{
+		resolveDotSegments(this->_locations[i].getPath(), CONFIG);
+		resolveDotSegments(this->_locations[i].getRoot(), CONFIG);
 		// validate location
 		if (this->_locations[i].getPath() != "/cgi-bin")
 		{
 			// simple check for path validity, the rest of the path will be checked later with root and index file
 			if (this->_locations[i].getPath()[0] != '/')
 				throw(std::runtime_error("Config parser: Invalid location path."));
-			if (!this->_locations[i].getReturn().empty())
-				dirIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getReturn(),
+			if (!this->_locations[i].getReturnURLOrBody().empty() && this->_locations[i].getReturnCode() != 302)
+			{
+		//		dirIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getReturn(),
+				dirIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + this->_locations[i].getReturnURLOrBody(), CONFIG),
 					"Cannot access location return path.", "Location return path is not a directory.");
-			else
+			}
+			else if (!this->_locations[i].getIsRedirect())
 			{
 				// validate index (and path)
 				for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)
-					fileIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], "Index");
+				//	fileIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], "Index");
+					fileIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], CONFIG), "Index");
 			}
 		}
 		else // is cgi-bin
@@ -445,7 +453,8 @@ void	ServerConfig::validateLocations(void)
 				throw(std::runtime_error("Config parser: Missing cgi_path, cgi_ext or index directive in cgi-bin location."));
 			// validate index (and path)
 			for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)
-				fileIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], "Index");
+			//	fileIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], "Index");
+				fileIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], CONFIG), "Index");
 			if (this->_locations[i].getCgiPath().size() != this->_locations[i].getCgiExt().size())
 				throw(std::runtime_error("Config parser: Mismatch between cgi_path and cgi_ext in cgi-bin location."));
 			// only allowed cgi_ext
@@ -508,7 +517,7 @@ void ServerConfig::startServer(void)
 std::ostream &operator << (std::ostream &o, ServerConfig const &instance)
 {
 	unsigned int					host;
-	std::map<short, std::string>	errorPages;
+	std::map<unsigned short, std::string>	errorPages;
 	std::vector<Location>			locations;
 	
 	host = instance.getHost();
@@ -524,7 +533,7 @@ std::ostream &operator << (std::ostream &o, ServerConfig const &instance)
 		<< "root: " << instance.getRoot() << '\n'
 		<< "index: " << instance.getIndex() << '\n'
 		<< "error pages: \n";
-	for (std::map<short, std::string>::const_iterator it = errorPages.begin(); it != errorPages.end(); ++it)
+	for (std::map<unsigned short, std::string>::const_iterator it = errorPages.begin(); it != errorPages.end(); ++it)
 		o << it->first << ": " << it->second << '\n';
 	o << "client_max_body_size (requestBodySizeLimit): " << instance.getRequestBodySizeLimit() << '\n'
 		<< "autoindex: " << instance.getAutoindex() << '\n'
