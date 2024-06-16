@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/15 18:27:09 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/16 12:12:01 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -797,11 +797,11 @@ void	HttpRequest::resetRequestObject(void)
 {
 	HttpRequest newRequest;
 
-	this->startLine = newRequest.startLine;
+	this->requestLine = newRequest.requestLine;
 	this->headerFields = newRequest.headerFields;
 	this->requestBody.clear();
 	this->targetResource.clear();
-	this->closeConnection = newRequest.closeConnection;
+	this->connectionStatus = newRequest.connectionStatus;
 	this->allowedDirListing = newRequest.allowedDirListing;
 	this->isRedirect = newRequest.isRedirect;
 	this->contentLength = newRequest.contentLength;
