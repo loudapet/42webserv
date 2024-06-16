@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webserv.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/12 13:52:15 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/15 17:37:58 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 # include <vector>
 # include <map>
 # include <set>
+# include <stack>
 # include <unistd.h>
 # include <stdexcept>
 # include <sys/types.h>
@@ -34,10 +35,16 @@
 # include <arpa/inet.h>
 # include <limits.h>
 
-extern bool runWebserv;
+enum	DotSegmentsResolution
+{
+	CONFIG,
+	REQUEST
+};
 
 typedef std::vector<uint8_t> octets_t;
-
+typedef std::pair<std::string,std::string> stringpair_t;
+typedef std::map<std::string,std::string> stringmap_t;
+octets_t	convertStringToOctets(std::string& str);
 
 # define PORT_SERVER 8000
 # define CONNECTION_TIMEOUT 20
@@ -58,8 +65,10 @@ std::vector<std::string>	validateIndex(const std::vector<std::string> &indexes, 
 
 std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::string> &mainVector, size_t pos);
 
-void		fileIsValidAndAccessible(const std::string &path, const std::string &exceptionMessage);
-std::string	dirIsValidAndAccessible(const std::string &path, const std::string &accessMessage, const std::string &dirOrFileMessage);
+void						fileIsValidAndAccessible(const std::string &path, const std::string &exceptionMessage);
+std::string					dirIsValidAndAccessible(const std::string &path, const std::string &accessMessage, const std::string &dirOrFileMessage);
+std::string					resolveDotSegments(std::string path, DotSegmentsResolution flag);
+bool						hasValidHeaderEnd(const octets_t &receivedData);
 
 /* inline std::ostream &operator << (std::ostream &o, std::vector<std::string> &stringVectorToPrint)
 {

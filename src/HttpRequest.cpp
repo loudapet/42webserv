@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/12 13:42:07 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/15 18:27:09 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -104,38 +104,6 @@ void resolvePercentEncoding(std::string& path, size_t& pos)
 		else					
 			throw(std::invalid_argument("400 Bad Request: Invalid percent encoding"));
 	}
-}
-
-std::string	resolveDotSegments(std::string path, DotSegmentsResolution flag)
-{
-	std::stack<std::string>	segments;
-	std::stack<std::string>	output;
-	std::stringstream	input(path);
-	std::string			buffer;
-	std::string			newPath;
-	output.push("/");
-	while (std::getline(input, buffer, '/'))
-	{
-		if (buffer == "..")
-		{
-			if (output.size() > 1)
-				output.pop();
-			else if (flag == CONFIG)
-				throw(std::invalid_argument("Path above root"));
-			else
-				throw(std::invalid_argument("400 Bad Request: Invalid relative reference"));
-		}
-		else if (buffer != "." && buffer != "")
-			output.push(buffer + std::string("/"));
-	}
-	if (*(output.top().rbegin()) == '/' && *(path.rbegin()) != '/' && output.top().size() > 0)
-		output.top().erase(output.top().size() - 1, 1);
-	while (output.size() > 0)
-	{
-		newPath.insert(0, output.top());
-		output.pop();
-	}
-	return (newPath);
 }
 
 void	HttpRequest::validateURIElements(void)
@@ -615,16 +583,16 @@ void	HttpRequest::manageExpectations(void)
 
 Q: what happens if methods in config are not valid?
 */
-void	HttpRequest::validateHeader(const ServerConfig& serverConfig)
+void	HttpRequest::validateHeader(const Location& location)
 {
-	std::set<std::string>	allowedMethods = serverConfig.getLocations()[0].getAllowMethods();
+	std::set<std::string>	allowedMethods = location.getAllowMethods();
 	if (std::find(allowedMethods.begin(), allowedMethods.end(), this->startLine.method) == allowedMethods.end())
 		throw (std::invalid_argument("501 Not implemented"));
 /* 	if (this->startLine.method != "GET" && this->startLine.method != "POST"
 		&& this->startLine.method != "DELETE")
 		throw (std::invalid_argument("501 Not implemented")); */
 	this->validateConnectionOption();
-	this->validateResourceAccess(serverConfig.getLocations()[0]);
+	this->validateResourceAccess(location);
 	this->validateMessageFraming();
 	this->manageExpectations();
 }
@@ -659,7 +627,10 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 			std::cout << "Chunk size: " << chunkSizeOct << std::endl;
 			bufferedBody.erase(bufferedBody.begin(), newline + 1); // move to the beginning of the chunk
 			if (chunkSizeOct.size() > 0 && !isxdigit(chunkSizeOct[0]))
+			{
+				this->readingBodyInProgress = false;
 				throw (std::invalid_argument("400 Bad Request: Invalid chunk size value (whitespace)")); // anything else than a hexdigit at the start isn't allowed
+			}
 			if (std::count(chunkSizeOct.begin(), chunkSizeOct.end(), '\0') > 0)
 				throw (std::invalid_argument("400 Bad Request: Invalid chunk size value (null byte)")); // needs special check prior to conversion to string
 			std::string		chunkSizeStr(chunkSizeOct.begin(), chunkSizeOct.end());
@@ -796,3 +767,19 @@ std::ostream &operator<<(std::ostream &os, std::map<std::string, std::string>& f
 	return os;
 }
 
+void	HttpRequest::resetRequestObject(void)
+{
+	HttpRequest newRequest;
+
+	this->startLine = newRequest.startLine;
+	this->headerFields = newRequest.headerFields;
+	this->requestBody.clear();
+	this->targetResource.clear();
+	this->closeConnection = newRequest.closeConnection;
+	this->allowedDirListing = newRequest.allowedDirListing;
+	this->isRedirect = newRequest.isRedirect;
+	this->contentLength = newRequest.contentLength;
+	this->messageFraming = newRequest.messageFraming;
+	this->requestComplete = newRequest.requestComplete;
+	this->readingBodyInProgress = newRequest.readingBodyInProgress;
+}
