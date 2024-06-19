@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/19 11:48:47 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/19 15:15:17 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,8 +63,8 @@ ServerMaster::ServerMaster(std::string configFile)
 	// Launch servers
 	for (size_t i = 0; i < this->_serverConfigs.size(); i++)
 		this->_serverConfigs[i].startServer();
-	prepareServersToListen();
-	listenForConnections();
+	prepareServersToListen(); // listen
+	listenForConnections(); // select
 }
 
 ServerMaster::~ServerMaster(void)
@@ -274,9 +274,9 @@ void	ServerMaster::listenForConnections(void)
 		{
 			if (FD_ISSET(i, &readFds)) // finds a socket with data to read
 			{
-				if (FD_ISSET(i, &readFds) && this->_servers.count(i)) // indicates that the server socket is ready to read which means that a client is attempting to connect
+				if (this->_servers.count(i)) // indicates that the server socket is ready to read which means that a client is attempting to connect
 					acceptConnection(i);
-				else if (FD_ISSET(i, &readFds) && this->_clients.count(i))
+				else if (this->_clients.count(i))
 				{
 					handleDataFromClient(i);
 					size_t	bytesToDelete = 0;
@@ -308,46 +308,46 @@ void	ServerMaster::listenForConnections(void)
 							if (client.request.readingBodyInProgress) // processing request body
 							{
 								bytesToDelete = client.request.readRequestBody(client.getReceivedData());
-								std::cout << "BYTES TO DELETE " << bytesToDelete << std::endl;
 								client.eraseRangeReceivedData(0, bytesToDelete);
-								std::cout << CLR4 << "Request body: " << RESET << std::endl;
-								std::cout << client.request.getRequestBody() << std::endl;
 								if (!client.request.requestComplete && bytesToDelete == 0)
 									break ;
 							}
 							if (client.request.requestComplete)
 							{
-								octets_t message = client.request.response.prepareResponse(client.request);
-								size_t buffLen = message.size();
-								char*	buff = new char [buffLen];
-								for (size_t i = 0; i < buffLen; i++)
-									buff[i] = message[i];
-								if (send(i, buff, buffLen, 0) == -1)
-									std::cerr << "Error sending acknowledgement to client." << std::endl;
-								delete[] buff;
-								client.request.resetRequestObject(); // reset request object for the next request, resetting requestComplete and readingBodyInProgress flags is particularly important
+								removeFdFromSet(this->_readFds, i);
+								addFdToSet(this->_writeFds, i);
+								break ;
 							}
 						}
 						catch(const ResponseException& e) // this should be in the loop, in order not to close connection for 3xx status codes
 						{
 							client.request.response.setStatusLineAndDetails(e.getStatusLine(), e.getStatusDetails());
-							octets_t message = client.request.response.prepareResponse(client.request);
-							size_t buffLen = message.size();
-							char*	buff = new char [buffLen];
-							for (size_t i = 0; i < buffLen; i++)
-								buff[i] = message[i];
-							if (send(i, buff, buffLen, 0) == -1)
-								std::cerr << "Error sending acknowledgement to client." << std::endl;
-							delete[] buff;
-							std::cerr << e.what() << '\n';
-							closeConnection(i);
+							client.request.setConnectionStatus(CLOSE);
+							removeFdFromSet(this->_readFds, i);
+							addFdToSet(this->_writeFds, i);
 						}
 					}
 				}
-				else if (FD_ISSET(i, &writeFds) && this->_clients.count(i))
-				{
-					// CGI TBA
-				}
+			}
+			else if (FD_ISSET(i, &writeFds) && this->_clients.count(i))
+			{
+				// CGI TBA - add conditions for it, othwerwise send normal response
+				Client	&client = this->_clients.find(i)->second;
+				octets_t message = client.request.response.prepareResponse(client.request);
+				size_t buffLen = message.size();
+				char*	buff = new char [buffLen];
+				for (size_t i = 0; i < buffLen; i++)
+					buff[i] = message[i];
+				std::cout << CLR4 << "SEND: " << buff << RESET << std::endl;
+				if (send(i, buff, buffLen, 0) == -1)
+					std::cerr << "Error sending acknowledgement to client." << std::endl;
+				delete[] buff;
+				removeFdFromSet(this->_writeFds, i);
+				addFdToSet(this->_readFds, i);
+				if (client.request.getConnectionStatus() == CLOSE)
+					closeConnection(i);
+				else
+					client.request.resetRequestObject(); // reset request object for the next request, resetting requestComplete and readingBodyInProgress flags is particularly important
 			}
 		}
 		checkForTimeout();
@@ -532,4 +532,5 @@ void	ServerMaster::closeConnection(const int clientSocket)
 		removeFdFromSet(this->_writeFds, clientSocket);
 	close(clientSocket); // close the socket	
 	this->_clients.erase(clientSocket); // remove from clients map
+	std::cout << "Connection closed on socket " << clientSocket << "." << std::endl;
 }
