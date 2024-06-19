@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/15 18:26:34 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/19 11:56:19 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,6 +36,7 @@
 # define CLR2 "\e[38;5;208m"
 # define CLR3 "\e[38;5;213m"
 # define CLR4 "\e[38;5;161m"
+# define CLR5 "\e[38;5;34m"
 #define UNDERLINE "\033[4m"
 #define	RESET "\033[0m"
 #define CR '\r'
@@ -104,6 +105,7 @@ class HttpRequest
 		//keep_alive_t			keepAliveParams;
 		//bool					interimResponse;
 		enum MessageFraming		messageFraming;
+		Location				location;
 		void					parseRequestLine(std::string requestLine);
 		void					parseMethod(std::string& token);
 		stringpair_t			parseAuthority(std::string& authority, HostLocation parseLocation);
@@ -131,10 +133,12 @@ class HttpRequest
 		void					validateHeader(const Location& location);
 		size_t					readRequestBody(octets_t bufferedBody);
 
+		const Location&					getLocation() const;
 		const octets_t&					getRequestBody() const;
 		const std::string&				getAbsolutePath() const;
 		const ConnectionStatus&			getConnectionStatus() const;
 		const std::set<std::string>&	getAllowedMethods() const;
+		const std::string&				getTargetResource() const;
 		void							resetRequestObject(void);
 };
 

@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/15 08:53:11 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/18 15:03:01 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,9 +29,12 @@ class HttpResponse
 {
 	private:
 		statusLine_t	statusLine;
+		std::string		statusDetails;
 		stringmap_t		headerFields;
-		std::string		responseBody;
+		octets_t		responseBody;
 		octets_t		completeResponse;
+		std::map<unsigned short,std::string>	codeDict;
+
 
 	public:
 		HttpResponse();
@@ -39,18 +42,15 @@ class HttpResponse
 		HttpResponse& operator = (const HttpResponse& refObj);
 		~HttpResponse();
 
-		const statusLine_t&	getStatusLine()	const;
-		void				throwResponseException(unsigned short status, std::string reason, std::string details);
-		void				prepareResponseHeaders(const HttpRequest& request);
-		std::string			readErrorPage(const Location &location);
+		void				readRequestedFile(const std::string& targetResource);
+		void				readErrorPage(const Location &location);
+		void				buildResponseHeaders(const HttpRequest& request);
+		void				buildCompleteResponse();
+		const octets_t&		getCompleteResponse() const;
+		const octets_t		prepareResponse(HttpRequest& request);
 
-		class ResponseException : public std::invalid_argument
-		{
-			public:
-				ResponseException();
-				const char*		what() const throw();
-				
-		};
+		void				setStatusLineAndDetails(const statusLine_t& statusLine, const std::string& details);
+		const statusLine_t&	getStatusLine()	const;
 };
 
 #endif  // HTTPRESPONSE_HPP

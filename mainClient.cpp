@@ -48,7 +48,7 @@ int main(void)
 	// 						"H"
 	// 						"GET /testdir/test.html HTTP/1.1\nConnection: keep-alive\ntest:\n"
 	// 						"Host: example.org:80\nConnection: low\ntest: no\n\n";
-	const char	*message = "\n\r\n\n\r\nGET http://localhost/testdir/ HTTP/1.1\r\n"
+	const char	*message = "\n\r\n\n\r\nGET http://localhost/file_in_docs.html HTTP/1.1\r\n"
 							"Host: s\r\n"
 							"User-Agent: Mozilla/5.0\n"
 							"Accept: text/html, */*\r\n"
@@ -56,16 +56,23 @@ int main(void)
 							"Accept-Charset: \tISO-8859-1,utf-8\n"
 							"Connection: keep-alive , \r\n"
 							"Keep-Alive: max=100,timeout=30\n"
-							"Transfer-Encoding: chunked\n"
-							"t: €h\n"
-							"\r\n"
-							"7;\n"
-							"Mozilla\r\n"
-							"11\r\n"
-							"Developer Network\r\n"
-							"0\r\n"
-							"\r\n";
-							// "GET /localhost/file_in_docs.html HTTP/1.1\r\n"
+							"Content-Length: 10\n"
+							//"Transfer-Encoding: chunked\n"
+							"\n"
+							"1234567890"
+							"GET /file_in_docs.html HTTP/1.1\r\n"
+							"Host: localhost\r\n"
+							"User-Agent: Mozilla/5.0\n"
+							"Accept: text/html, */*\r\n";
+							// "t: €h\n"
+							// "\r\n"
+							// "7;\n"
+							// "Mozilla\r\n"
+							// "11\r\n"
+							// "Developer Network\r\n"
+							// "0\r\n"
+							// "\r\n";
+							// "GET /file_indocs.html HTTP/1.1\r\n"
 							// "Host: localhost\r\n"
 							// "User-Agent: Mozilla/5.0\n"
 							// "Accept: text/html, */*\r\n"
@@ -83,22 +90,33 @@ int main(void)
 							// "0\r\n"
 							// "\r\n"
 							// ;
-	//const char *message1 = "Developer Network\r\n"
-	//						"0\r\n"
-	//						"\r\n";
+	const char *message1 = "Accept-Language: en-us\n"
+							"Accept-Charset: \tISO-8859-1,utf-8\n"
+							"Connection: keep-alive , \r\n"
+							"Keep-Alive: max=100,timeout=30\n"
+							"Transfer-Encoding: chunked\n"
+							"t: €h\n"
+							"\r\n"
+							"8;\n"
+							"Chromium\r\n"
+							"12\r\n"
+							"Developers Network\r\n"
+							"0\r\n"
+							"\r\n"
+							;
 	if (send(clientSocket, message, strlen(message), 0) == -1)
 	{
 		std::cerr << "Error: Failed to send data\n";
 		close(clientSocket);
 		return (1);
 	}
-	//sleep(3);
-/* 	if (send(clientSocket, message1, strlen(message1), 0) == -1)
+	sleep(2);
+	if (send(clientSocket, message1, strlen(message1), 0) == -1)
 	{
 		std::cerr << "Error: Failed to send data\n";
 		close(clientSocket);
 		return (1);
-	} */
+	}
 
 	// Receive response from the server
 	char buffer[8192] = {0};

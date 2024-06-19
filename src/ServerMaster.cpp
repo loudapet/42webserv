@@ -6,11 +6,12 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/15 18:12:10 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/19 11:48:47 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/ServerMaster.hpp"
+#include "../inc/ResponseException.hpp"
 
 ServerMaster::ServerMaster(void)
 {
@@ -285,10 +286,10 @@ void	ServerMaster::listenForConnections(void)
 						continue;
 					}
 					Client	&client = this->_clients.find(i)->second;
-					try
-					{	
-						while (client.getReceivedData().size() > 0) // won't go back to select until it processes all the data in the buffer
-						{
+					while (client.getReceivedData().size() > 0 && this->_clients.find(i) != this->_clients.end()) // won't go back to select until it processes all the data in the buffer
+					{
+						try
+						{	
 							if (!client.request.requestComplete && !client.request.readingBodyInProgress && !hasValidHeaderEnd(client.getReceivedData())) // client hasn't sent a valid header yet so we need to go back to select
 								break ;
 							if (!client.request.requestComplete && !client.request.readingBodyInProgress) // client has sent a valid header, this is the first while iteration, so we parse it
@@ -302,7 +303,8 @@ void	ServerMaster::listenForConnections(void)
 								client.request.validateHeader(matchLocation(client.request.getAbsolutePath(), client.getServerConfig().getLocations()));
 								client.request.readingBodyInProgress = true;
 							}
-							std::cout << CLR3 << "VALUE OF BOOL: "<< client.request.readingBodyInProgress << RESET << std::endl;
+							std::cout << CLR1 << "Header:\n" << client.getReceivedHeader();
+							std::cout << "Body:\n" << client.getReceivedData() << RESET << std::endl;
 							if (client.request.readingBodyInProgress) // processing request body
 							{
 								bytesToDelete = client.request.readRequestBody(client.getReceivedData());
@@ -310,24 +312,37 @@ void	ServerMaster::listenForConnections(void)
 								client.eraseRangeReceivedData(0, bytesToDelete);
 								std::cout << CLR4 << "Request body: " << RESET << std::endl;
 								std::cout << client.request.getRequestBody() << std::endl;
+								if (!client.request.requestComplete && bytesToDelete == 0)
+									break ;
 							}
 							if (client.request.requestComplete)
 							{
-								const char*	buff = "HTTP/1.1 200 OK\r\n\r\n";
-								if (send(i, buff, strlen(buff), 0) == -1)
+								octets_t message = client.request.response.prepareResponse(client.request);
+								size_t buffLen = message.size();
+								char*	buff = new char [buffLen];
+								for (size_t i = 0; i < buffLen; i++)
+									buff[i] = message[i];
+								if (send(i, buff, buffLen, 0) == -1)
 									std::cerr << "Error sending acknowledgement to client." << std::endl;
+								delete[] buff;
 								client.request.resetRequestObject(); // reset request object for the next request, resetting requestComplete and readingBodyInProgress flags is particularly important
 							}
 						}
+						catch(const ResponseException& e) // this should be in the loop, in order not to close connection for 3xx status codes
+						{
+							client.request.response.setStatusLineAndDetails(e.getStatusLine(), e.getStatusDetails());
+							octets_t message = client.request.response.prepareResponse(client.request);
+							size_t buffLen = message.size();
+							char*	buff = new char [buffLen];
+							for (size_t i = 0; i < buffLen; i++)
+								buff[i] = message[i];
+							if (send(i, buff, buffLen, 0) == -1)
+								std::cerr << "Error sending acknowledgement to client." << std::endl;
+							delete[] buff;
+							std::cerr << e.what() << '\n';
+							closeConnection(i);
+						}
 					}
-					catch(const std::invalid_argument& e)
-					{
-						const char*	buff = "HTTP/1.1 400 Bad Request\r\n\r\n";
-						if (send(i, buff, strlen(buff), 0) == -1)
-							std::cerr << "Error sending acknowledgement to client." << std::endl;
-						std::cerr << e.what() << '\n';
-					}
-					
 				}
 				else if (FD_ISSET(i, &writeFds) && this->_clients.count(i))
 				{

@@ -6,18 +6,11 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/15 17:37:41 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/16 16:25:56 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/webserv.hpp"
-
-std::string	itoa(size_t num)
-{
-	std::stringstream ss;
-    ss << num;
-	return (std::string(ss.str()));
-}
 
 bool	validateElement(std::string &element)
 {
@@ -215,4 +208,10 @@ bool hasValidHeaderEnd(const octets_t &receivedData)
 			return (true);
 	}
 	return (false);
+}
+
+octets_t	convertStringToOctets(std::string str)
+{
+	octets_t vec(str.begin(), str.end());
+	return (vec);
 }

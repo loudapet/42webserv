@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/15 08:54:00 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/19 11:57:14 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,28 @@ HttpResponse::HttpResponse()
 	this->statusLine.httpVersion = "HTTP/1.1";
 	this->statusLine.statusCode = 200;
 	this->statusLine.reasonPhrase = "OK";
-	this->headerFields.insert(std::make_pair("Server:", "webserv/nginx-but-better"));
+	this->headerFields["Server: "] = "webserv/nginx-but-better";
+	//this->headerFields.insert(std::make_pair("Server: ", "webserv/nginx-but-better"));
+	this->codeDict[100] = "Continue";
+	this->codeDict[200] = "OK";
+	this->codeDict[201] = "Created";
+	this->codeDict[202] = "Accepted";
+	this->codeDict[301] = "Moved Permanently";
+	this->codeDict[400] = "Bad Request";
+	this->codeDict[403] = "Forbidden";
+	this->codeDict[404] = "Not Found";
+	this->codeDict[405] = "Method Not Allowed";
+	this->codeDict[408] = "Request Timeout";
+	this->codeDict[411] = "Length Required";
+	this->codeDict[413] = "Content Too Large";
+	this->codeDict[414] = "URI Too Long";
+	this->codeDict[415] = "Unsupported Media Type";
+	this->codeDict[417] = "Expectation Failed";
+	this->codeDict[421] = "Misdirected Request";
+	this->codeDict[500] = "Internal Server Error";
+	this->codeDict[501] = "Not Implemented";
+	this->codeDict[505] = "HTTP Version Not Supported";
+	this->completeResponse = octets_t();
 	return ;
 }
 
@@ -40,11 +61,18 @@ HttpResponse::HttpResponse(const HttpResponse& refObj)
 	*this = refObj;
 }
 
-HttpResponse& HttpResponse::operator = (const HttpResponse& refObj)
+HttpResponse& HttpResponse::operator=(const HttpResponse& refObj)
 {
 	if (this != &refObj)
-		return (*this);
-	return (*this);
+	{
+		statusLine = refObj.statusLine;
+		statusDetails = refObj.statusDetails;
+		headerFields = refObj.headerFields;
+		responseBody = refObj.responseBody;
+		completeResponse = refObj.completeResponse;
+		codeDict = refObj.codeDict;
+	}
+	return *this;
 }
 
 HttpResponse::~HttpResponse()
@@ -57,31 +85,30 @@ const statusLine_t	&HttpResponse::getStatusLine() const
 	return (this->statusLine);
 }
 
-// maybe status as a string?
-void	HttpResponse::throwResponseException(unsigned short status, std::string reason, std::string details)
+void	HttpResponse::setStatusLineAndDetails(const statusLine_t& incStatusLine, const std::string& details)
 {
-	this->statusLine.statusCode = status;
-	this->statusLine.reasonPhrase = reason;
-	this->responseBody.append(details);
-	throw (ResponseException());
+	this->statusLine.httpVersion = incStatusLine.httpVersion;
+	this->statusLine.statusCode = incStatusLine.statusCode;
+	this->statusLine.reasonPhrase = this->codeDict[incStatusLine.statusCode];
+	this->statusDetails = details;
 }
 
 // needs different Content-Type
 // needs proper allowed methods handling
-void	HttpResponse::prepareResponseHeaders(const HttpRequest& request)
+void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 {
 	size_t		contentLength = this->responseBody.size();
 	std::string	date = getIMFFixdate();
 	std::string	type("text/html");
-	this->headerFields.insert(std::make_pair("Content-Length:", itoa(contentLength)));
-	this->headerFields.insert(std::make_pair("Date:", date));
-	this->headerFields.insert(std::make_pair("Content-Type:", type));
+	this->headerFields.insert(std::make_pair("Content-Length: ", itoa(contentLength)));
+	this->headerFields.insert(std::make_pair("Date: ", date));
+	this->headerFields.insert(std::make_pair("Content-Type: ", type));
 	if (request.getConnectionStatus() == CLOSE)
-		this->headerFields.insert(std::make_pair("Connection:", "close"));
+		this->headerFields.insert(std::make_pair("Connection: ", "close"));
 	else
 	{
-		this->headerFields.insert(std::make_pair("Connection:", "keep-alive"));
-		this->headerFields.insert(std::make_pair("Keep-Alive:", std::string("timeout=" + itoa(CONNECTION_TIMEOUT))));
+		this->headerFields.insert(std::make_pair("Connection: ", "keep-alive"));
+		this->headerFields.insert(std::make_pair("Keep-Alive: ", std::string("timeout=" + itoa(CONNECTION_TIMEOUT))));
 	}
 	if (this->statusLine.statusCode == 405)
 	{
@@ -93,21 +120,13 @@ void	HttpResponse::prepareResponseHeaders(const HttpRequest& request)
 			if (++it != request.getAllowedMethods().end())
 				methods.append(", ");
 		}
-		this->headerFields.insert(std::make_pair("Allow:", methods));
-	}	
+		this->headerFields.insert(std::make_pair("Allow: ", methods));
+	}
+	for (stringmap_t::iterator it = this->headerFields.begin() ; it != this->headerFields.end() ; it++)
+		it->second.append(CRLF);
 }
 
-HttpResponse::ResponseException::ResponseException() : std::invalid_argument("")
-{
-	return ;
-}
-
-const char *HttpResponse::ResponseException::what() const throw()
-{
-	return ("Response exception thrown, proper response sent to the client\n");
-}
-
-std::string	HttpResponse::readErrorPage(const Location &location)
+void	HttpResponse::readErrorPage(const Location &location)
 {
 	const std::map<unsigned short, std::string> &errorPages = location.getErrorPages();
 	std::ifstream											errorPageFile;
@@ -122,13 +141,66 @@ std::string	HttpResponse::readErrorPage(const Location &location)
 		if (errorPageFile)
 		{
 			buff << errorPageFile.rdbuf();
-			return (buff.str());
+			this->responseBody = convertStringToOctets(buff.str());
+			std::cout << CLR2 << "Response body: " << this->responseBody << RESET << std::endl;
+			//return (buff.str());
 		}
 	}
 	ss << "<html>\r\n"
 	   << "<head><title>" << this->statusLine.statusCode << " " << this->statusLine.reasonPhrase << "</title></head>\r\n"
 	   << "<body>\r\n"
-	   << "<center><h1>" << this->statusLine.statusCode << this->statusLine.reasonPhrase << "</h1></center>\r\n"
+	   << "<center><h1>" << this->statusLine.statusCode << " " << this->statusLine.reasonPhrase << "</h1></center>\r\n"
+	   << "<center><h2>" << this->statusDetails << "</h2></center>\r\n"
 	   << "</html>\r\n";
-	return (ss.str());
+	this->responseBody = convertStringToOctets(ss.str());
+	std::cout << CLR2 << "Response body: " << this->responseBody << RESET << std::endl;
+	//return (ss.str());
+}
+
+void HttpResponse::readRequestedFile(const std::string &targetResource)
+{
+	std::ifstream	stream(targetResource, std::ios::binary);
+	octets_t		contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+	this->responseBody.insert(this->responseBody.end(), contents.begin(), contents.end());
+}
+
+void	HttpResponse::buildCompleteResponse(void)
+{
+	octets_t	httpVersion(convertStringToOctets(this->statusLine.httpVersion));
+	octets_t	statusCode(convertStringToOctets(itoa(this->statusLine.statusCode)));
+	octets_t	reasonPhrase(convertStringToOctets(this->statusLine.reasonPhrase));
+	octets_t	delimiter(convertStringToOctets(CRLF));
+	this->completeResponse.insert(this->completeResponse.end(), httpVersion.begin(), httpVersion.end());
+	this->completeResponse.push_back(' ');
+	this->completeResponse.insert(this->completeResponse.end(), statusCode.begin(), statusCode.end());
+	this->completeResponse.push_back(' ');
+	this->completeResponse.insert(this->completeResponse.end(), reasonPhrase.begin(), reasonPhrase.end());
+	this->completeResponse.insert(this->completeResponse.end(), delimiter.begin(), delimiter.end());
+
+	for (stringmap_t::iterator it = this->headerFields.begin() ; it != this->headerFields.end() ; it++)
+	{
+		this->completeResponse.insert(this->completeResponse.end(), it->first.begin(), it->first.end());
+		this->completeResponse.insert(this->completeResponse.end(), it->second.begin(), it->second.end());
+	}
+	this->completeResponse.insert(this->completeResponse.end(), delimiter.begin(), delimiter.end()); // insert extra CRLF
+
+	if (this->responseBody.size() > 0)
+		this->completeResponse.insert(this->completeResponse.end(), this->responseBody.begin(), this->responseBody.end());
+}
+
+const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
+{
+	if (this->statusLine.statusCode == 200)
+		request.response.readRequestedFile(request.getTargetResource());
+	else
+		request.response.readErrorPage(request.getLocation());
+	request.response.buildResponseHeaders(request);
+	request.response.buildCompleteResponse();
+	octets_t message = request.response.getCompleteResponse();
+	return (message);
+}
+
+const octets_t &HttpResponse::getCompleteResponse() const
+{
+	return (this->completeResponse);
 }

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webserv.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/15 17:37:58 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/16 16:26:01 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,8 +44,7 @@ enum	DotSegmentsResolution
 typedef std::vector<uint8_t> octets_t;
 typedef std::pair<std::string,std::string> stringpair_t;
 typedef std::map<std::string,std::string> stringmap_t;
-octets_t	convertStringToOctets(std::string& str);
-std::string	itoa(size_t num);
+octets_t	convertStringToOctets(std::string str);
 
 # define PORT_SERVER 8000
 # define CONNECTION_TIMEOUT 20
@@ -63,7 +62,6 @@ int							validateRequestBodySizeLimit(bool rbslInConfig, const std::string &rbs
 bool						validateAutoindex(bool autoindexInConfig, const std::string &autoindexFromConfig, const std::string &exceptionMessage);
 unsigned short				validateListen(unsigned short port, const std::string &portFromConfig);
 std::vector<std::string>	validateIndex(const std::vector<std::string> &indexes, const std::vector<std::string> &scopeElements, size_t pos, const std::string &exceptionMessage);
-
 std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::string> &mainVector, size_t pos);
 
 void						fileIsValidAndAccessible(const std::string &path, const std::string &exceptionMessage);
@@ -90,6 +88,13 @@ inline std::ostream &operator << (std::ostream &o, const std::set<std::string> &
 	for (std::set<std::string>::const_iterator it = stringSetToPrint.begin(); it != stringSetToPrint.end(); ++it)
 		o << *it << " ";
 	return (o);
+}
+
+template <typename T> std::string	itoa(T num)
+{
+	std::stringstream ss;
+    ss << num;
+	return (std::string(ss.str()));
 }
 
 #endif
