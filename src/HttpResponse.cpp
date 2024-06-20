@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/19 12:27:11 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/20 12:02:01 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,6 @@ HttpResponse::HttpResponse()
 	this->statusLine.statusCode = 200;
 	this->statusLine.reasonPhrase = "OK";
 	this->headerFields["Server: "] = "webserv/nginx-but-better";
-	//this->headerFields.insert(std::make_pair("Server: ", "webserv/nginx-but-better"));
 	this->codeDict[100] = "Continue";
 	this->codeDict[200] = "OK";
 	this->codeDict[201] = "Created";
@@ -39,6 +38,7 @@ HttpResponse::HttpResponse()
 	this->codeDict[500] = "Internal Server Error";
 	this->codeDict[501] = "Not Implemented";
 	this->codeDict[505] = "HTTP Version Not Supported";
+	this->responseBody = octets_t();
 	this->completeResponse = octets_t();
 	return ;
 }
@@ -72,7 +72,7 @@ HttpResponse& HttpResponse::operator=(const HttpResponse& refObj)
 		completeResponse = refObj.completeResponse;
 		codeDict = refObj.codeDict;
 	}
-	return *this;
+	return (*this);
 }
 
 HttpResponse::~HttpResponse()
@@ -100,15 +100,15 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 	size_t		contentLength = this->responseBody.size();
 	std::string	date = getIMFFixdate();
 	std::string	type("text/html");
-	this->headerFields.insert(std::make_pair("Content-Length: ", itoa(contentLength)));
-	this->headerFields.insert(std::make_pair("Date: ", date));
-	this->headerFields.insert(std::make_pair("Content-Type: ", type));
+	this->headerFields["Content-Length: "] = itoa(contentLength);
+	this->headerFields["Date: "] = date;
+	this->headerFields["Content-Type: "] = type;
 	if (request.getConnectionStatus() == CLOSE)
-		this->headerFields.insert(std::make_pair("Connection: ", "close"));
+		this->headerFields["Connection: "] = "close";
 	else
 	{
-		this->headerFields.insert(std::make_pair("Connection: ", "keep-alive"));
-		this->headerFields.insert(std::make_pair("Keep-Alive: ", std::string("timeout=" + itoa(CONNECTION_TIMEOUT))));
+		this->headerFields["Connection: "] = "keep-alive";
+		this->headerFields["Keep-Alive: "] = std::string("timeout=" + itoa(CONNECTION_TIMEOUT));
 	}
 	if (this->statusLine.statusCode == 405)
 	{
@@ -120,7 +120,7 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 			if (++it != request.getAllowedMethods().end())
 				methods.append(", ");
 		}
-		this->headerFields.insert(std::make_pair("Allow: ", methods));
+		this->headerFields["Allow: "] = methods;
 	}
 	for (stringmap_t::iterator it = this->headerFields.begin() ; it != this->headerFields.end() ; it++)
 		it->second.append(CRLF);

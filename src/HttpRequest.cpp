@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/19 15:14:03 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/20 11:25:52 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,10 +19,30 @@ std::string	root = "./docs";
 
 HttpRequest::HttpRequest()
 {
+	Location		defaultLocation;
+	HttpResponse	defaultResponse;
+	this->requestLine.httpVersion = "1.1";
+	this->requestLine.method = "";
+	this->requestLine.requestTarget = (RequestTarget){
+		.authority = std::make_pair("", ""),
+		.absolutePath = "",
+		.query = "",
+		.fragment = ""
+	};
+	this->headerFields = stringmap_t(); 
+	this->requestBody = octets_t();
+	this->targetResource = "";
+	this->allowedMethods = std::set<std::string>();
+	this->connectionStatus = KEEP_ALIVE;
+	this->messageFraming = NO_CODING;
+	this->allowedDirListing = false;
+	this->isRedirect = false;
+	this->contentLength = 0;
+	this->location = defaultLocation;
+
+	this->response = defaultResponse;
 	this->readingBodyInProgress = false;
 	this->requestComplete = false;
-	this->messageFraming = NO_CODING;
-	this->connectionStatus = KEEP_ALIVE;
 	return ;
 }
 
@@ -31,9 +51,25 @@ HttpRequest::HttpRequest(const HttpRequest& refObj)
 	*this = refObj;
 }
 
-HttpRequest& HttpRequest::operator = (const HttpRequest& refObj)
+HttpRequest& HttpRequest::operator=(const HttpRequest& refObj)
 {
-	(void)refObj;
+	if (this != &refObj)
+	{
+		requestLine = refObj.requestLine;
+		headerFields = refObj.headerFields;
+		requestBody = refObj.requestBody;
+		targetResource = refObj.targetResource;
+		allowedMethods = refObj.allowedMethods;
+		connectionStatus = refObj.connectionStatus;
+		messageFraming = refObj.messageFraming;
+		allowedDirListing = refObj.allowedDirListing;
+		isRedirect = refObj.isRedirect;
+		contentLength = refObj.contentLength;
+		location = refObj.location;
+		response = refObj.response;
+		readingBodyInProgress = refObj.readingBodyInProgress;
+		requestComplete = refObj.requestComplete;
+	}
 	return (*this);
 }
 

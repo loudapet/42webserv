@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/19 13:54:00 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/20 11:19:46 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -100,12 +100,10 @@ class HttpRequest
 		std::string				targetResource; // used to access the resource after URI with location's root
 		std::set<std::string>	allowedMethods;
 		ConnectionStatus		connectionStatus;
+		MessageFraming			messageFraming;
 		bool					allowedDirListing;
 		bool					isRedirect;
 		size_t					contentLength;
-		//keep_alive_t			keepAliveParams;
-		//bool					interimResponse;
-		enum MessageFraming		messageFraming;
 		Location				location;
 		void					parseRequestLine(std::string requestLine);
 		void					parseMethod(std::string& token);
