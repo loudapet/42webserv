@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/19 11:56:19 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/19 13:54:00 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,6 +59,7 @@ enum	ConnectionStatus
 
 enum	MessageFraming
 {
+	NO_CODING,
 	TRANSFER_ENCODING,
 	CONTENT_LENGTH
 };
@@ -133,6 +134,7 @@ class HttpRequest
 		void					validateHeader(const Location& location);
 		size_t					readRequestBody(octets_t bufferedBody);
 
+		void							setConnectionStatus(ConnectionStatus connectionStatus);
 		const Location&					getLocation() const;
 		const octets_t&					getRequestBody() const;
 		const std::string&				getAbsolutePath() const;

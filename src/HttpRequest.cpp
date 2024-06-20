@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/19 11:56:59 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/19 15:14:03 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,8 @@ HttpRequest::HttpRequest()
 {
 	this->readingBodyInProgress = false;
 	this->requestComplete = false;
+	this->messageFraming = NO_CODING;
+	this->connectionStatus = KEEP_ALIVE;
 	return ;
 }
 
@@ -723,6 +725,11 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 		this->requestComplete = true;
 	}
 	return (bytesRead);
+}
+
+void	HttpRequest::setConnectionStatus(ConnectionStatus connectionStatus)
+{
+	this->connectionStatus = connectionStatus;
 }
 
 const std::string&			HttpRequest::getAbsolutePath(void) const

@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/16 16:26:01 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/19 16:15:33 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,7 +47,7 @@ typedef std::map<std::string,std::string> stringmap_t;
 octets_t	convertStringToOctets(std::string str);
 
 # define PORT_SERVER 8000
-# define CONNECTION_TIMEOUT 20
+# define CONNECTION_TIMEOUT 5
 //# define CLIENT_MESSAGE_BUFF 4096 // 4 KB
 # define CLIENT_MESSAGE_BUFF 8196 // 8 KB
 //# define CLIENT_MESSAGE_BUFF 65536 // 64 KB
