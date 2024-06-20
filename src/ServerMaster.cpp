@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/19 15:15:17 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/20 14:31:25 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -501,11 +501,17 @@ void	ServerMaster::checkForTimeout(void)
 {
 	for (std::map<int, Client>::iterator it = this->_clients.begin(); it != this->_clients.end(); it++)
 	{
-		if (time(NULL) - it->second.getTimeLastMessage() > CONNECTION_TIMEOUT)
+		try
 		{
-			std::cout << "Client " << it->second.getClientSocket() << " timeout. Closing connection now." << std::endl;
-			closeConnection(it->first);
-			return ;
+			if (time(NULL) - it->second.getTimeLastMessage() > CONNECTION_TIMEOUT)
+				throw(ResponseException(408, "Connection inactive for too long"));
+		}
+		catch(const ResponseException& e)
+		{
+			it->second.request.response.setStatusLineAndDetails(e.getStatusLine(), e.getStatusDetails());
+			it->second.request.setConnectionStatus(CLOSE);
+			removeFdFromSet(this->_readFds, it->second.getClientSocket());
+			addFdToSet(this->_writeFds, it->second.getClientSocket());
 		}
 	}
 }
