@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/20 14:31:25 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/20 17:56:12 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,8 +80,10 @@ ServerMaster::~ServerMaster(void)
 	while (it2 != this->_servers.end())
 	{
 		close(it2->first);
+		this->_servers.erase(it2);
 		it2 = this->_servers.begin();
 	}
+	std::cout << "Warning: Received SIGINT. Closed all connections and exiting." << std::endl;
 }
 
 std::string	ServerMaster::getFileContent(void) const
@@ -261,14 +263,18 @@ void	ServerMaster::listenForConnections(void)
 	
 	
 	// main listening loop
-	while(42)
+	while(g_runWebserv)
 	{
 		selectTimer.tv_sec = 1;
 		selectTimer.tv_usec = 0; // could be causing select to fail (with errno of invalid argument) if not set
 		readFds = this->_readFds; // copy whole fds master list in the fds list for select (only listener socket in the first run)
 		writeFds = this->_writeFds;
 		if (select(this->_fdMax + 1, &readFds, &writeFds, NULL, &selectTimer) == -1)
+		{
+			if (errno == EINTR) // prevents throwing an exception due to select being interrupted by SIGINT
+				return ;
 			throw(std::runtime_error("Select failed. + " + std::string(strerror(errno))));
+		}
 		// run through the existing connections looking for data to read
 		for (int i = 0; i <= this->_fdMax; i++)
 		{
@@ -338,7 +344,8 @@ void	ServerMaster::listenForConnections(void)
 				char*	buff = new char [buffLen];
 				for (size_t i = 0; i < buffLen; i++)
 					buff[i] = message[i];
-				std::cout << CLR4 << "SEND: " << buff << RESET << std::endl;
+				std::string buffStr(buff, buffLen); // prevents invalid read size from valgrind as buff is not null-terminated, it's a binary buffer so that we can send binery files too (e.g. executables)
+				std::cout << CLR4 << "SEND: " << buffStr << RESET << std::endl;
 				if (send(i, buff, buffLen, 0) == -1)
 					std::cerr << "Error sending acknowledgement to client." << std::endl;
 				delete[] buff;

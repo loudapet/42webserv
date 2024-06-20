@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webserv.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/16 16:26:01 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/20 17:37:13 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,6 +34,8 @@
 # include <sstream>
 # include <arpa/inet.h>
 # include <limits.h>
+
+extern bool g_runWebserv;
 
 enum	DotSegmentsResolution
 {
@@ -68,6 +70,7 @@ void						fileIsValidAndAccessible(const std::string &path, const std::string &e
 std::string					dirIsValidAndAccessible(const std::string &path, const std::string &accessMessage, const std::string &dirOrFileMessage);
 std::string					resolveDotSegments(std::string path, DotSegmentsResolution flag);
 bool						hasValidHeaderEnd(const octets_t &receivedData);
+void						logSockets(int socket, std::string action);
 
 /* inline std::ostream &operator << (std::ostream &o, std::vector<std::string> &stringVectorToPrint)
 {
