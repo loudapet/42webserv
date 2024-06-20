@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/20 11:25:52 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/20 17:21:51 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 #include "../inc/ResponseException.hpp"
 
 
-std::string	root = "./docs";
+//std::string	root = "./docs";
 
 HttpRequest::HttpRequest()
 {
@@ -39,6 +39,7 @@ HttpRequest::HttpRequest()
 	this->isRedirect = false;
 	this->contentLength = 0;
 	this->location = defaultLocation;
+	this->targetIsDirectory = false;
 
 	this->response = defaultResponse;
 	this->readingBodyInProgress = false;
@@ -69,6 +70,7 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& refObj)
 		response = refObj.response;
 		readingBodyInProgress = refObj.readingBodyInProgress;
 		requestComplete = refObj.requestComplete;
+		targetIsDirectory = refObj.targetIsDirectory;
 	}
 	return (*this);
 }
@@ -545,11 +547,17 @@ void	HttpRequest::validateConnectionOption(void)
 // http://hello//testdir/a will get redirected to /testdir/a/
 void	HttpRequest::validateResourceAccess(const Location& location)
 {
-	this->allowedDirListing = location.getAutoindex();
-	std::cout << location.getPath() << std::endl;
+	std::string	path = location.getPath();
+	std::string	root = location.getRoot();
+	std::cout << CLR3 << "path:\t" << path << RESET << std::endl;
+	std::cout << CLR3 << "root:\t" << root << RESET << std::endl;
+	std::cout << CLR3 << "URL:\t" << this->requestLine.requestTarget.absolutePath << RESET << std::endl;
 	if (*root.rbegin() == '/')
 		root.erase(root.end() - 1);
-	this->targetResource = root + this->requestLine.requestTarget.absolutePath;
+    std::size_t pos = this->requestLine.requestTarget.absolutePath.find(path);
+	this->targetResource = this->requestLine.requestTarget.absolutePath;
+   	this->targetResource.replace(pos, path.length(), root);
+	this->allowedDirListing = location.getAutoindex();
 	std::cout << CLR3 << "Final path:\t" << this->targetResource << RESET << std::endl;
 	
 	if (!this->isRedirect && this->requestLine.method == "GET")
@@ -565,19 +573,23 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 				throw (ResponseException(301, "")); // will likely not be an exception, but a proper response handler
 		}
 		else if (*targetResource.rbegin() == '/' && !this->allowedDirListing)
-			throw (ResponseException(403, "Autoindexing is off"));
+			throw (ResponseException(403, "Autoindexing is not allowed"));
 		else
 		{
-			// autoindexing for GET - should go into response && throw internal server error if applicable
+			// autoindexing for GET - just a validation
 			DIR*	dirPtr;
 			dirPtr = opendir(this->targetResource.c_str());
 			if (dirPtr == NULL)
 				throw (ResponseException(500, "Failed to open directory"));
-			for (dirent* dir = readdir(dirPtr); dir != NULL; dir = readdir(dirPtr))
-				std::cout << CLR2 << dir->d_name << RESET << std::endl;
 			if (closedir(dirPtr))
 				throw (ResponseException(500, "Failed to close directory"));
+			std::cout << "HELOOOOOOOO" << std::endl;
+			this->targetIsDirectory = true;
 		}
+	}
+	if (this->isRedirect)
+	{
+		
 	}
 	// handle redirections, POST and DELETE
 }
@@ -640,6 +652,7 @@ Q: what happens if methods in config are not valid?
 void	HttpRequest::validateHeader(const Location& location)
 {
 	this->location = location;
+	this->isRedirect = location.getIsRedirect();
 	std::set<std::string>	allowedMethods = location.getAllowMethods();
 	this->allowedMethods = allowedMethods;
 	if (std::find(allowedMethods.begin(), allowedMethods.end(), this->requestLine.method) == allowedMethods.end())
@@ -798,6 +811,12 @@ const std::string&	HttpRequest::getTargetResource() const
 	return (this->targetResource);
 }
 
+const bool&	HttpRequest::getTargetIsDirectory() const
+{
+	return (this->targetIsDirectory);
+}
+
+
 
 std::ostream &operator<<(std::ostream &os, const octets_t &vec)
 {
@@ -865,4 +884,5 @@ void	HttpRequest::resetRequestObject(void)
 	this->requestComplete = newRequest.requestComplete;
 	this->readingBodyInProgress = newRequest.readingBodyInProgress;
 	this->response = newResponse;
+	this->targetIsDirectory = newRequest.targetIsDirectory;
 }

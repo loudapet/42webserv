@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/20 12:02:01 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/20 17:18:08 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -142,8 +142,7 @@ void	HttpResponse::readErrorPage(const Location &location)
 		{
 			buff << errorPageFile.rdbuf();
 			this->responseBody = convertStringToOctets(buff.str());
-			std::cout << CLR2 << "Response body: " << this->responseBody << RESET << std::endl;
-			//return (buff.str());
+			//std::cout << CLR2 << "Response body: " << this->responseBody << RESET << std::endl;
 		}
 	}
 	ss << "<html>\r\n"
@@ -153,8 +152,7 @@ void	HttpResponse::readErrorPage(const Location &location)
 	   << "<center><h2>" << this->statusDetails << "</h2></center>\r\n"
 	   << "</html>\r\n";
 	this->responseBody = convertStringToOctets(ss.str());
-	std::cout << CLR2 << "Response body: " << this->responseBody << RESET << std::endl;
-	//return (ss.str());
+	//std::cout << CLR2 << "Response body: " << this->responseBody << RESET << std::endl;
 }
 
 void HttpResponse::readRequestedFile(const std::string &targetResource)
@@ -188,9 +186,49 @@ void	HttpResponse::buildCompleteResponse(void)
 		this->completeResponse.insert(this->completeResponse.end(), this->responseBody.begin(), this->responseBody.end());
 }
 
+void	HttpResponse::readDirectoryListing(const std::string& targetResource)
+{
+	std::stringstream	body;
+	DIR*				dirPtr;
+	dirPtr = opendir(targetResource.c_str());
+	body << "<html>\r\n"
+	   << "<head><title>" << "Index of " << targetResource << "</title></head>\r\n"
+	   << "<body>\r\n"
+	   << "<h1>" << "Index of " << targetResource << "</h1>\r\n"
+	   << "<hr><pre>\r\n";
+	for (dirent* dir = readdir(dirPtr); dir != NULL; dir = readdir(dirPtr))
+	{
+		std::string	path = targetResource + dir->d_name;
+		struct stat	fileCheckBuff;
+		if (stat(path.c_str(), &fileCheckBuff) < 0)
+			std::cout << errno << " "<< path << std::endl;
+		tm *curr_tm = std::gmtime(&(fileCheckBuff.st_mtimespec.tv_sec));
+		char time[100];
+		std::strftime(time, 100, "%a, %d %b %Y %H:%M:%S GMT", curr_tm);
+
+		if (dir->d_type == DT_DIR)
+		{
+			body << "<a href=\"" << dir->d_name << "/\">" << dir->d_name << "/" << "</a>";
+			body << " " << time << " " << "-" << "\r\n";
+		}
+		else if (dir->d_type == DT_REG)
+		{
+			body << "<a href=\"" << dir->d_name << "\">" << dir->d_name << "" << "</a>";
+			body << " " << time << " " << fileCheckBuff.st_size << "\r\n";
+		}
+		//bzero(&fileCheckBuff, sizeof(fileCheckBuff));
+	}
+	body << "</pre><hr></body>\r\n";
+	body << "</html>\r\n";
+	this->responseBody = convertStringToOctets(body.str());
+	closedir(dirPtr);
+}
+
 const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 {
-	if (this->statusLine.statusCode == 200)
+	if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
+		request.response.readDirectoryListing(request.getTargetResource());
+	else if (this->statusLine.statusCode == 200)
 		request.response.readRequestedFile(request.getTargetResource());
 	else
 		request.response.readErrorPage(request.getLocation());
