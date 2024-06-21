@@ -6,19 +6,28 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 10:01:22 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/10 10:47:41 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/20 17:47:31 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/ServerMaster.hpp"
 #include "../inc/webserv.hpp"
 
+bool g_runWebserv = true;
+
+static void	handleSigint(int sigNum)
+{
+	(void) sigNum;
+	g_runWebserv = false;
+}
+
 int	main(int argc, char **argv)
 {
 	std::string	configFile;
 
 	(void) argv;
-
+	
+	signal(SIGINT, handleSigint);
 	if (argc == 1 || argc == 2)
 	{
 		try

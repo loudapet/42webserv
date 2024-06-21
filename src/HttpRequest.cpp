@@ -3,21 +3,26 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/16 12:12:01 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/19 15:14:03 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/HttpRequest.hpp"
 #include "../inc/HttpResponse.hpp"
+#include "../inc/ResponseException.hpp"
 
 
 std::string	root = "./docs";
 
 HttpRequest::HttpRequest()
 {
+	this->readingBodyInProgress = false;
+	this->requestComplete = false;
+	this->messageFraming = NO_CODING;
+	this->connectionStatus = KEEP_ALIVE;
 	return ;
 }
 
@@ -52,7 +57,7 @@ std::string	trim(const std::string& str)
 std::vector<std::string>	splitQuotedString(const std::string& str, char sep)
 {
 	if (std::count(str.begin(), str.end(), '\"') % 2)
-		throw(std::invalid_argument("400 Bad Request: Unclosed quotes in quoted string"));
+		throw(ResponseException(400, "Unclosed quotes in quoted string"));
 	std::vector<std::string> splitString;
 	unsigned int counter = 0;
 	std::string segment;
@@ -82,9 +87,9 @@ void	HttpRequest::parseMethod(std::string& token)
 		this->requestLine.method = token;
 	else if (token == "HEAD" || token == "PUT" || token == "CONNECT"
 			|| token == "OPTIONS" || token == "PATCH" || token == "TRACE")
-		throw(std::invalid_argument("501 Not Implemented: Method not supported"));
+		throw (ResponseException(501, "Method not supported"));
 	else
-		throw(std::invalid_argument("400 Bad Request"));
+		throw (ResponseException(400, "Unknown method name"));
 }
 
 void resolvePercentEncoding(std::string& path, size_t& pos)
@@ -95,7 +100,7 @@ void resolvePercentEncoding(std::string& path, size_t& pos)
 		{	
 			std::string	hexDigit = path.substr(pos + 1, 2);
 			if (hexDigit.find_first_not_of(HEXDIGITS) != std::string::npos)
-				throw(std::invalid_argument("400 Bad Request: Invalid percent encoding"));
+				throw(ResponseException(400, "Invalid percent encoding"));
 			int	c = strtol(hexDigit.c_str(), NULL, 16);
 			if (c)
 			{
@@ -103,11 +108,11 @@ void resolvePercentEncoding(std::string& path, size_t& pos)
 				path.insert(pos, 1, static_cast<char>(c));
 			}
 			else
-				throw(std::invalid_argument("400 Bad Request: Zero byte insertion detected"));
+				throw(ResponseException(400, "Zero byte insertion detected"));
 			pos++;
 		}
 		else					
-			throw(std::invalid_argument("400 Bad Request: Invalid percent encoding"));
+			throw(ResponseException(400, "Invalid percent encoding"));
 	}
 }
 
@@ -129,7 +134,7 @@ void	HttpRequest::validateURIElements(void)
 			if ((*(elements)[i])[pos] == '%')
 				resolvePercentEncoding(*(elements)[i], pos);
 			else
-				throw(std::invalid_argument("400 Bad Request: Invalid character in URI"));
+				throw(ResponseException(400, "Invalid character in URI"));
 			pos = (*(elements)[i]).find_first_not_of(allowedChars, pos);
 		}
 		allowedChars.push_back(extraAllowedChars[i]);
@@ -139,7 +144,7 @@ void	HttpRequest::validateURIElements(void)
 stringpair_t	HttpRequest::parseAuthority(std::string& authority, HostLocation parseLocation)
 {
 	if (authority.find_first_of("@") != std::string::npos)
-		throw(std::invalid_argument("400 Bad Request: 'userinfo' component deprecated"));
+		throw(ResponseException(400, "'userinfo' component deprecated"));
 	std::string		allowedChars(std::string(UNRESERVED) + std::string(SUBDELIMS) + std::string("%"));
 	std::string		host("");
 	std::string		port("");
@@ -153,9 +158,9 @@ stringpair_t	HttpRequest::parseAuthority(std::string& authority, HostLocation pa
 	else if (portPos == 0)
 	{
 		if (parseLocation == URI)
-			throw(std::invalid_argument("400 Bad Request: Empty host name in URI"));
+			throw(ResponseException(400, "Empty host name in URI"));
 		else
-			throw(std::invalid_argument("400 Bad Request: Empty host name in host header field"));
+			throw(ResponseException(400, "Empty host name in host header field"));
 	}
 	else
 	{
@@ -171,16 +176,16 @@ stringpair_t	HttpRequest::parseAuthority(std::string& authority, HostLocation pa
 	if (host.find_first_not_of(allowedChars) != std::string::npos)
 	{
 		if (parseLocation == URI)
-			throw(std::invalid_argument("400 Bad Request: Invalid host name in URI"));
+			throw(ResponseException(400, "Invalid host name in URI"));
 		else
-			throw(std::invalid_argument("400 Bad Request: Invalid host name in host header field"));
+			throw(ResponseException(400, "Invalid host name in host header field"));
 	}
 	if (port.find_first_not_of(DIGITS) != std::string::npos || strtol(port.c_str(), NULL, 10) > 65535)
 	{
 		if (parseLocation == URI)
-			throw(std::invalid_argument("400 Bad Request: Invalid port in URI"));
+			throw(ResponseException(400, "Invalid port in URI"));
 		else
-			throw(std::invalid_argument("400 Bad Request: Invalid port in host header field"));
+			throw(ResponseException(400, "Invalid port in host header field"));
 	}
 	std::transform(host.begin(), host.end(), host.begin(), tolower); // case-insensitive
 	return(std::make_pair(host, port));
@@ -196,18 +201,18 @@ void	HttpRequest::parseRequestTarget(std::string& uri)
 		std::string scheme(uri.begin(), uri.begin() + 7);
 		std::transform(scheme.begin(), scheme.end(), scheme.begin(), tolower);
 		if (scheme.find("http://") != 0)
-			throw(std::invalid_argument("400 Bad Request: Invalid URI path"));
+			throw(ResponseException(400, "Invalid URI path"));
 		else
 		{
 			std::string	delimiters("?#/");
 			uri.erase(uri.begin(), uri.begin() + 7); // remove "http://"
 			if (uri.size() == 0 || uri.find_first_of(delimiters) == 0)
-				throw(std::invalid_argument("400 Bad Request: Authority required"));
+				throw(ResponseException(400, "Authority required"));
 			else
 			{
 				std::string	authority = std::string(uri.begin(), std::find_first_of(uri.begin(), uri.end(), delimiters.begin(), delimiters.end()));
 				if (authority.size() == 0)
-					throw(std::invalid_argument("400 Bad Request: Authority required"));
+					throw(ResponseException(400, "Authority required"));
 				this->requestLine.requestTarget.authority = this->parseAuthority(authority, URI);
 				uri.erase(0, authority.size());
 			}
@@ -254,10 +259,10 @@ void	HttpRequest::parseHttpVersion(std::string& token)
 	std::string::iterator	slash = std::find(token.begin(), token.end(), '/');
 	std::string	http(token.begin(), slash);
 	if (http != "HTTP" || slash == token.end() || slash + 1 == token.end())
-		throw(std::invalid_argument("400 Bad Request: Invalid protocol specification"));
+		throw(ResponseException(400, "Invalid protocol specification"));
 	std::string	version(slash + 1, std::find_if(token.begin(), token.end(), isspace));
 	if (version != "1.1")
-		throw(std::invalid_argument("505 Version Not Supported"));
+		throw(ResponseException(505, "Currently only 1.1 supported"));
 	this->requestLine.httpVersion = token;
 }
 
@@ -279,7 +284,7 @@ void	HttpRequest::parseRequestLine(std::string requestLine)
 		space = std::find(requestLine.begin(), requestLine.end(), SP);
 	}
 	if (startLineTokens.size() != 3)
-		throw(std::invalid_argument("400 Bad Request: Invalid start line"));
+		throw(ResponseException(400, "Invalid start line"));
 	for (size_t i = 0; i < 3; i++)
 		(this->*parse[i])(startLineTokens[i]);
 }
@@ -299,7 +304,7 @@ void	HttpRequest::parseFieldSection(std::vector<std::string>& fields)
 		fieldName = std::string(it->begin(), fieldIter);
 		std::transform(fieldName.begin(), fieldName.end(), fieldName.begin(), tolower);
 		if (fieldName.size() == 0 || fieldName.find_first_not_of(allowedChars.c_str()) != std::string::npos)
-			throw(std::invalid_argument("400 Bad Request: Invalid field name"));
+			throw(ResponseException(400, "Invalid field name"));
 		fieldValue = std::string(++fieldIter, it->end()); // to remove ':' from the value part
 		fieldValue = trim(fieldValue);
 		//valueIter = std::find_if_not(fieldValue.begin(), fieldValue.end(), isgraph);
@@ -315,22 +320,22 @@ void	HttpRequest::parseFieldSection(std::vector<std::string>& fields)
 				continue;
 			}
 			if (!isblank(*valueIter))
-				throw(std::invalid_argument("400 Bad Request: Invalid field value - CTL characters forbidden"));
+				throw(ResponseException(400, "Invalid field value - CTL characters forbidden"));
 			else if (isblank(*valueIter) && isblank(*(valueIter + 1)))
-				throw(std::invalid_argument("400 Bad Request: Invalid field value - multiple SP / HTAB detected"));
+				throw(ResponseException(400, "Invalid field value - multiple SP / HTAB detected"));
 			//valueIter = std::find_if_not(++valueIter, fieldValue.end(), isgraph);
 			valueIter = std::find_if(++valueIter, fieldValue.end(), std::not1(std::ptr_fun<int,int>(isgraph)));
 		}
 		if (!(this->headerFields.insert(std::make_pair(fieldName, fieldValue)).second)) // handle insertion of duplicates by concatenation
 		{
 			if (fieldName == "host")
-				throw(std::invalid_argument("400 Bad Request: Duplicate Host header field"));
+				throw(ResponseException(400, "Duplicate Host header field"));
 			mapIter = this->headerFields.find(fieldName);
 			mapIter->second.append(std::string(",") + std::string(fieldValue));
 		}
 	}
 	if (this->headerFields.find("host") == this->headerFields.end())
-		throw(std::invalid_argument("400 Bad Request: Missing Host header field"));
+		throw(ResponseException(400, "Missing Host header field"));
 }
 
 //host header field needs additional checks
@@ -388,12 +393,12 @@ static void	invalidateBareCR(octets_t& line)
 {
 	size_t	countCR = std::count(line.begin(), line.end(), '\r');
 	if (countCR > 1)
-		throw (std::invalid_argument("400 Bad Request: Bare CR detected"));
+		throw (ResponseException(400, "Bare CR detected"));
 	else if (countCR == 1)
 	{
 		octets_t::iterator	cr = std::find(line.begin(), line.end(), '\r');
 		if ((cr + 1) != line.end())
-			throw (std::invalid_argument("400 Bad Request: Bare CR detected"));
+			throw (ResponseException(400, "Bare CR detected"));
 	}
 }
 
@@ -401,7 +406,7 @@ static void	invalidateNullBytes(octets_t& line)
 {
 	size_t	countNull = std::count(line.begin(), line.end(), '\0');
 	if (countNull)
-		throw (std::invalid_argument("400 Bad Request: Zero bytes disallowed"));
+		throw (ResponseException(400, "Zero bytes disallowed"));
 }
 
 stringpair_t	HttpRequest::parseHeader(octets_t header)
@@ -435,15 +440,15 @@ stringpair_t	HttpRequest::parseHeader(octets_t header)
 		MUST either reject the message as invalid ...
 		*/
 		if (startLine && isspace(*header.begin()))
-			throw (std::invalid_argument("400 Bad Request: Dangerous whitespace detected"));
+			throw (ResponseException(400, "Dangerous whitespace detected"));
 		startLine = false;
 	}
 	if (startLine)
-		throw (std::invalid_argument("400 Bad Request: Empty start line"));
+		throw (ResponseException(400, "Empty start line"));
 	if (nl == header.end() && !endLine) // the loop should only exit if there's a valid CRLF
-		throw (std::invalid_argument("400 Bad Request: Missing empty CRLF"));
+		throw (ResponseException(400, "Missing empty CRLF"));
 	if (std::distance(header.begin(), nl) == 1 && *header.begin() != '\r')
-		throw (std::invalid_argument("400 Bad Request: Improperly terminated header-field section"));
+		throw (ResponseException(400, "Improperly terminated header-field section"));
 	this->parseFieldSection(splitLines);
 	authority = this->resolveHost();
 	//std::cout << this->requestLine << this->headerFields << std::endl;
@@ -472,7 +477,7 @@ void	HttpRequest::validateConnectionOption(void)
 		{
 			*option = trim(*option);
 			if (option->find_first_not_of(allowedChars) != std::string::npos)
-				throw (std::invalid_argument("400 Bad Request: Invalid characters in Connection header field"));
+				throw (ResponseException(400, "Invalid characters in Connection header field"));
 			std::transform(option->begin(), option->end(), option->begin(), tolower);
 		}
 		if (std::find(values.begin(), values.end(), "close") != values.end())
@@ -490,7 +495,7 @@ void	HttpRequest::validateConnectionOption(void)
 		{
 			*param = trim(*param);
 			if (param->find_first_not_of(allowedChars) != std::string::npos)
-				throw (std::invalid_argument("400 Bad Request: Invalid characters in Keep-Alive header field"));
+				throw (ResponseException(400, "Invalid characters in Keep-Alive header field"));
 			std::transform(param->begin(), param->end(), param->begin(), tolower);
 			paramValues = splitQuotedString(*param, '=');
 			if (paramValues.size() == 2 && paramValues[0] == "max")
@@ -517,25 +522,25 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 		struct stat	fileCheckBuff;
 		validFile = stat(targetResource.c_str(), &fileCheckBuff);
 		if (validFile < 0)
-			throw (std::invalid_argument("404 Not Found"));
-		if (*targetResource.rbegin() != '/')
+			throw (ResponseException(404, "File does not exist"));
+		if (*targetResource.rbegin() != '/') // if it's a normal file, do nothing
 		{
 			if (fileCheckBuff.st_mode & S_IFDIR)
-				throw (std::invalid_argument("301 Moved Permanently")); // will likely not be an exception, but a proper response handler
+				throw (ResponseException(301, "")); // will likely not be an exception, but a proper response handler
 		}
 		else if (*targetResource.rbegin() == '/' && !this->allowedDirListing)
-			throw (std::invalid_argument("403 Forbidden: Autoindexing is off"));
+			throw (ResponseException(403, "Autoindexing is off"));
 		else
 		{
-			// autoindexing for GET - should go into response
+			// autoindexing for GET - should go into response && throw internal server error if applicable
 			DIR*	dirPtr;
 			dirPtr = opendir(this->targetResource.c_str());
 			if (dirPtr == NULL)
-				throw (std::runtime_error("Failed to open directory"));
+				throw (ResponseException(500, "Failed to open directory"));
 			for (dirent* dir = readdir(dirPtr); dir != NULL; dir = readdir(dirPtr))
 				std::cout << CLR2 << dir->d_name << RESET << std::endl;
 			if (closedir(dirPtr))
-				throw (std::runtime_error("Failed to close directory"));
+				throw (ResponseException(500, "Failed to close directory"));
 		}
 	}
 	// handle redirections, POST and DELETE
@@ -547,7 +552,7 @@ void	HttpRequest::validateMessageFraming(void)
 	stringmap_t::iterator	contentLength = this->headerFields.find("content-length");
 	std::vector<std::string>	values;
 	if (transferEncoding != this->headerFields.end() && contentLength != this->headerFields.end())
-		throw (std::invalid_argument("400 Bad Request: Ambiguous message framing"));
+		throw (ResponseException(400, "Ambiguous message framing"));
 	if (transferEncoding != this->headerFields.end())
 	{
 		values = splitQuotedString(transferEncoding->second, ',');
@@ -556,26 +561,26 @@ void	HttpRequest::validateMessageFraming(void)
 			*it = trim(*it);
 			std::string type = splitQuotedString(*it, ';')[0]; // get rid of parameters
 			if (type != "chunked" && type != "identity" && type != "")
-				throw (std::invalid_argument("501 Not Implemented: Unknown transfer-encoding"));
+				throw (ResponseException(501, "Unknown transfer-encoding"));
 			this->messageFraming = TRANSFER_ENCODING;
 		}
 	}
 	else if (contentLength != this->headerFields.end()) // needs reviewing
 	{
 		if (contentLength->second.find_first_not_of(DIGITS) != std::string::npos)
-			throw (std::invalid_argument("400 Bad Request: Invalid Content-Length value"));
+			throw (ResponseException(400, "Invalid Content-Length value"));
 		errno = 0;
 		long bodySize = strtol(contentLength->second.c_str(), NULL, 10);
 		int	error = errno;
 		if (error == ERANGE || bodySize > INT_MAX) // update to max_body_size
-			throw (std::invalid_argument("413 Content Too Large: Content-Length is too big"));
+			throw (ResponseException(413, "Content-Length is too big"));
 		this->contentLength = bodySize;
 		this->messageFraming = CONTENT_LENGTH;
 	}
 	else
 	{
 		if (this->requestLine.method == "POST")
-			throw (std::invalid_argument("400 Bad Request: Invalid framing (depends on method - FIX)"));
+			throw (ResponseException(400, "Invalid framing (depends on method - FIX)"));
 	}
 }
 
@@ -585,9 +590,9 @@ void	HttpRequest::manageExpectations(void)
 	if (expectation != this->headerFields.end())
 	{
 		if (expectation->second != "100-continue")
-			throw (std::invalid_argument("417 Expectation Failed"));
+			throw (ResponseException(417, ""));
 		else
-			throw (std::invalid_argument("100 Continue")); // should probably be done differently
+			throw (ResponseException(100, "")); // should probably be done differently
 	}
 }
 
@@ -598,10 +603,11 @@ Q: what happens if methods in config are not valid?
 */
 void	HttpRequest::validateHeader(const Location& location)
 {
+	this->location = location;
 	std::set<std::string>	allowedMethods = location.getAllowMethods();
 	this->allowedMethods = allowedMethods;
 	if (std::find(allowedMethods.begin(), allowedMethods.end(), this->requestLine.method) == allowedMethods.end())
-		throw (std::invalid_argument("405 Method Not Allowed"));
+		throw (ResponseException(405, ""));
 	this->validateConnectionOption();
 	this->validateResourceAccess(location);
 	this->validateMessageFraming();
@@ -627,7 +633,7 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 	}
 	else if (this->messageFraming == TRANSFER_ENCODING)
 	{
-		std::cout << CLR2 << "Received: " << bufferedBody.size() << RESET << std::endl;
+		std::cout << CLR2 << "Received: " << bufferedBody.size() << " bytes" << RESET << std::endl;
 		for (octets_t::iterator	it = bufferedBody.begin() ; it != bufferedBody.end() ; it = bufferedBody.begin())
 		{
 			octets_t::iterator	newline = std::find(bufferedBody.begin(), bufferedBody.end(), '\n');
@@ -638,21 +644,18 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 			std::cout << "Chunk size: " << chunkSizeOct << std::endl;
 			bufferedBody.erase(bufferedBody.begin(), newline + 1); // move to the beginning of the chunk
 			if (chunkSizeOct.size() > 0 && !isxdigit(chunkSizeOct[0]))
-			{
-				this->readingBodyInProgress = false;
-				throw (std::invalid_argument("400 Bad Request: Invalid chunk size value (whitespace)")); // anything else than a hexdigit at the start isn't allowed
-			}
+				throw (ResponseException(400, "Invalid chunk size value (whitespace)")); // anything else than a hexdigit at the start isn't allowed
 			if (std::count(chunkSizeOct.begin(), chunkSizeOct.end(), '\0') > 0)
-				throw (std::invalid_argument("400 Bad Request: Invalid chunk size value (null byte)")); // needs special check prior to conversion to string
+				throw (ResponseException(400, "Invalid chunk size value (null byte)")); // needs special check prior to conversion to string
 			std::string		chunkSizeStr(chunkSizeOct.begin(), chunkSizeOct.end());
 			chunkSizeStr = trim(chunkSizeStr);
 			if (chunkSizeStr.find_first_not_of(HEXDIGITS) != std::string::npos)
-				throw (std::invalid_argument("400 Bad Request: Invalid chunk size value"));
+				throw (ResponseException(400, "Invalid chunk size value"));
 			errno = 0;
 			size_t chunkSize = strtoul(chunkSizeStr.c_str(), NULL, 16);
 			int	error = errno;
 			if (error == ERANGE || chunkSize > INT_MAX) // update to max_body_size too
-				throw (std::invalid_argument("413 Content Too Large: Chunk is too big"));
+				throw (ResponseException(413, "Chunk is too big"));
 
 			if (chunkSize == 0)
 			{
@@ -673,7 +676,7 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 					return (bytesRead);
 				}
 				else
-					throw (std::invalid_argument("400 Bad Request: Invalid delimitation of message body end"));
+					throw (ResponseException(400, "Invalid delimitation of message body end"));
 			}
 			else if (chunkSize + 1 > bufferedBody.size()) // + 1 for newline (should be there as a proper delimiter)
 			{
@@ -724,6 +727,11 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 	return (bytesRead);
 }
 
+void	HttpRequest::setConnectionStatus(ConnectionStatus connectionStatus)
+{
+	this->connectionStatus = connectionStatus;
+}
+
 const std::string&			HttpRequest::getAbsolutePath(void) const
 {
 	return (this->requestLine.requestTarget.absolutePath);
@@ -743,6 +751,17 @@ const octets_t &HttpRequest::getRequestBody(void) const
 {
 	return (this->requestBody);
 }
+
+const Location	&HttpRequest::getLocation(void) const
+{
+	return (this->location);
+}
+
+const std::string&	HttpRequest::getTargetResource() const
+{
+	return (this->targetResource);
+}
+
 
 std::ostream &operator<<(std::ostream &os, const octets_t &vec)
 {
@@ -796,6 +815,7 @@ std::ostream &operator<<(std::ostream &os, std::map<std::string, std::string>& f
 void	HttpRequest::resetRequestObject(void)
 {
 	HttpRequest newRequest;
+	HttpResponse newResponse;
 
 	this->requestLine = newRequest.requestLine;
 	this->headerFields = newRequest.headerFields;
@@ -808,4 +828,5 @@ void	HttpRequest::resetRequestObject(void)
 	this->messageFraming = newRequest.messageFraming;
 	this->requestComplete = newRequest.requestComplete;
 	this->readingBodyInProgress = newRequest.readingBodyInProgress;
+	this->response = newResponse;
 }

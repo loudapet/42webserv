@@ -434,17 +434,14 @@ void	ServerConfig::validateLocations(void)
 			if (this->_locations[i].getPath()[0] != '/')
 				throw(std::runtime_error("Config parser: Invalid location path."));
 			if (!this->_locations[i].getReturnURLOrBody().empty() && this->_locations[i].getReturnCode() != 302)
-			{
-		//		dirIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getReturn(),
 				dirIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + this->_locations[i].getReturnURLOrBody(), CONFIG),
 					"Cannot access location return path.", "Location return path is not a directory.");
-			}
 			else if (!this->_locations[i].getIsRedirect())
 			{
 				// validate index (and path)
 				for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)
-				//	fileIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], "Index");
-					fileIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], CONFIG), "Index");
+					// Originally, the access was checked for root+path+/+index because that's what NGINX does. The subject asks us to replace the path with the root, so the path is left out of the check.
+					fileIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + "/" + this->_locations[i].getIndex()[j], CONFIG), "Index");
 			}
 		}
 		else // is cgi-bin
@@ -453,8 +450,8 @@ void	ServerConfig::validateLocations(void)
 				throw(std::runtime_error("Config parser: Missing cgi_path, cgi_ext or index directive in cgi-bin location."));
 			// validate index (and path)
 			for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)
-			//	fileIsValidAndAccessible(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], "Index");
-				fileIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + this->_locations[i].getPath() + "/" + this->_locations[i].getIndex()[j], CONFIG), "Index");
+				// Originally, the access was checked for root+path+/+index because that's what NGINX does. The subject asks us to replace the path with the root, so the path is left out of the check.
+				fileIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + "/" + this->_locations[i].getIndex()[j], CONFIG), "Index");
 			if (this->_locations[i].getCgiPath().size() != this->_locations[i].getCgiExt().size())
 				throw(std::runtime_error("Config parser: Mismatch between cgi_path and cgi_ext in cgi-bin location."));
 			// only allowed cgi_ext
