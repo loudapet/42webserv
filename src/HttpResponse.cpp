@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/21 14:56:00 by okraus           ###   ########.fr       */
+/*   Updated: 2024/06/21 14:58:42 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -202,8 +202,8 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 		<< "</a></h2>";
 	body << "<h2>"
 		<< "      Name              "
-		<< "          Time          "
-		<< "size "
+		<< "    Date Modified       "
+		<< "Size "
 		<< "</h2>";
 	for (dirent* dir = readdir(dirPtr); dir != NULL; dir = readdir(dirPtr))
 	{
