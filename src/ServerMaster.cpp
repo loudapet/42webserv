@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/20 17:56:12 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/21 10:35:56 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -331,6 +331,7 @@ void	ServerMaster::listenForConnections(void)
 							client.request.setConnectionStatus(CLOSE);
 							removeFdFromSet(this->_readFds, i);
 							addFdToSet(this->_writeFds, i);
+							break ;
 						}
 					}
 				}

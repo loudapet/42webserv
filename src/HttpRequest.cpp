@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/19 15:14:03 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/21 10:47:37 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,10 +15,33 @@
 #include "../inc/ResponseException.hpp"
 
 
-std::string	root = "./docs";
+//std::string	root = "./docs";
 
 HttpRequest::HttpRequest()
 {
+	Location		defaultLocation;
+	HttpResponse	defaultResponse;
+	this->requestLine.httpVersion = "1.1";
+	this->requestLine.method = "";
+	this->requestLine.requestTarget = (RequestTarget){
+		.authority = std::make_pair("", ""),
+		.absolutePath = "",
+		.query = "",
+		.fragment = ""
+	};
+	this->headerFields = stringmap_t(); 
+	this->requestBody = octets_t();
+	this->targetResource = "";
+	this->allowedMethods = std::set<std::string>();
+	this->connectionStatus = KEEP_ALIVE;
+	this->messageFraming = NO_CODING;
+	this->allowedDirListing = false;
+	this->isRedirect = false;
+	this->contentLength = 0;
+	this->location = defaultLocation;
+	this->targetIsDirectory = false;
+
+	this->response = defaultResponse;
 	this->readingBodyInProgress = false;
 	this->requestComplete = false;
 	this->messageFraming = NO_CODING;
@@ -31,9 +54,26 @@ HttpRequest::HttpRequest(const HttpRequest& refObj)
 	*this = refObj;
 }
 
-HttpRequest& HttpRequest::operator = (const HttpRequest& refObj)
+HttpRequest& HttpRequest::operator=(const HttpRequest& refObj)
 {
-	(void)refObj;
+	if (this != &refObj)
+	{
+		requestLine = refObj.requestLine;
+		headerFields = refObj.headerFields;
+		requestBody = refObj.requestBody;
+		targetResource = refObj.targetResource;
+		allowedMethods = refObj.allowedMethods;
+		connectionStatus = refObj.connectionStatus;
+		messageFraming = refObj.messageFraming;
+		allowedDirListing = refObj.allowedDirListing;
+		isRedirect = refObj.isRedirect;
+		contentLength = refObj.contentLength;
+		location = refObj.location;
+		response = refObj.response;
+		readingBodyInProgress = refObj.readingBodyInProgress;
+		requestComplete = refObj.requestComplete;
+		targetIsDirectory = refObj.targetIsDirectory;
+	}
 	return (*this);
 }
 
@@ -284,7 +324,11 @@ void	HttpRequest::parseRequestLine(std::string requestLine)
 		space = std::find(requestLine.begin(), requestLine.end(), SP);
 	}
 	if (startLineTokens.size() != 3)
+	{
+		std::cout << startLineTokens.size() << std::endl;
+		std::cout << CLR2 << startLineTokens << RESET << std::endl;
 		throw(ResponseException(400, "Invalid start line"));
+	}
 	for (size_t i = 0; i < 3; i++)
 		(this->*parse[i])(startLineTokens[i]);
 }
@@ -509,13 +553,19 @@ void	HttpRequest::validateConnectionOption(void)
 // http://hello//testdir/a will get redirected to /testdir/a/
 void	HttpRequest::validateResourceAccess(const Location& location)
 {
+	std::string	path = location.getPath();
+	std::string	root = location.getRoot();
+	std::cout << CLR3 << "path:\t" << path << RESET << std::endl;
+	std::cout << CLR3 << "root:\t" << root << RESET << std::endl;
+	std::cout << CLR3 << "URL:\t" << this->requestLine.requestTarget.absolutePath << RESET << std::endl;
+	// if (*root.rbegin() == '/')
+	// 	root.erase(root.end() - 1);
+    std::size_t pos = this->requestLine.requestTarget.absolutePath.find(path);
+	this->targetResource = this->requestLine.requestTarget.absolutePath;
+   	this->targetResource.replace(pos, path.length(), root);
 	this->allowedDirListing = location.getAutoindex();
-	std::cout << location.getPath() << std::endl;
-	if (*root.rbegin() == '/')
-		root.erase(root.end() - 1);
-	this->targetResource = root + this->requestLine.requestTarget.absolutePath;
 	std::cout << CLR3 << "Final path:\t" << this->targetResource << RESET << std::endl;
-	
+
 	if (!this->isRedirect && this->requestLine.method == "GET")
 	{
 		int			validFile;
@@ -526,23 +576,25 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 		if (*targetResource.rbegin() != '/') // if it's a normal file, do nothing
 		{
 			if (fileCheckBuff.st_mode & S_IFDIR)
+			{
 				throw (ResponseException(301, "")); // will likely not be an exception, but a proper response handler
+			}
 		}
 		else if (*targetResource.rbegin() == '/' && !this->allowedDirListing)
-			throw (ResponseException(403, "Autoindexing is off"));
+			throw (ResponseException(403, "Autoindexing is not allowed"));
 		else
 		{
-			// autoindexing for GET - should go into response && throw internal server error if applicable
+			// autoindexing for GET - just a validation
 			DIR*	dirPtr;
 			dirPtr = opendir(this->targetResource.c_str());
 			if (dirPtr == NULL)
 				throw (ResponseException(500, "Failed to open directory"));
-			for (dirent* dir = readdir(dirPtr); dir != NULL; dir = readdir(dirPtr))
-				std::cout << CLR2 << dir->d_name << RESET << std::endl;
 			if (closedir(dirPtr))
 				throw (ResponseException(500, "Failed to close directory"));
+			this->targetIsDirectory = true;
 		}
 	}
+
 	// handle redirections, POST and DELETE
 }
 
@@ -604,6 +656,7 @@ Q: what happens if methods in config are not valid?
 void	HttpRequest::validateHeader(const Location& location)
 {
 	this->location = location;
+	this->isRedirect = location.getIsRedirect();
 	std::set<std::string>	allowedMethods = location.getAllowMethods();
 	this->allowedMethods = allowedMethods;
 	if (std::find(allowedMethods.begin(), allowedMethods.end(), this->requestLine.method) == allowedMethods.end())
@@ -762,6 +815,12 @@ const std::string&	HttpRequest::getTargetResource() const
 	return (this->targetResource);
 }
 
+const bool&	HttpRequest::getTargetIsDirectory() const
+{
+	return (this->targetIsDirectory);
+}
+
+
 
 std::ostream &operator<<(std::ostream &os, const octets_t &vec)
 {
@@ -829,4 +888,5 @@ void	HttpRequest::resetRequestObject(void)
 	this->requestComplete = newRequest.requestComplete;
 	this->readingBodyInProgress = newRequest.readingBodyInProgress;
 	this->response = newResponse;
+	this->targetIsDirectory = newRequest.targetIsDirectory;
 }

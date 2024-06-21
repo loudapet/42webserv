@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/19 13:54:00 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/20 16:14:12 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -98,14 +98,13 @@ class HttpRequest
 		stringmap_t				headerFields;
 		octets_t				requestBody;
 		std::string				targetResource; // used to access the resource after URI with location's root
+		bool					targetIsDirectory;
 		std::set<std::string>	allowedMethods;
 		ConnectionStatus		connectionStatus;
+		MessageFraming			messageFraming;
 		bool					allowedDirListing;
 		bool					isRedirect;
 		size_t					contentLength;
-		//keep_alive_t			keepAliveParams;
-		//bool					interimResponse;
-		enum MessageFraming		messageFraming;
 		Location				location;
 		void					parseRequestLine(std::string requestLine);
 		void					parseMethod(std::string& token);
@@ -141,6 +140,7 @@ class HttpRequest
 		const ConnectionStatus&			getConnectionStatus() const;
 		const std::set<std::string>&	getAllowedMethods() const;
 		const std::string&				getTargetResource() const;
+		const bool&						getTargetIsDirectory() const;
 		void							resetRequestObject(void);
 };
 

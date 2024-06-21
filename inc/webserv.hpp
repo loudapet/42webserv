@@ -49,7 +49,7 @@ typedef std::map<std::string,std::string> stringmap_t;
 octets_t	convertStringToOctets(std::string str);
 
 # define PORT_SERVER 8000
-# define CONNECTION_TIMEOUT 20
+# define CONNECTION_TIMEOUT 5
 //# define CLIENT_MESSAGE_BUFF 4096 // 4 KB
 # define CLIENT_MESSAGE_BUFF 8196 // 8 KB
 //# define CLIENT_MESSAGE_BUFF 65536 // 64 KB
