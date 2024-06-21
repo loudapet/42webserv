@@ -3,7 +3,7 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
 /*   Updated: 2024/06/21 10:47:37 by plouda           ###   ########.fr       */
@@ -44,6 +44,8 @@ HttpRequest::HttpRequest()
 	this->response = defaultResponse;
 	this->readingBodyInProgress = false;
 	this->requestComplete = false;
+	this->messageFraming = NO_CODING;
+	this->connectionStatus = KEEP_ALIVE;
 	return ;
 }
 

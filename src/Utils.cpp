@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/16 16:25:56 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/20 17:45:33 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -214,4 +214,13 @@ octets_t	convertStringToOctets(std::string str)
 {
 	octets_t vec(str.begin(), str.end());
 	return (vec);
+}
+
+void	logSockets(int socket, std::string action)
+{
+	std::ofstream	file("sockets_log.txt", std::ios::app);
+	if (!file)
+		std::cerr << "Error opening file." << std::endl;
+	else
+		file  << action << " socket " << socket << std::endl;
 }
