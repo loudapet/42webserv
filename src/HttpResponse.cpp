@@ -3,15 +3,16 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/21 10:10:58 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/21 11:13:38 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/HttpResponse.hpp"
 #include "../inc/HttpRequest.hpp"
+#include "HttpResponse.hpp"
 
 HttpResponse::HttpResponse()
 {
@@ -85,7 +86,17 @@ const statusLine_t	&HttpResponse::getStatusLine() const
 	return (this->statusLine);
 }
 
-void	HttpResponse::setStatusLineAndDetails(const statusLine_t& incStatusLine, const std::string& details)
+const unsigned short&	HttpResponse::getStatusCode() const
+{
+	return (this->statusLine.statusCode);
+}
+
+void	HttpResponse::setStatusCode(unsigned short code)
+{
+	this->statusLine.statusCode = code;
+}
+
+void HttpResponse::setStatusLineAndDetails(const statusLine_t &incStatusLine, const std::string &details)
 {
 	this->statusLine.httpVersion = incStatusLine.httpVersion;
 	this->statusLine.statusCode = incStatusLine.statusCode;
