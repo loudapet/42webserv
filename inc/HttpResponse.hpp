@@ -3,16 +3,17 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/20 13:06:45 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/21 13:51:55 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef HTTPRESPONSE_HPP
 #define HTTPRESPONSE_HPP
 #include <iostream>
+#include <iomanip>
 #include <ctime>
 #include "Location.hpp"
 #include "webserv.hpp"
