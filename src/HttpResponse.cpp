@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/21 14:29:53 by okraus           ###   ########.fr       */
+/*   Updated: 2024/06/21 14:56:00 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -197,16 +197,14 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 		<< "<body>\r\n"
 		<< "<h1>" << "Index of " << targetResource << "</h1>\r\n"
 		<< "<hr><pre>\r\n";
-	// titles (name, date, size)
+	body << "<h2> 🏠 <a href=\"../\">"
+		<< "Parent Directory"
+		<< "</a></h2>";
 	body << "<h2>"
-			
-			<< "      Name              "
-			<< "          Time          "
-			<< "size "
-			<< "</h2>";
-	body << "<h3> 🏠 <a href=\"../\">"
-			<< "Parent Directory"
-			<< "</a></h3>";
+		<< "      Name              "
+		<< "          Time          "
+		<< "size "
+		<< "</h2>";
 	for (dirent* dir = readdir(dirPtr); dir != NULL; dir = readdir(dirPtr))
 	{
 		std::stringstream	tempstream;
@@ -242,33 +240,6 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 		}
 		else if (dir->d_type == DT_REG)
 		{
-			unsigned long long	size;
-			std::string			strsize;
-			size = fileCheckBuff.st_size;
-			if (size > 1024ULL * 1024ULL * 1024ULL * 1024ULL)
-			{
-				size /= 1024ULL * 1024ULL * 1024ULL * 1024ULL;
-				strsize = " Tb";
-			}
-			else if (size > 1024ULL * 1024ULL * 1024ULL)
-			{
-				size /= 1024ULL * 1024ULL * 1024ULL;
-				strsize = " Gb";
-			}
-			else if (size > 1024ULL * 1024ULL)
-			{
-				size /=  1024ULL * 1024ULL;
-				strsize = " Mb";
-			}
-			else if (size > 1024ULL)
-			{
-				size /=  1024ULL;
-				strsize = " kb";
-			}
-			else
-			{
-				strsize = "  b";
-			}
 			tempstream << " 📄 <a href=\""
 			<< dir->d_name
 			<< "\">"
@@ -277,21 +248,57 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 			<< std::left << std::setw(31 - dname.size()) << " "
 			<< " "
 			<< std::left << std::setw(30) << time
-			<< " "
-			<< std::right << std::setw(7) << size << strsize
-			<< "\r\n";
+			<< " ";
+			double				size;
+			std::string			strsize;
+			size = fileCheckBuff.st_size;
+			if (size > 1024ULL * 1024ULL * 1024ULL * 1024ULL)
+			{
+				size /= 1024ULL * 1024ULL * 1024ULL * 1024ULL;
+				strsize = " TB";
+				tempstream << std::right << std::setw(7) << std::fixed << std::setprecision(1)
+				<< size << strsize
+				<< "\r\n";
+			}
+			else if (size > 1024ULL * 1024ULL * 1024ULL)
+			{
+				size /= 1024ULL * 1024ULL * 1024ULL;
+				strsize = " GB";
+				tempstream << std::right << std::setw(7) << std::fixed << std::setprecision(1)
+				<< size << strsize
+				<< "\r\n";
+			}
+			else if (size > 1024ULL * 1024ULL)
+			{
+				size /= 1024ULL * 1024ULL;
+				strsize = " MB";
+				tempstream << std::right << std::setw(7) << std::fixed << std::setprecision(1)
+				<< size << strsize
+				<< "\r\n";
+			}
+			else if (size > 1024ULL)
+			{
+				size /= 1024ULL;
+				strsize = " kB";
+				tempstream << std::right << std::setw(7) << std::fixed << std::setprecision(1)
+				<< size << strsize
+				<< "\r\n";
+			}
+			else
+			{
+				strsize = "  B";
+				tempstream << std::right << std::setw(7)
+				<< size << strsize
+				<< "\r\n";
+			}
 		}
 		//bzero(&fileCheckBuff, sizeof(fileCheckBuff));
 		strings.insert(tempstream.str());
 	}
-	//previus folder
-	//sorted folders (hide . and ..)
-	//sorted files
 	std::set<std::string>::iterator it;
 	for (it = strings.begin(); it != strings.end(); ++it) {
-		if ((*it).find(" 📁 <a href=\"./\">") != std::string::npos)
-			continue ;
-		if ((*it).find(" 📁 <a href=\"../\">") != std::string::npos)
+		if ((*it).find(" 📁 <a href=\"./\">") != std::string::npos
+			|| (*it).find(" 📁 <a href=\"../\">") != std::string::npos)
 			continue ;
 		body << *it;
 	}
