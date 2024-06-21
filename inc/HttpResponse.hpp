@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/20 13:06:45 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/21 11:13:22 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,6 +51,8 @@ class HttpResponse
 		const octets_t		prepareResponse(HttpRequest& request);
 		void				setStatusLineAndDetails(const statusLine_t& statusLine, const std::string& details);
 		const statusLine_t&	getStatusLine()	const;
+		const unsigned short&	getStatusCode() const;
+		void					setStatusCode(unsigned short code);
 };
 
 #endif  // HTTPRESPONSE_HPP

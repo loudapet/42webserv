@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/21 10:10:58 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/21 12:11:43 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -85,7 +85,17 @@ const statusLine_t	&HttpResponse::getStatusLine() const
 	return (this->statusLine);
 }
 
-void	HttpResponse::setStatusLineAndDetails(const statusLine_t& incStatusLine, const std::string& details)
+const unsigned short&	HttpResponse::getStatusCode() const
+{
+	return (this->statusLine.statusCode);
+}
+
+void	HttpResponse::setStatusCode(unsigned short code)
+{
+	this->statusLine.statusCode = code;
+}
+
+void HttpResponse::setStatusLineAndDetails(const statusLine_t &incStatusLine, const std::string &details)
 {
 	this->statusLine.httpVersion = incStatusLine.httpVersion;
 	this->statusLine.statusCode = incStatusLine.statusCode;
@@ -202,7 +212,7 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 		struct stat	fileCheckBuff;
 		if (stat(path.c_str(), &fileCheckBuff) < 0)
 			std::cout << errno << " "<< path << std::endl;
-		tm *curr_tm = std::gmtime(&(fileCheckBuff.st_mtimespec.tv_sec));
+		tm *curr_tm = std::gmtime(&(fileCheckBuff.st_mtim.tv_sec));
 		char time[100];
 		std::strftime(time, 100, "%a, %d %b %Y %H:%M:%S GMT", curr_tm);
 

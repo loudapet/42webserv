@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:21:17 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/14 17:40:45 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/21 15:55:38 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,6 +36,9 @@ class ServerConfig
 		int									getRequestBodySizeLimit(void) const;
 		bool								getAutoindex(void) const;
 		const std::set<std::string>			&getAllowMethods(void) const;
+		const std::string					&getReturnURLOrBody(void) const;
+		unsigned short						getReturnCode(void) const;
+		bool								getIsRedirect(void) const;
 		const std::vector<Location>			&getLocations(void) const;
 		int									getServerSocket(void) const;
 
@@ -62,6 +65,9 @@ class ServerConfig
 		bool							_autoindex;
 		std::set<std::string>			_allowMethods;
 		std::vector<Location>			_locations;
+		std::string						_returnURLOrBody;
+		unsigned short					_returnCode;
+		bool							_isRedirect;
 		int								_serverSocket;
 		struct sockaddr_in				_serverAddr;
 };

@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/15 13:20:16 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/21 15:56:53 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,13 +23,30 @@ Location::Location(void)
 	this->_cgiPath = std::vector<std::string>();
 	this->_cgiExt = std::vector<std::string>();
 	this->_cgiMap = std::map<std::string, std::string>();
-	this->_returnURL = "";
-	this->_returnCode = -1;
+	this->_returnURLOrBody = "";
+	this->_returnCode = 0;
 	this->_isRedirect = false;
-	this->_errorPages = std::map<unsigned short, std::string>(); // WARNING: init to global defaults
+	this->_errorPages = std::map<unsigned short, std::string>();
 }
 
-Location::Location(std::string locationPath, std::vector<std::string> locationScope)
+Location::Location(unsigned short serverReturnCode, std::string serverReturnURLOrBody)
+{
+	this->_path = "";
+	this->_root = "./";
+	this->_index = std::vector<std::string>(1, "index.html");
+	this->_requestBodySizeLimit = REQUEST_BODY_SIZE_LIMIT;
+	this->_autoindex = 0;
+	this->_allowMethods.insert("GET");
+	this->_cgiPath = std::vector<std::string>();
+	this->_cgiExt = std::vector<std::string>();
+	this->_cgiMap = std::map<std::string, std::string>();
+	this->_returnURLOrBody = serverReturnURLOrBody;
+	this->_returnCode = serverReturnCode;
+	this->_isRedirect = true;
+	this->_errorPages = std::map<unsigned short, std::string>();
+}
+
+Location::Location(std::string locationPath, std::vector<std::string> locationBlockElements)
 {
 	bool						rbslInConfig;
 	bool						autoindexInConfig;
@@ -39,7 +56,6 @@ Location::Location(std::string locationPath, std::vector<std::string> locationSc
 	std::set<std::string> 		validMethods(validMethodsArray, validMethodsArray + sizeof(validMethodsArray) / sizeof(validMethodsArray[0]));
 	std::vector<std::string>	errorPageLine; // to validate error page lines
 	std::istringstream			iss; // convert error code to short
-	unsigned short				tmpReturnCode;
 
 	initLocation();
 	rbslInConfig = false;
@@ -47,38 +63,38 @@ Location::Location(std::string locationPath, std::vector<std::string> locationSc
 	allowMethodsInConfig = false;
 	this->_path = locationPath;
 	//std::cout << "Location block: " << locationScope << std::endl;
-	for (size_t i = 0; i < locationScope.size(); i++)
+	for (size_t i = 0; i < locationBlockElements.size(); i++)
 	{
-		if (locationScope[i] == "root" && (i + 1) < locationScope.size()
-			&& validateElement(locationScope[i + 1]))
+		if (locationBlockElements[i] == "root" && (i + 1) < locationBlockElements.size()
+			&& validateElement(locationBlockElements[i + 1]))
 		{
-			this->_root = validateRoot(this->_root, locationScope[i + 1], "location");
+			this->_root = validateRoot(this->_root, locationBlockElements[i + 1], "location");
 			i++;
 		}
-		else if (locationScope[i] == "index" && (i + 1) < locationScope.size())
+		else if (locationBlockElements[i] == "index" && (i + 1) < locationBlockElements.size())
 		{
-			this->_index = validateIndex(this->_index, locationScope, i + 1, "location");
+			this->_index = validateIndex(this->_index, locationBlockElements, i + 1, "location");
 			i += this->_index.size(); // not -1 bcs there is the directive name to skip too
 		}
-		else if (locationScope[i] == "client_max_body_size" && (i + 1) < locationScope.size()
-			&& validateElement(locationScope[i + 1]))
+		else if (locationBlockElements[i] == "client_max_body_size" && (i + 1) < locationBlockElements.size()
+			&& validateElement(locationBlockElements[i + 1]))
 		{
-			this->_requestBodySizeLimit = validateRequestBodySizeLimit(rbslInConfig, locationScope[i + 1], "location"); 
+			this->_requestBodySizeLimit = validateRequestBodySizeLimit(rbslInConfig, locationBlockElements[i + 1], "location"); 
 			rbslInConfig = true;
 			i++;
 		}
-		else if (locationScope[i] == "autoindex" && (i + 1) < locationScope.size()
-			&& validateElement(locationScope[i + 1]))
+		else if (locationBlockElements[i] == "autoindex" && (i + 1) < locationBlockElements.size()
+			&& validateElement(locationBlockElements[i + 1]))
 		{
-			this->_autoindex = validateAutoindex(autoindexInConfig, locationScope[i + 1], "location");
+			this->_autoindex = validateAutoindex(autoindexInConfig, locationBlockElements[i + 1], "location");
 			autoindexInConfig = true;
 			i++;
 		}
-		else if (locationScope[i] == "allow_methods")
+		else if (locationBlockElements[i] == "allow_methods")
 		{
 			if (allowMethodsInConfig)
 				throw(std::runtime_error("Config parser: Duplicate allow_methods directive in a location block."));
-			allowMethodsLine = extractVectorUntilSemicolon(locationScope, i + 1);
+			allowMethodsLine = extractVectorUntilSemicolon(locationBlockElements, i + 1);
 			validateElement(allowMethodsLine.back());
 			for (size_t i = 0; i < allowMethodsLine.size(); i++)
 			{
@@ -90,57 +106,45 @@ Location::Location(std::string locationPath, std::vector<std::string> locationSc
 			i += allowMethodsLine.size(); // not -1 bcs there is the directive to skip too
 			allowMethodsLine.clear();
 		}
-		else if (locationScope[i] == "cgi_path" && (i + 1) < locationScope.size())
+		else if (locationBlockElements[i] == "cgi_path" && (i + 1) < locationBlockElements.size())
 		{
-			this->_cgiPath = extractVectorUntilSemicolon(locationScope, i + 1);
+			this->_cgiPath = extractVectorUntilSemicolon(locationBlockElements, i + 1);
 			validateElement(this->_cgiPath.back());
 			i += this->_cgiPath.size(); // not -1 bcs there is the directive name to skip too
 		}
-		else if (locationScope[i] == "cgi_ext" && (i + 1) < locationScope.size())
+		else if (locationBlockElements[i] == "cgi_ext" && (i + 1) < locationBlockElements.size())
 		{
-			this->_cgiExt = extractVectorUntilSemicolon(locationScope, i + 1);
+			this->_cgiExt = extractVectorUntilSemicolon(locationBlockElements, i + 1);
 			validateElement(this->_cgiExt.back());
 			i += this->_cgiExt.size(); // not -1 bcs there is the directive name to skip too
 		}
-		else if (locationScope[i] == "return" && (i + 2) < locationScope.size()
-			&& locationScope[i + 1].find_first_of(";") == std::string::npos && validateElement(locationScope[i + 2]))
+		else if (locationBlockElements[i] == "return" && (i + 2) < locationBlockElements.size()
+			&& locationBlockElements[i + 1].find_first_of(";") == std::string::npos && validateElement(locationBlockElements[i + 2]))
 		{
 			// source: https://nginx.org/en/docs/http/ngx_http_rewrite_module.html#return
-			for (size_t j = 0; j < locationScope[i + 1].size(); j++)
-			{
-				if (!std::isdigit(locationScope[i + 1][j]))
-					throw (std::runtime_error("Config parser: Invalid return code."));
-			}
-			iss.str(locationScope[i + 1]);
-			if (!(iss >> tmpReturnCode) || !iss.eof())
-				throw(std::runtime_error("Config parser: Return code is out of range for valid return codes."));
-			iss.str("");
-			iss.clear();
-			if (tmpReturnCode < 100 || tmpReturnCode > 599)
-				throw(std::runtime_error("Config parser: Return code is out of range of valid return codes."));
-			this->_returnCode = tmpReturnCode;
-			this->_returnURL = locationScope[i + 2];		
+			this->_returnCode = validateReturnCode(locationBlockElements[i + 1]);
+			this->_returnURLOrBody = locationBlockElements[i + 2];		
 			this->_isRedirect = true;
 			i += 2;						
 		}
-		else if (locationScope[i] == "return" && (i + 1) < locationScope.size()
-			&& validateElement(locationScope[i + 1]))
+		else if (locationBlockElements[i] == "return" && (i + 1) < locationBlockElements.size()
+			&& validateElement(locationBlockElements[i + 1]))
 		{
 			this->_returnCode = 302;
-			this->_returnURL = locationScope[i + 1];
-			if (this->_returnURL.substr(0, 7) != "http://" && this->_returnURL.substr(0, 8) != "https://")
+			this->_returnURLOrBody = locationBlockElements[i + 1];
+			if (this->_returnURLOrBody.substr(0, 7) != "http://" && this->_returnURLOrBody.substr(0, 8) != "https://")
 				throw(std::runtime_error("Config parser: Invalid URL in return directive. A URL for temporary redirect with the code 302 should start with the 'http://' or 'https://'."));
 			this->_isRedirect = true;
 			i++;
 		}
-		else if (locationScope[i] == "error_page")
+		else if (locationBlockElements[i] == "error_page")
 		{
-			errorPageLine = extractVectorUntilSemicolon(locationScope, i);
+			errorPageLine = extractVectorUntilSemicolon(locationBlockElements, i);
 			validateErrorPagesLine(errorPageLine);
 			i += errorPageLine.size() - 1;
 			errorPageLine.clear();
 		}
-		else if (locationScope[i] != "{" && locationScope[i] != "}")
+		else if (locationBlockElements[i] != "{" && locationBlockElements[i] != "}")
 		{
 			//std::cout << "unsupported: " << locationScope[i] << std::endl;
 			throw (std::runtime_error("Config parser: Invalid directive in a location block."));
@@ -160,7 +164,7 @@ Location::Location(const Location& copy)
 	this->_cgiPath = copy._cgiPath;
 	this->_cgiExt = copy._cgiExt;
 	this->_cgiMap = copy._cgiMap;
-	this->_returnURL = copy._returnURL;
+	this->_returnURLOrBody = copy._returnURLOrBody;
 	this->_returnCode = copy._returnCode;
 	this->_isRedirect = copy._isRedirect;
 	this->_errorPages = copy._errorPages;
@@ -179,7 +183,7 @@ Location &Location::operator = (const Location &src)
 		this->_cgiPath = src._cgiPath;
 		this->_cgiExt = src._cgiExt;
 		this->_cgiMap = src._cgiMap;
-		this->_returnURL = src._returnURL;
+		this->_returnURLOrBody = src._returnURLOrBody;
 		this->_returnCode = src._returnCode;
 		this->_isRedirect = src._isRedirect;
 		this->_errorPages = src._errorPages;
@@ -240,10 +244,10 @@ const std::map<std::string, std::string>	&Location::getCgiMap(void) const
 
 const std::string		&Location::getReturnURLOrBody(void) const
 {
-	return (this->_returnURL);
+	return (this->_returnURLOrBody);
 }
 
-int	Location::getReturnCode(void) const
+unsigned short	Location::getReturnCode(void) const
 {
 	return (this->_returnCode);
 }
@@ -309,8 +313,8 @@ void	Location::initLocation(void)
 	this->_cgiPath = std::vector<std::string>();
 	this->_cgiExt = std::vector<std::string>();
 	this->_cgiMap = std::map<std::string, std::string>();
-	this->_returnURL = "";
-	this->_returnCode = -1;
+	this->_returnURLOrBody = "";
+	this->_returnCode = 0;
 	this->_isRedirect = false;
 	this->_errorPages = std::map<unsigned short, std::string>();
 }
