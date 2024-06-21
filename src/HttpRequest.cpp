@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/20 17:21:51 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/21 10:47:37 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -322,7 +322,11 @@ void	HttpRequest::parseRequestLine(std::string requestLine)
 		space = std::find(requestLine.begin(), requestLine.end(), SP);
 	}
 	if (startLineTokens.size() != 3)
+	{
+		std::cout << startLineTokens.size() << std::endl;
+		std::cout << CLR2 << startLineTokens << RESET << std::endl;
 		throw(ResponseException(400, "Invalid start line"));
+	}
 	for (size_t i = 0; i < 3; i++)
 		(this->*parse[i])(startLineTokens[i]);
 }
@@ -552,14 +556,14 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 	std::cout << CLR3 << "path:\t" << path << RESET << std::endl;
 	std::cout << CLR3 << "root:\t" << root << RESET << std::endl;
 	std::cout << CLR3 << "URL:\t" << this->requestLine.requestTarget.absolutePath << RESET << std::endl;
-	if (*root.rbegin() == '/')
-		root.erase(root.end() - 1);
+	// if (*root.rbegin() == '/')
+	// 	root.erase(root.end() - 1);
     std::size_t pos = this->requestLine.requestTarget.absolutePath.find(path);
 	this->targetResource = this->requestLine.requestTarget.absolutePath;
    	this->targetResource.replace(pos, path.length(), root);
 	this->allowedDirListing = location.getAutoindex();
 	std::cout << CLR3 << "Final path:\t" << this->targetResource << RESET << std::endl;
-	
+
 	if (!this->isRedirect && this->requestLine.method == "GET")
 	{
 		int			validFile;
@@ -570,7 +574,9 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 		if (*targetResource.rbegin() != '/') // if it's a normal file, do nothing
 		{
 			if (fileCheckBuff.st_mode & S_IFDIR)
+			{
 				throw (ResponseException(301, "")); // will likely not be an exception, but a proper response handler
+			}
 		}
 		else if (*targetResource.rbegin() == '/' && !this->allowedDirListing)
 			throw (ResponseException(403, "Autoindexing is not allowed"));
@@ -583,14 +589,10 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 				throw (ResponseException(500, "Failed to open directory"));
 			if (closedir(dirPtr))
 				throw (ResponseException(500, "Failed to close directory"));
-			std::cout << "HELOOOOOOOO" << std::endl;
 			this->targetIsDirectory = true;
 		}
 	}
-	if (this->isRedirect)
-	{
-		
-	}
+
 	// handle redirections, POST and DELETE
 }
 
