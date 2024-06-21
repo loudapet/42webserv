@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/21 10:35:56 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/21 17:05:16 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -236,7 +236,8 @@ const Location matchLocation(const std::string &absolutePath, const std::vector<
 		locationPath = locations[i].getPath();
 		if (absolutePath.find(locationPath) == 0 && locationPath.length() > bestMatchLength)
 		{
-			if (locationPath == "/" || absolutePath[locationPath.length()] == '/' || absolutePath.length() == locationPath.length())
+			if (locationPath == "/" || absolutePath[locationPath.length()] == '/'
+				|| *locationPath.rbegin() == '/' || absolutePath.length() == locationPath.length())
 			{
 				bestMatchLength = locationPath.length();
 				bestMatchIndex = i;

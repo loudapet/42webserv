@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/21 10:47:37 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/21 16:57:54 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -554,6 +554,8 @@ void	HttpRequest::validateConnectionOption(void)
 void	HttpRequest::validateResourceAccess(const Location& location)
 {
 	std::string	path = location.getPath();
+	if (*path.rbegin() != '/')
+		path = path + "/";
 	std::string	root = location.getRoot();
 	std::cout << CLR3 << "path:\t" << path << RESET << std::endl;
 	std::cout << CLR3 << "root:\t" << root << RESET << std::endl;
