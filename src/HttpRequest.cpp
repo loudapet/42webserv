@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/21 10:47:37 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/21 17:08:30 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -127,9 +127,10 @@ void	HttpRequest::parseMethod(std::string& token)
 		this->requestLine.method = token;
 	else if (token == "HEAD" || token == "PUT" || token == "CONNECT"
 			|| token == "OPTIONS" || token == "PATCH" || token == "TRACE")
-		throw (ResponseException(501, "Method not supported"));
-	else
-		throw (ResponseException(400, "Unknown method name"));
+		this->response.updateStatus(501, "Method not supported");
+		//throw (ResponseException(501, "Method not supported"));
+	// else
+	// 	throw (ResponseException(400, "Unknown method name"));
 }
 
 void resolvePercentEncoding(std::string& path, size_t& pos)
@@ -554,45 +555,64 @@ void	HttpRequest::validateConnectionOption(void)
 void	HttpRequest::validateResourceAccess(const Location& location)
 {
 	std::string	path = location.getPath();
+	if (*path.rbegin() != '/')
+		path + path + '/';
 	std::string	root = location.getRoot();
 	std::cout << CLR3 << "path:\t" << path << RESET << std::endl;
 	std::cout << CLR3 << "root:\t" << root << RESET << std::endl;
 	std::cout << CLR3 << "URL:\t" << this->requestLine.requestTarget.absolutePath << RESET << std::endl;
-	// if (*root.rbegin() == '/')
-	// 	root.erase(root.end() - 1);
     std::size_t pos = this->requestLine.requestTarget.absolutePath.find(path);
 	this->targetResource = this->requestLine.requestTarget.absolutePath;
    	this->targetResource.replace(pos, path.length(), root);
 	this->allowedDirListing = location.getAutoindex();
 	std::cout << CLR3 << "Final path:\t" << this->targetResource << RESET << std::endl;
-
 	if (!this->isRedirect && this->requestLine.method == "GET")
 	{
 		int			validFile;
 		struct stat	fileCheckBuff;
 		validFile = stat(targetResource.c_str(), &fileCheckBuff);
+		
 		if (validFile < 0)
-			throw (ResponseException(404, "File does not exist"));
+			this->response.updateStatus(404, "File does not exist");		
 		if (*targetResource.rbegin() != '/') // if it's a normal file, do nothing
 		{
-			if (fileCheckBuff.st_mode & S_IFDIR)
-			{
+			if (S_ISDIR(fileCheckBuff.st_mode)) // redirect to the existing folder
 				throw (ResponseException(301, "")); // will likely not be an exception, but a proper response handler
+		}
+		else if (*targetResource.rbegin() == '/') // target is a directory
+		{
+			std::vector<std::string>	pages = location.getIndex();
+			bool						validIndexPage = false;
+			for (size_t i = 0; i < pages.size(); i++)
+			{
+				if (access(pages[i].c_str(), R_OK))
+				{
+					this->targetResource += resolveDotSegments(pages[i], REQUEST);
+					validIndexPage = true;
+					break ;
+				}
+			}
+			if (!validIndexPage)
+			{
+				if (this->allowedDirListing)
+				{
+					DIR*	dirPtr;
+					dirPtr = opendir(this->targetResource.c_str());
+					if (dirPtr == NULL)
+						this->response.updateStatus(500, "Failed to open directory");
+					if (closedir(dirPtr))
+						this->response.updateStatus(500, "Failed to close directory");
+					this->targetIsDirectory = true;
+				}
+				else
+					this->response.updateStatus(403, "Autoindexing is not allowed");
 			}
 		}
-		else if (*targetResource.rbegin() == '/' && !this->allowedDirListing)
-			throw (ResponseException(403, "Autoindexing is not allowed"));
-		else
-		{
-			// autoindexing for GET - just a validation
-			DIR*	dirPtr;
-			dirPtr = opendir(this->targetResource.c_str());
-			if (dirPtr == NULL)
-				throw (ResponseException(500, "Failed to open directory"));
-			if (closedir(dirPtr))
-				throw (ResponseException(500, "Failed to close directory"));
-			this->targetIsDirectory = true;
-		}
+	}
+	if (this->isRedirect)
+	{
+		this->response.lockStatusCode();
+		this->response.setStatusCode(location.getReturnCode());
 	}
 
 	// handle redirections, POST and DELETE
@@ -642,9 +662,9 @@ void	HttpRequest::manageExpectations(void)
 	if (expectation != this->headerFields.end())
 	{
 		if (expectation->second != "100-continue")
-			throw (ResponseException(417, ""));
+			this->response.updateStatus(417, "");
 		else
-			throw (ResponseException(100, "")); // should probably be done differently
+			this->response.updateStatus(100, "");
 	}
 }
 
@@ -660,7 +680,7 @@ void	HttpRequest::validateHeader(const Location& location)
 	std::set<std::string>	allowedMethods = location.getAllowMethods();
 	this->allowedMethods = allowedMethods;
 	if (std::find(allowedMethods.begin(), allowedMethods.end(), this->requestLine.method) == allowedMethods.end())
-		throw (ResponseException(405, ""));
+		this->response.updateStatus(405, "Method Not Allowed");
 	this->validateConnectionOption();
 	this->validateResourceAccess(location);
 	this->validateMessageFraming();

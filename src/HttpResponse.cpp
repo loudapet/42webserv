@@ -6,13 +6,12 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/21 11:13:38 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/21 16:36:36 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/HttpResponse.hpp"
 #include "../inc/HttpRequest.hpp"
-#include "HttpResponse.hpp"
 
 HttpResponse::HttpResponse()
 {
@@ -25,6 +24,10 @@ HttpResponse::HttpResponse()
 	this->codeDict[201] = "Created";
 	this->codeDict[202] = "Accepted";
 	this->codeDict[301] = "Moved Permanently";
+	this->codeDict[302] = "Found";
+	this->codeDict[303] = "See Other";
+	this->codeDict[307] = "Temporary Redirect";
+	this->codeDict[308] = "Permanent Redirect";
 	this->codeDict[400] = "Bad Request";
 	this->codeDict[403] = "Forbidden";
 	this->codeDict[404] = "Not Found";
@@ -41,6 +44,7 @@ HttpResponse::HttpResponse()
 	this->codeDict[505] = "HTTP Version Not Supported";
 	this->responseBody = octets_t();
 	this->completeResponse = octets_t();
+	this->statusLocked = false;
 	return ;
 }
 
@@ -91,9 +95,25 @@ const unsigned short&	HttpResponse::getStatusCode() const
 	return (this->statusLine.statusCode);
 }
 
+const bool &HttpResponse::getStatusLocked() const
+{
+	return (this->statusLocked);
+}
+
+// overrides updateStatus()
 void	HttpResponse::setStatusCode(unsigned short code)
 {
 	this->statusLine.statusCode = code;
+}
+
+void HttpResponse::updateStatus(unsigned short code, const char* details)
+{
+	if (!this->statusLocked)
+	{
+		this->statusLine.statusCode = code;
+		this->statusDetails = details;
+	}
+	this->statusLocked = true;
 }
 
 void HttpResponse::setStatusLineAndDetails(const statusLine_t &incStatusLine, const std::string &details)
@@ -102,6 +122,11 @@ void HttpResponse::setStatusLineAndDetails(const statusLine_t &incStatusLine, co
 	this->statusLine.statusCode = incStatusLine.statusCode;
 	this->statusLine.reasonPhrase = this->codeDict[incStatusLine.statusCode];
 	this->statusDetails = details;
+}
+
+void	HttpResponse::lockStatusCode()
+{
+	this->statusLocked = true;
 }
 
 // needs different Content-Type
@@ -120,6 +145,10 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 	{
 		this->headerFields["Connection: "] = "keep-alive";
 		this->headerFields["Keep-Alive: "] = std::string("timeout=" + itoa(CONNECTION_TIMEOUT));
+	}
+	if (this->statusLine.statusCode >= 300 && this->statusLine.statusCode <= 308)
+	{
+		this->headerFields["Location: "] = request.getLocation().getReturnURLOrBody();
 	}
 	if (this->statusLine.statusCode == 405)
 	{
@@ -227,20 +256,29 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 			body << "<a href=\"" << dir->d_name << "\">" << dir->d_name << "" << "</a>";
 			body << " " << time << " " << fileCheckBuff.st_size << "\r\n";
 		}
-		//bzero(&fileCheckBuff, sizeof(fileCheckBuff));
 	}
 	body << "</pre><hr></body>\r\n";
 	body << "</html>\r\n";
 	this->responseBody = convertStringToOctets(body.str());
 	closedir(dirPtr);
 }
+void	HttpResponse::readReturnDirective(const Location &location)
+{
+	this->responseBody = convertStringToOctets(location.getReturnURLOrBody());
+}
+
 
 const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 {
+	if (codeDict.find(this->statusLine.statusCode) == codeDict.end())
+		this->codeDict[this->statusLine.statusCode] = "Undefined";
+	this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
 	if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
 		request.response.readDirectoryListing(request.getTargetResource());
 	else if (this->statusLine.statusCode == 200)
 		request.response.readRequestedFile(request.getTargetResource());
+	else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
+		request.response.readReturnDirective(request.getLocation());
 	else
 		request.response.readErrorPage(request.getLocation());
 	request.response.buildResponseHeaders(request);

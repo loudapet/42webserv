@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/20 17:45:33 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/21 12:04:08 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -128,9 +128,9 @@ std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::stri
 
 void	fileIsValidAndAccessible(const std::string &path, const std::string &exceptionScope)
 {
-	if (access(path.c_str(), 0) < 0)
+	if (access(path.c_str(), F_OK) < 0)
 		throw(std::runtime_error("Config parser: " + exceptionScope + " file at '" + path + "' is an invalid file."));
-	if (access(path.c_str(), 4) < 0)
+	if (access(path.c_str(), R_OK) < 0)
 		throw(std::runtime_error("Config parser: " + exceptionScope + " file at '" + path + "' is not accessible."));
 //	struct stat buffer;
 //
