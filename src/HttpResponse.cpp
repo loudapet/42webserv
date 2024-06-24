@@ -242,7 +242,7 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 		struct stat	fileCheckBuff;
 		if (stat(path.c_str(), &fileCheckBuff) < 0)
 			std::cout << errno << " "<< path << std::endl;
-		tm *curr_tm = std::gmtime(&(fileCheckBuff.st_mtimespec.tv_sec));
+		tm *curr_tm = std::gmtime(&(fileCheckBuff.st_mtim.tv_sec));
 		char time[100];
 		std::strftime(time, 100, "%a, %d %b %Y %H:%M:%S GMT", curr_tm);
 

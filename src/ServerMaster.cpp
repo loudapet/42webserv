@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/21 10:35:56 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/21 16:02:43 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -220,7 +220,8 @@ void	ServerMaster::prepareServersToListen(void)
 	this->_fdMax = this->_serverConfigs.back().getServerSocket();
 }
 
-const Location matchLocation(const std::string &absolutePath, const std::vector<Location> &locations)
+const Location matchLocation(const std::string &absolutePath, const std::vector<Location> &locations,
+	bool serverIsRedirect, unsigned short serverReturnCode, const std::string &serverReturnURLOrBody)
 {
 	std::string locationPath;
 	size_t		bestMatchLength;
@@ -228,6 +229,11 @@ const Location matchLocation(const std::string &absolutePath, const std::vector<
 	bool		match;
 	std::set<std::string> method;
 
+	if (serverIsRedirect)
+	{
+		Location generic(serverReturnCode, serverReturnURLOrBody);
+		return (generic);
+	}
 	bestMatchLength = 0;
 	bestMatchIndex = 0;
 	match = false;
@@ -306,7 +312,9 @@ void	ServerMaster::listenForConnections(void)
 								client.clearReceivedHeader(); // clears request line and header fields
 
 								// match location
-								client.request.validateHeader(matchLocation(client.request.getAbsolutePath(), client.getServerConfig().getLocations()));
+								const ServerConfig &serverConfig = client.getServerConfig();
+								client.request.validateHeader(matchLocation( client.request.getAbsolutePath(), serverConfig.getLocations(),
+									serverConfig.getIsRedirect(), serverConfig.getReturnCode(), serverConfig.getReturnURLOrBody()));
 								client.request.readingBodyInProgress = true;
 							}
 							std::cout << CLR1 << "Header:\n" << client.getReceivedHeader();
