@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:27 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/21 15:29:59 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/24 10:34:56 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,6 +46,9 @@ class Location
 		void	setAutoindex(int autoindex);
 		void	setCgiMap(std::map<std::string, std::string> &cgiMap);
 		void	setAllowMethods(const std::set<std::string> &allowMethods);
+		void	setReturnURLOrBody(const std::string &returnURLOrBody);
+		void	setReturnCode(unsigned short returnCode);
+		void	setIsRedirect(bool value);
 		void	addErrorPage(short errorCode, const std::string &errorPageFile);
 	
 	private:

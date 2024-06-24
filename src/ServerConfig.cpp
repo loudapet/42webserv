@@ -440,6 +440,12 @@ void	ServerConfig::completeLocations(void)
 		}
 		if (this->_locations[i].getAllowMethods().size() == 0)
 			this->_locations[i].setAllowMethods(this->_allowMethods);
+		if (this->getIsRedirect())
+		{
+			this->_locations[i].setReturnURLOrBody(this->getReturnURLOrBody());
+			this->_locations[i].setReturnCode(this->getReturnCode());
+			this->_locations[i].setIsRedirect(true);
+		}
 	}
 }
 
@@ -476,10 +482,7 @@ void	ServerConfig::validateLocations(void)
 			// simple check for path validity, the rest of the path will be checked later with root and index file
 			if (this->_locations[i].getPath()[0] != '/')
 				throw(std::runtime_error("Config parser: Invalid location path."));
-			if (!this->_locations[i].getReturnURLOrBody().empty() && this->_locations[i].getReturnCode() != 302)
-				dirIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + this->_locations[i].getReturnURLOrBody(), CONFIG),
-					"Cannot access location return path.", "Location return path is not a directory.");
-			else if (!this->_locations[i].getIsRedirect())
+			if (!this->_locations[i].getIsRedirect())
 			{
 				// validate index (and path)
 				for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)

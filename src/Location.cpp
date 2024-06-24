@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/21 15:56:53 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/24 10:36:25 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -295,6 +295,21 @@ void	Location::setCgiMap(std::map<std::string, std::string> &cgiMap)
 void	Location::setAllowMethods(const std::set<std::string> &allowMethods)
 {
 	this->_allowMethods = allowMethods;
+}
+
+void	Location::setReturnURLOrBody(const std::string &returnURLOrBody)
+{
+	this->_returnURLOrBody = returnURLOrBody; 
+}
+
+void	Location::setReturnCode(unsigned short returnCode)
+{
+	this->_returnCode = returnCode; 
+}
+
+void	Location::setIsRedirect(bool value)
+{
+	this->_isRedirect = value; 
 }
 
 void	Location::addErrorPage(short errorCode, const std::string &errorPageFile)
