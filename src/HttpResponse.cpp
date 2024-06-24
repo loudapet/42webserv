@@ -135,7 +135,7 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 {
 	size_t		contentLength = this->responseBody.size();
 	std::string	date = getIMFFixdate();
-	std::string	type("text/html");
+	std::string	type("text/html; charset=utf-8");
 	this->headerFields["Content-Length: "] = itoa(contentLength);
 	this->headerFields["Date: "] = date;
 	this->headerFields["Content-Type: "] = type;
@@ -228,34 +228,119 @@ void	HttpResponse::buildCompleteResponse(void)
 
 void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 {
-	std::stringstream	body;
-	DIR*				dirPtr;
+	std::stringstream		body;
+	std::set<std::string>	strings;
+	DIR*					dirPtr;
 	dirPtr = opendir(targetResource.c_str());
 	body << "<html>\r\n"
-	   << "<head><title>" << "Index of " << targetResource << "</title></head>\r\n"
-	   << "<body>\r\n"
-	   << "<h1>" << "Index of " << targetResource << "</h1>\r\n"
-	   << "<hr><pre>\r\n";
+		<< "<head><title>" << "Index of " << targetResource << "</title></head>\r\n"
+		<< "<body>\r\n"
+		<< "<h1>" << "Index of " << targetResource << "</h1>\r\n"
+		<< "<hr><pre>\r\n";
+	body << "<h2> 🏠 <a href=\"../\">"
+		<< "Parent Directory"
+		<< "</a></h2>";
+	body << "<h2>"
+		<< "      Name              "
+		<< "    Date Modified       "
+		<< "Size "
+		<< "</h2>";
 	for (dirent* dir = readdir(dirPtr); dir != NULL; dir = readdir(dirPtr))
 	{
+		std::stringstream	tempstream;
 		std::string	path = targetResource + dir->d_name;
 		struct stat	fileCheckBuff;
 		if (stat(path.c_str(), &fileCheckBuff) < 0)
 			std::cout << errno << " "<< path << std::endl;
-		tm *curr_tm = std::gmtime(&(fileCheckBuff.st_mtim.tv_sec));
+		#ifdef __APPLE__
+			tm *curr_tm = std::gmtime(&(fileCheckBuff.st_mtimespec.tv_sec));
+		#endif
+		#ifdef __linux__
+			tm *curr_tm = std::gmtime(&(fileCheckBuff.st_mtim.tv_sec));
+		#endif
 		char time[100];
 		std::strftime(time, 100, "%a, %d %b %Y %H:%M:%S GMT", curr_tm);
-
+		std::string	dname = dir->d_name;
+		if (dname.size() > 28)
+			dname = dname.substr(0, 25) + "...";
 		if (dir->d_type == DT_DIR)
 		{
-			body << "<a href=\"" << dir->d_name << "/\">" << dir->d_name << "/" << "</a>";
-			body << " " << time << " " << "-" << "\r\n";
+			tempstream << " 📁 <a href=\""
+			<< dir->d_name
+			<< "/\">"
+			<< dname
+			<< "/"
+			<< "</a>"
+			<< std::left << std::setw(30 - dname.size()) << " "
+			<< " "
+			<< std::left << std::setw(30) << time
+			<< " "
+			<< std::right << std::setw(10) << "- "
+			<< "\r\n";
 		}
 		else if (dir->d_type == DT_REG)
 		{
-			body << "<a href=\"" << dir->d_name << "\">" << dir->d_name << "" << "</a>";
-			body << " " << time << " " << fileCheckBuff.st_size << "\r\n";
+			tempstream << " 📄 <a href=\""
+			<< dir->d_name
+			<< "\">"
+			<< dname
+			<< "" << "</a>"
+			<< std::left << std::setw(31 - dname.size()) << " "
+			<< " "
+			<< std::left << std::setw(30) << time
+			<< " ";
+			double				size;
+			std::string			strsize;
+			size = fileCheckBuff.st_size;
+			if (size > 1024ULL * 1024ULL * 1024ULL * 1024ULL)
+			{
+				size /= 1024ULL * 1024ULL * 1024ULL * 1024ULL;
+				strsize = " TB";
+				tempstream << std::right << std::setw(7) << std::fixed << std::setprecision(1)
+				<< size << strsize
+				<< "\r\n";
+			}
+			else if (size > 1024ULL * 1024ULL * 1024ULL)
+			{
+				size /= 1024ULL * 1024ULL * 1024ULL;
+				strsize = " GB";
+				tempstream << std::right << std::setw(7) << std::fixed << std::setprecision(1)
+				<< size << strsize
+				<< "\r\n";
+			}
+			else if (size > 1024ULL * 1024ULL)
+			{
+				size /= 1024ULL * 1024ULL;
+				strsize = " MB";
+				tempstream << std::right << std::setw(7) << std::fixed << std::setprecision(1)
+				<< size << strsize
+				<< "\r\n";
+			}
+			else if (size > 1024ULL)
+			{
+				size /= 1024ULL;
+				strsize = " kB";
+				tempstream << std::right << std::setw(7) << std::fixed << std::setprecision(1)
+				<< size << strsize
+				<< "\r\n";
+			}
+			else
+			{
+				strsize = "  B";
+				tempstream << std::right << std::setw(7)
+				<< size << strsize
+				<< "\r\n";
+			}
 		}
+		//bzero(&fileCheckBuff, sizeof(fileCheckBuff));
+		strings.insert(tempstream.str());
+	}
+	std::set<std::string>::iterator it;
+	for (it = strings.begin(); it != strings.end(); ++it) {
+		if ((*it).find(" 📁 <a href=\"./\">") != std::string::npos
+			|| (*it).find(" 📁 <a href=\"../\">") != std::string::npos)
+			continue ;
+		body << *it;
 	}
 	body << "</pre><hr></body>\r\n";
 	body << "</html>\r\n";
