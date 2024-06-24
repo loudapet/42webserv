@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/20 17:37:13 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/21 14:47:04 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,6 +64,7 @@ int							validateRequestBodySizeLimit(bool rbslInConfig, const std::string &rbs
 bool						validateAutoindex(bool autoindexInConfig, const std::string &autoindexFromConfig, const std::string &exceptionMessage);
 unsigned short				validateListen(unsigned short port, const std::string &portFromConfig);
 std::vector<std::string>	validateIndex(const std::vector<std::string> &indexes, const std::vector<std::string> &scopeElements, size_t pos, const std::string &exceptionMessage);
+unsigned short				validateReturnCode(std::string &scopeElement);
 std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::string> &mainVector, size_t pos);
 
 void						fileIsValidAndAccessible(const std::string &path, const std::string &exceptionMessage);

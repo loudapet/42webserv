@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/21 13:51:55 by okraus           ###   ########.fr       */
+/*   Updated: 2024/06/21 16:07:54 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,10 +34,12 @@ class HttpResponse
 		stringmap_t		headerFields;
 		octets_t		responseBody;
 		octets_t		completeResponse;
+		bool			statusLocked;
 		std::map<unsigned short,std::string>	codeDict;
 
 		void				readRequestedFile(const std::string& targetResource);
 		void				readErrorPage(const Location &location);
+		void				readReturnDirective(const Location &Location);
 		void				readDirectoryListing(const std::string& targetResource);
 		void				buildResponseHeaders(const HttpRequest& request);
 		void				buildCompleteResponse();
@@ -51,7 +53,13 @@ class HttpResponse
 		const octets_t&		getCompleteResponse() const;
 		const octets_t		prepareResponse(HttpRequest& request);
 		void				setStatusLineAndDetails(const statusLine_t& statusLine, const std::string& details);
+		void				lockStatusCode();
+
 		const statusLine_t&	getStatusLine()	const;
+		const unsigned short&	getStatusCode() const;
+		const bool&				getStatusLocked() const;
+		void					setStatusCode(unsigned short code);
+		void					updateStatus(unsigned short code, const char* details);
 };
 
 #endif  // HTTPRESPONSE_HPP

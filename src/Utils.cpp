@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/20 17:45:33 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/21 14:49:47 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -112,6 +112,26 @@ std::vector<std::string>	validateIndex(const std::vector<std::string> &index, co
 	return (newIndex);
 }
 
+unsigned short	validateReturnCode(std::string &scopeElement)
+{
+	std::istringstream	iss;
+	unsigned short		returnCode;
+
+	for (size_t i = 0; i < scopeElement.size(); i++)
+	{
+		if (!std::isdigit(scopeElement[i]))
+			throw (std::runtime_error("Config parser: Invalid return code."));
+	}
+	iss.str(scopeElement);
+	if (!(iss >> returnCode) || !iss.eof())
+		throw(std::runtime_error("Config parser: Return code is out of range for valid return codes."));
+	iss.str("");
+	iss.clear();
+	if (returnCode < 100 || returnCode > 599)
+		throw(std::runtime_error("Config parser: Return code is out of range of valid return codes."));
+	return (returnCode);
+}
+
 std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::string> &mainVector, size_t pos)
 {
 	std::vector<std::string>	extractedVector;
@@ -128,9 +148,9 @@ std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::stri
 
 void	fileIsValidAndAccessible(const std::string &path, const std::string &exceptionScope)
 {
-	if (access(path.c_str(), 0) < 0)
+	if (access(path.c_str(), F_OK) < 0)
 		throw(std::runtime_error("Config parser: " + exceptionScope + " file at '" + path + "' is an invalid file."));
-	if (access(path.c_str(), 4) < 0)
+	if (access(path.c_str(), R_OK) < 0)
 		throw(std::runtime_error("Config parser: " + exceptionScope + " file at '" + path + "' is not accessible."));
 //	struct stat buffer;
 //
