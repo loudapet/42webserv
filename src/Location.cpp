@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/24 10:36:25 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/24 13:08:23 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@ Location::Location(void)
 	this->_cgiPath = std::vector<std::string>();
 	this->_cgiExt = std::vector<std::string>();
 	this->_cgiMap = std::map<std::string, std::string>();
-	this->_returnURLOrBody = "";
+	this->_returnURLOrBody = "/";
 	this->_returnCode = 0;
 	this->_isRedirect = false;
 	this->_errorPages = std::map<unsigned short, std::string>();
@@ -328,7 +328,7 @@ void	Location::initLocation(void)
 	this->_cgiPath = std::vector<std::string>();
 	this->_cgiExt = std::vector<std::string>();
 	this->_cgiMap = std::map<std::string, std::string>();
-	this->_returnURLOrBody = "";
+	this->_returnURLOrBody = "/";
 	this->_returnCode = 0;
 	this->_isRedirect = false;
 	this->_errorPages = std::map<unsigned short, std::string>();

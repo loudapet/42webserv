@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/21 16:36:36 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/24 13:20:05 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -148,7 +148,10 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 	}
 	if (this->statusLine.statusCode >= 300 && this->statusLine.statusCode <= 308)
 	{
-		this->headerFields["Location: "] = request.getLocation().getReturnURLOrBody();
+		if (this->statusDetails == "Trying to access a directory")
+			this->headerFields["Location: "] = request.getAbsolutePath() + "/";
+		else
+			this->headerFields["Location: "] = request.getLocation().getReturnURLOrBody();
 	}
 	if (this->statusLine.statusCode == 405)
 	{
@@ -197,6 +200,7 @@ void	HttpResponse::readErrorPage(const Location &location)
 
 void HttpResponse::readRequestedFile(const std::string &targetResource)
 {
+	std::cout << CLR3 << targetResource << RESET << std::endl;
 	std::ifstream	stream(targetResource.c_str(), std::ios::binary);
 	octets_t		contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
 	this->responseBody.insert(this->responseBody.end(), contents.begin(), contents.end());

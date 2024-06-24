@@ -3,19 +3,16 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/21 17:08:33 by okraus           ###   ########.fr       */
+/*   Updated: 2024/06/24 13:37:59 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/HttpRequest.hpp"
 #include "../inc/HttpResponse.hpp"
 #include "../inc/ResponseException.hpp"
-
-
-//std::string	root = "./docs";
 
 HttpRequest::HttpRequest()
 {
@@ -555,7 +552,7 @@ void	HttpRequest::validateConnectionOption(void)
 void	HttpRequest::validateResourceAccess(const Location& location)
 {
 	std::string	path = location.getPath();
-	if (*path.rbegin() != '/')
+	if (*this->requestLine.requestTarget.absolutePath.rbegin() == '/' && *path.rbegin() != '/')
 		path = path + "/";
 	std::string	root = location.getRoot();
 	std::cout << CLR3 << "path:\t" << path << RESET << std::endl;
@@ -574,10 +571,16 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 		
 		if (validFile < 0)
 			this->response.updateStatus(404, "File does not exist");		
-		if (*targetResource.rbegin() != '/') // if it's a normal file, do nothing
+		if (*targetResource.rbegin() != '/')
 		{
 			if (S_ISDIR(fileCheckBuff.st_mode)) // redirect to the existing folder
-				throw (ResponseException(301, "")); // will likely not be an exception, but a proper response handler
+				this->response.updateStatus(301, "Trying to access a directory"); // DO NOT CHANGE THE STRING! (connected to prepareHeaders in Http::Response)
+			//throw (ResponseException(301, "")); // will likely not be an exception, but a proper response handler
+			else  // if it's a normal file, check access
+			{
+				if (access(targetResource.c_str(), R_OK) < 0)
+					this->response.updateStatus(403, "Access forbidden");
+			}
 		}
 		else if (*targetResource.rbegin() == '/') // target is a directory
 		{
@@ -585,9 +588,10 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 			bool						validIndexPage = false;
 			for (size_t i = 0; i < pages.size(); i++)
 			{
-				if (access(pages[i].c_str(), R_OK))
+				if (access((this->targetResource + pages[i]).c_str(), R_OK | F_OK) > 0)
 				{
-					this->targetResource += resolveDotSegments(pages[i], REQUEST);
+					this->targetResource += pages[i];
+					this->targetResource = resolveDotSegments(this->targetResource, REQUEST);
 					validIndexPage = true;
 					break ;
 				}
