@@ -139,6 +139,25 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				i += errorPageLine.size() - 1;
 				errorPageLine.clear();
 			}
+			else if (serverBlockElements[i] == "return" && (i + 2) < serverBlockElements.size()
+				&& serverBlockElements[i + 1].find_first_of(";") == std::string::npos && validateElement(serverBlockElements[i + 2]))
+			{
+				// source: https://nginx.org/en/docs/http/ngx_http_rewrite_module.html#return
+				this->_returnCode = validateReturnCode(serverBlockElements[i + 1]);
+				this->_returnURLOrBody = serverBlockElements[i + 2];		
+				this->_isRedirect = true;
+				i += 2;						
+			}
+			else if (serverBlockElements[i] == "return" && (i + 1) < serverBlockElements.size()
+				&& validateElement(serverBlockElements[i + 1]))
+			{
+				this->_returnCode = 302;
+				this->_returnURLOrBody = serverBlockElements[i + 1];
+				if (this->_returnURLOrBody.substr(0, 7) != "http://" && this->_returnURLOrBody.substr(0, 8) != "https://")
+					throw(std::runtime_error("Config parser: Invalid URL in return directive. A URL for temporary redirect with the code 302 should start with the 'http://' or 'https://'."));
+				this->_isRedirect = true;
+				i++;
+			}
 			else if (serverBlockElements[i] == "location" && (i + 1) < serverBlockElements.size()) // validate start and end of the block different to the above
 			{
 				size_t	posBracket;
@@ -195,7 +214,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	}
 	// set empty values
 	if (this->_port == 0)
-		this->_port = 8006; // If the directive is not present then either *:80 is used if nginx runs with the superuser privileges, or *:8000 otherwise.
+		this->_port = 8002; // If the directive is not present then either *:80 is used if nginx runs with the superuser privileges, or *:8000 otherwise.
 	if (this->_root.empty())
 		this->_root = "./";
 	if (this->_host == 0)
@@ -206,7 +225,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 		this->_allowMethods.insert("GET");
 	// validate files now that you have the root
 	for (size_t i = 0; i < this->_index.size(); i++)
-		fileIsValidAndAccessible(this->getRoot() + this->_index[i], "Index ");
+		fileIsValidAndAccessible(this->getRoot() + this->_index[i], "Index");
 	for (std::map<unsigned short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
 		fileIsValidAndAccessible(this->getRoot() + it->second, "Error page file");
 	// the location is completed only here as access to the server values is needed
@@ -217,21 +236,24 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 }
 
 ServerConfig::ServerConfig(const ServerConfig& copy)
-	:	_port(copy._port),
-		_isDefault(copy._isDefault),
-		_serverNames(copy._serverNames),
-		_primaryServerName(copy._primaryServerName),
-		_host(copy._host),
-		_root(copy._root),
-		_index(copy._index),
-		_errorPages(copy._errorPages),
-		_requestBodySizeLimit(copy._requestBodySizeLimit),
-		_autoindex(copy._autoindex),
-		_allowMethods(copy._allowMethods),
-		_locations(copy._locations),
-		_serverSocket(copy._serverSocket),
-		_serverAddr(copy._serverAddr)
 {
+	this->_port = copy._port;
+	this->_isDefault = copy._isDefault;
+	this->_serverNames = copy._serverNames;
+	this->_primaryServerName = copy._primaryServerName;
+	this->_host = copy._host;
+	this->_root = copy._root;
+	this->_index = copy._index;
+	this->_errorPages = copy._errorPages;
+	this->_requestBodySizeLimit = copy._requestBodySizeLimit;
+	this->_autoindex = copy._autoindex;
+	this->_allowMethods = copy._allowMethods;
+	this->_returnURLOrBody = copy._returnURLOrBody;
+	this->_returnCode = copy._returnCode;
+	this->_isRedirect = copy._isRedirect;
+	this->_locations = copy._locations;
+	this->_serverSocket = copy._serverSocket;
+	this->_serverAddr = copy._serverAddr;
 }
 
 ServerConfig& ServerConfig::operator = (const ServerConfig& src)
@@ -249,6 +271,9 @@ ServerConfig& ServerConfig::operator = (const ServerConfig& src)
 		this->_requestBodySizeLimit = src._requestBodySizeLimit;
 		this->_autoindex = src._autoindex;
 		this->_allowMethods = src._allowMethods;
+		this->_returnURLOrBody = src._returnURLOrBody;
+		this->_returnCode = src._returnCode;
+		this->_isRedirect = src._isRedirect;
 		this->_locations = src._locations;
 		this->_serverSocket = src._serverSocket;
 		this->_serverAddr = src._serverAddr;
@@ -316,6 +341,21 @@ const std::set<std::string>			&ServerConfig::getAllowMethods(void) const
 	return (this->_allowMethods);
 }
 
+const std::string		&ServerConfig::getReturnURLOrBody(void) const
+{
+	return (this->_returnURLOrBody);
+}
+
+unsigned short	ServerConfig::getReturnCode(void) const
+{
+	return (this->_returnCode);
+}
+
+bool	ServerConfig::getIsRedirect(void) const
+{
+	return (this->_isRedirect);
+}
+
 const std::vector<Location>	&ServerConfig::getLocations(void) const
 {
 	return (this->_locations);
@@ -338,6 +378,9 @@ void	ServerConfig::initServerConfig(void)
 	this->_errorPages = std::map<unsigned short, std::string>();
 	this->_requestBodySizeLimit = REQUEST_BODY_SIZE_LIMIT;
 	this->_autoindex = false;
+	this->_returnURLOrBody = "";
+	this->_returnCode = 0;
+	this->_isRedirect = false;
 	this->_locations = std::vector<Location>();
 }
 
@@ -397,6 +440,12 @@ void	ServerConfig::completeLocations(void)
 		}
 		if (this->_locations[i].getAllowMethods().size() == 0)
 			this->_locations[i].setAllowMethods(this->_allowMethods);
+		if (this->getIsRedirect())
+		{
+			this->_locations[i].setReturnURLOrBody(this->getReturnURLOrBody());
+			this->_locations[i].setReturnCode(this->getReturnCode());
+			this->_locations[i].setIsRedirect(true);
+		}
 	}
 }
 
@@ -433,10 +482,7 @@ void	ServerConfig::validateLocations(void)
 			// simple check for path validity, the rest of the path will be checked later with root and index file
 			if (this->_locations[i].getPath()[0] != '/')
 				throw(std::runtime_error("Config parser: Invalid location path."));
-			if (!this->_locations[i].getReturnURLOrBody().empty() && this->_locations[i].getReturnCode() != 302)
-				dirIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + this->_locations[i].getReturnURLOrBody(), CONFIG),
-					"Cannot access location return path.", "Location return path is not a directory.");
-			else if (!this->_locations[i].getIsRedirect())
+			if (!this->_locations[i].getIsRedirect())
 			{
 				// validate index (and path)
 				for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)
@@ -534,7 +580,8 @@ std::ostream &operator << (std::ostream &o, ServerConfig const &instance)
 		o << it->first << ": " << it->second << '\n';
 	o << "client_max_body_size (requestBodySizeLimit): " << instance.getRequestBodySizeLimit() << '\n'
 		<< "autoindex: " << instance.getAutoindex() << '\n'
-		<< "allow_methods: " << instance.getAllowMethods() << '\n';
+		<< "allow_methods: " << instance.getAllowMethods() << '\n'
+		<< "return: " << instance.getReturnCode() << " " << instance.getReturnURLOrBody() << '\n';
 	for (size_t i = 0; i < locations.size(); i++)
 		o << locations[i] << '\n';
 	return (o);
