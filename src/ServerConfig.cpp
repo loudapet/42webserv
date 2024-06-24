@@ -487,7 +487,8 @@ void	ServerConfig::validateLocations(void)
 				// validate index (and path)
 				for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)
 					// Originally, the access was checked for root+path+/+index because that's what NGINX does. The subject asks us to replace the path with the root, so the path is left out of the check.
-					fileIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + "/" + this->_locations[i].getIndex()[j], CONFIG), "Index");
+					//fileIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + "/" + this->_locations[i].getIndex()[j], CONFIG), "Index");
+					resolveDotSegments(this->_locations[i].getRoot() + "/" + this->_locations[i].getIndex()[j], CONFIG);
 			}
 		}
 		else // is cgi-bin
