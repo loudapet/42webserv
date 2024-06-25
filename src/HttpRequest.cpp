@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/24 13:37:59 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/24 17:49:05 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,6 +43,7 @@ HttpRequest::HttpRequest()
 	this->requestComplete = false;
 	this->messageFraming = NO_CODING;
 	this->connectionStatus = KEEP_ALIVE;
+	this->hasExpect = false;
 	return ;
 }
 
@@ -70,6 +71,7 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& refObj)
 		readingBodyInProgress = refObj.readingBodyInProgress;
 		requestComplete = refObj.requestComplete;
 		targetIsDirectory = refObj.targetIsDirectory;
+		hasExpect = refObj.hasExpect;
 	}
 	return (*this);
 }
@@ -668,7 +670,7 @@ void	HttpRequest::manageExpectations(void)
 		if (expectation->second != "100-continue")
 			this->response.updateStatus(417, "");
 		else
-			this->response.updateStatus(100, "");
+			this->hasExpect = true;
 	}
 }
 
@@ -844,7 +846,15 @@ const bool&	HttpRequest::getTargetIsDirectory() const
 	return (this->targetIsDirectory);
 }
 
+bool	HttpRequest::getHasExpect() const
+{
+    return (this->hasExpect);
+}
 
+void	HttpRequest::disableHasExpect()
+{
+	this->hasExpect = false;
+}
 
 std::ostream &operator<<(std::ostream &os, const octets_t &vec)
 {
@@ -913,4 +923,6 @@ void	HttpRequest::resetRequestObject(void)
 	this->readingBodyInProgress = newRequest.readingBodyInProgress;
 	this->response = newResponse;
 	this->targetIsDirectory = newRequest.targetIsDirectory;
+	this->hasExpect = newRequest.hasExpect;
+	this->location = newRequest.location;
 }

@@ -6,13 +6,13 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/19 10:39:09 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/24 17:39:40 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/Client.hpp"
 
-Client::Client(void): _clientSocket(-1), _timeLastMessage(time(NULL)), _receivedData(), _receivedHeader(), _portConnectedOn(0)
+Client::Client(void):bufferUnchecked(false), _clientSocket(-1), _timeLastMessage(time(NULL)), _receivedData(), _receivedHeader(), _portConnectedOn(0)
 {
 	return ;
 }
@@ -26,6 +26,7 @@ Client::Client(const Client& copy)
 	this->_portConnectedOn = copy._portConnectedOn;
 	this->_serverConfig = copy._serverConfig;
 	this->request = copy.request;
+	this->bufferUnchecked = copy.bufferUnchecked;
 }
 
 Client	&Client::operator = (const Client &src)
@@ -39,6 +40,7 @@ Client	&Client::operator = (const Client &src)
 		this->_portConnectedOn = src._portConnectedOn;
 		this->_serverConfig = src._serverConfig;
 		this->request = src.request;
+		this->bufferUnchecked = src.bufferUnchecked;
 	}
 	return (*this);
 }

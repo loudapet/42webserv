@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/21 14:49:47 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/24 16:33:12 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -227,6 +227,7 @@ bool hasValidHeaderEnd(const octets_t &receivedData)
 		if (endOfSequence != receivedData.end())
 			return (true);
 	}
+	std::cout << "NO HEADER" << std::endl;
 	return (false);
 }
 

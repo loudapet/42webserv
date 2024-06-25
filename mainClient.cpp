@@ -48,7 +48,7 @@ int main(void)
 	// 						"H"
 	// 						"GET /testdir/test.html HTTP/1.1\nConnection: keep-alive\ntest:\n"
 	// 						"Host: example.org:80\nConnection: low\ntest: no\n\n";
-	const char	*message = "\n\r\n\nGET http://localhost/abc HTTP/1.1\r\n"
+	const char	*message = "\n\r\n\nGET http://localhost/index.html HTTP/1.1\r\n"
 							"Host: s\r\n"
 							"User-Agent: Mozilla/5.0\n"
 							"Accept: text/html, */*\r\n"
@@ -121,7 +121,7 @@ int main(void)
 
 	// Receive response from the server
 	char buffer[8192] = {0};
-	sleep(2);
+	sleep(5);
 	if (recv(clientSocket, buffer, 8192, 0) == -1)
 	{
 		std::cerr << "Error: Failed to receive data\n";

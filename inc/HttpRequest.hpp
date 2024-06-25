@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/21 15:54:03 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/24 14:57:41 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -104,6 +104,7 @@ class HttpRequest
 		MessageFraming			messageFraming;
 		bool					allowedDirListing;
 		bool					isRedirect;
+		bool					hasExpect;
 		size_t					contentLength;
 		Location				location;
 		void					parseRequestLine(std::string requestLine);
@@ -142,6 +143,8 @@ class HttpRequest
 		const std::string&				getTargetResource() const;
 		const bool&						getTargetIsDirectory() const;
 		void							resetRequestObject(void);
+		bool							getHasExpect() const;
+		void							disableHasExpect();
 };
 
 std::ostream &operator<<(std::ostream &os, const octets_t &vec);

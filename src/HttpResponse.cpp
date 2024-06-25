@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/24 13:20:05 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/24 17:46:43 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -359,21 +359,26 @@ void	HttpResponse::readReturnDirective(const Location &location)
 
 const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 {
-	if (codeDict.find(this->statusLine.statusCode) == codeDict.end())
-		this->codeDict[this->statusLine.statusCode] = "Undefined";
-	this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
-	if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
-		request.response.readDirectoryListing(request.getTargetResource());
-	else if (this->statusLine.statusCode == 200)
-		request.response.readRequestedFile(request.getTargetResource());
-	else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
-		request.response.readReturnDirective(request.getLocation());
+	if (request.getHasExpect())
+		return (convertStringToOctets("HTTP/1.1 100 Continue"));
 	else
-		request.response.readErrorPage(request.getLocation());
-	request.response.buildResponseHeaders(request);
-	request.response.buildCompleteResponse();
-	octets_t message = request.response.getCompleteResponse();
-	return (message);
+	{
+		if (codeDict.find(this->statusLine.statusCode) == codeDict.end())
+			this->codeDict[this->statusLine.statusCode] = "Undefined";
+		this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
+		if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
+			request.response.readDirectoryListing(request.getTargetResource());
+		else if (this->statusLine.statusCode == 200)
+			request.response.readRequestedFile(request.getTargetResource());
+		else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
+			request.response.readReturnDirective(request.getLocation());
+		else
+			request.response.readErrorPage(request.getLocation());
+		request.response.buildResponseHeaders(request);
+		request.response.buildCompleteResponse();
+		octets_t message = request.response.getCompleteResponse();
+		return (message);
+	}
 }
 
 const octets_t &HttpResponse::getCompleteResponse() const
