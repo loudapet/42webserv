@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/27 11:53:30 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/27 15:27:29 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -399,7 +399,6 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 	std::map<int, ServerConfig>::const_iterator	it;
 	int			fdServerConfig;
 
-	// match port
 	match = false;
 	if (parserPair.second.empty())
 		portReceived = this->_clients.find(clientSocket)->second.getPortConnectedOn();
@@ -421,13 +420,12 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 		}
 	}
 	if (!match)
+		throw(ResponseException(421, "Port mismatch"));
+	if (parserPair.first.empty()) // HPTT/1.0 support
 	{
-		// Send RESPONSE
-		std::cout << "Closing connection because of port mismatch." << std::endl;
-		closeConnection(clientSocket);
+		this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
 		return ;
 	}
-	// detect IP address vs server_name (hostname)
 	if (inet_pton(AF_INET, parserPair.first.c_str(), &(sa.sin_addr)) > 0) // is host (IP address)
 	{
 		hostReceived = inet_addr(parserPair.first.data());
@@ -435,15 +433,10 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 		{
 			this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
 			//std::cout << "Choosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
-    		return ;
+	   		return ;
 		}
 		else
-		{
-			// Send RESPONSE
-			std::cout << "Closing connection because of IP address mismatch." << std::endl;
-			closeConnection(clientSocket);
-			return ;
-		}
+			throw(ResponseException(421, "IP address mismatch"));
 	}
 	else // is server_name
 	{
@@ -456,9 +449,7 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 				return ;
 			}
 		}
-		// Send RESPONSE
-		std::cout << "Closing connection because of server_name mismatch." << std::endl;
-		closeConnection(clientSocket);
+		throw(ResponseException(421, "Server name mismatch"));
 	}
 }
 
