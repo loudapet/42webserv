@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/27 14:47:15 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/27 15:27:29 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -421,6 +421,11 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 	}
 	if (!match)
 		throw(ResponseException(421, "Port mismatch"));
+	if (parserPair.first.empty()) // HPTT/1.0 support
+	{
+		this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
+		return ;
+	}
 	if (inet_pton(AF_INET, parserPair.first.c_str(), &(sa.sin_addr)) > 0) // is host (IP address)
 	{
 		hostReceived = inet_addr(parserPair.first.data());
