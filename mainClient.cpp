@@ -48,7 +48,7 @@ int main(void)
 	// 						"H"
 	// 						"GET /testdir/test.html HTTP/1.1\nConnection: keep-alive\ntest:\n"
 	// 						"Host: example.org:80\nConnection: low\ntest: no\n\n";
-	const char	*message = "\n\r\n\nGET http://localhost/tours/ HTTP/1.1\r\n"
+	const char	*message = "\n\r\n\nGET http://localhost/tours/index.html HTTP/1.1\r\n"
 							"Host: s\r\n"
 							"User-Agent: Mozilla/5.0\n"
 							"Accept: text/html, */*\r\n"
@@ -56,15 +56,16 @@ int main(void)
 							"Accept-Charset: \tISO-8859-1,utf-8\n"
 							"Connection: keep-alive , \r\n"
 							"Keep-Alive: max=100,timeout=30\n"
-							"Content-Length: 10\n"
-							"Expect: 100-continue\n"
+							//"Content-Length: 10\n"
+							"Expect: 100-continue\n\n"
 							//"Transfer-Encoding: chunked\n"
-							"\n"
-							"1234567890"
-							"GET /red HTTP/1.1\r\n"
+							//"\n"
+							//"1234567890"
+							"GET /tours HTTP/1.1\r\n"
 							"Host: localhost\r\n"
 							"User-Agent: Mozilla/5.0\n"
-							"Accept: text/html, */*\r\n";
+							"Accept: text/html, */*\r\n"
+							"Expect: 100-continue\n";
 							// "t: €h\n"
 							// "\r\n"
 							// "7;\n"
@@ -99,6 +100,23 @@ int main(void)
 							"t: €h\n"
 							"\r\n"
 							"8;\n"
+							"Chromi\r\n\n"
+							"12\r\n"
+							"Developers Network\r\n"
+							"0\r\n"
+							"\r\n"
+							"GET /../file_in_docs.html HTTP/1.1\r\n"
+							"Host: localhost\r\n"
+							"User-Agent: Mozilla/5.0\n"
+							"Accept: text/html, */*\r\n"
+							"Accept-Language: en-us\n"
+							"Accept-Charset: \tISO-8859-1,utf-8\n"
+							"Connection: keep-alive , \r\n"
+							"Keep-Alive: max=100,timeout=30\n"
+							"Transfer-Encoding: chunked\n"
+							"t: €h\n"
+							"\r\n"
+							"8;\n"
 							"Chromium\r\n"
 							"12\r\n"
 							"Developers Network\r\n"
@@ -121,7 +139,7 @@ int main(void)
 
 	// Receive response from the server
 	char buffer[8192] = {0};
-	sleep(2);
+	sleep(5);
 	if (recv(clientSocket, buffer, 8192, 0) == -1)
 	{
 		std::cerr << "Error: Failed to receive data\n";

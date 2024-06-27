@@ -3,19 +3,16 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/21 17:08:33 by okraus           ###   ########.fr       */
+/*   Updated: 2024/06/27 12:41:18 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/HttpRequest.hpp"
 #include "../inc/HttpResponse.hpp"
 #include "../inc/ResponseException.hpp"
-
-
-//std::string	root = "./docs";
 
 HttpRequest::HttpRequest()
 {
@@ -31,6 +28,7 @@ HttpRequest::HttpRequest()
 	};
 	this->headerFields = stringmap_t(); 
 	this->requestBody = octets_t();
+	this->requestBodySizeLimit = REQUEST_BODY_SIZE_LIMIT;
 	this->targetResource = "";
 	this->allowedMethods = std::set<std::string>();
 	this->connectionStatus = KEEP_ALIVE;
@@ -46,6 +44,8 @@ HttpRequest::HttpRequest()
 	this->requestComplete = false;
 	this->messageFraming = NO_CODING;
 	this->connectionStatus = KEEP_ALIVE;
+	this->hasExpect = false;
+	this->silentErrorRaised = false;
 	return ;
 }
 
@@ -61,6 +61,7 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& refObj)
 		requestLine = refObj.requestLine;
 		headerFields = refObj.headerFields;
 		requestBody = refObj.requestBody;
+		requestBodySizeLimit = refObj.requestBodySizeLimit;
 		targetResource = refObj.targetResource;
 		allowedMethods = refObj.allowedMethods;
 		connectionStatus = refObj.connectionStatus;
@@ -73,6 +74,8 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& refObj)
 		readingBodyInProgress = refObj.readingBodyInProgress;
 		requestComplete = refObj.requestComplete;
 		targetIsDirectory = refObj.targetIsDirectory;
+		hasExpect = refObj.hasExpect;
+		silentErrorRaised = refObj.silentErrorRaised;
 	}
 	return (*this);
 }
@@ -345,6 +348,8 @@ void	HttpRequest::parseFieldSection(std::vector<std::string>& fields)
 	for (std::vector<std::string>::iterator it = fields.begin() ; it != fields.end() ; it++)
 	{
 		fieldIter = it->begin();
+		if (it->find_first_of(':') == std::string::npos)
+			throw (ResponseException(400, "Expected a field name"));
 		std::advance(fieldIter, it->find_first_of(':'));
 		fieldName = std::string(it->begin(), fieldIter);
 		std::transform(fieldName.begin(), fieldName.end(), fieldName.begin(), tolower);
@@ -551,13 +556,19 @@ void	HttpRequest::validateConnectionOption(void)
 	}
 }
 
-// http://hello//testdir/a will get redirected to /testdir/a/
+static void	removeDoubleSlash(std::string& str)
+{
+	size_t pos;
+	while ((pos = str.find("//")) != std::string::npos)
+		str.erase(pos, 1);
+}
+
 void	HttpRequest::validateResourceAccess(const Location& location)
 {
 	std::string	path = location.getPath();
-	if (*path.rbegin() != '/')
-		path = path + "/";
 	std::string	root = location.getRoot();
+	if (*this->requestLine.requestTarget.absolutePath.rbegin() == '/' && *path.rbegin() != '/')
+		path = path + "/";
 	std::cout << CLR3 << "path:\t" << path << RESET << std::endl;
 	std::cout << CLR3 << "root:\t" << root << RESET << std::endl;
 	std::cout << CLR3 << "URL:\t" << this->requestLine.requestTarget.absolutePath << RESET << std::endl;
@@ -565,19 +576,24 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 	this->targetResource = this->requestLine.requestTarget.absolutePath;
    	this->targetResource.replace(pos, path.length(), root);
 	this->allowedDirListing = location.getAutoindex();
+	removeDoubleSlash(this->targetResource);
 	std::cout << CLR3 << "Final path:\t" << this->targetResource << RESET << std::endl;
 	if (!this->isRedirect && this->requestLine.method == "GET")
 	{
-		int			validFile;
+		int	validFile;
 		struct stat	fileCheckBuff;
 		validFile = stat(targetResource.c_str(), &fileCheckBuff);
-		
 		if (validFile < 0)
 			this->response.updateStatus(404, "File does not exist");		
-		if (*targetResource.rbegin() != '/') // if it's a normal file, do nothing
+		if (*targetResource.rbegin() != '/')
 		{
 			if (S_ISDIR(fileCheckBuff.st_mode)) // redirect to the existing folder
-				throw (ResponseException(301, "")); // will likely not be an exception, but a proper response handler
+				this->response.updateStatus(301, "Trying to access a directory"); // DO NOT CHANGE THE STRING! (connected to prepareHeaders in Http::Response)
+			else  // if it's a normal file, check access
+			{
+				if (access(targetResource.c_str(), R_OK) < 0)
+					this->response.updateStatus(403, "Access forbidden");
+			}
 		}
 		else if (*targetResource.rbegin() == '/') // target is a directory
 		{
@@ -585,9 +601,10 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 			bool						validIndexPage = false;
 			for (size_t i = 0; i < pages.size(); i++)
 			{
-				if (access(pages[i].c_str(), R_OK))
+				if (access((this->targetResource + pages[i]).c_str(), R_OK | F_OK) > 0)
 				{
-					this->targetResource += resolveDotSegments(pages[i], REQUEST);
+					this->targetResource += pages[i];
+					this->targetResource = resolveDotSegments(this->targetResource, REQUEST);
 					validIndexPage = true;
 					break ;
 				}
@@ -614,8 +631,7 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 		this->response.lockStatusCode();
 		this->response.setStatusCode(location.getReturnCode());
 	}
-
-	// handle redirections, POST and DELETE
+	// POST and DELETE
 }
 
 void	HttpRequest::validateMessageFraming(void)
@@ -663,8 +679,12 @@ void	HttpRequest::manageExpectations(void)
 	{
 		if (expectation->second != "100-continue")
 			this->response.updateStatus(417, "");
-		else
-			this->response.updateStatus(100, "");
+		else if (this->response.getStatusCode() < 299)
+		{
+			this->hasExpect = true;
+			this->readingBodyInProgress = true;
+			throw (ResponseException(100, "Continue"));
+		}
 	}
 }
 
@@ -677,8 +697,9 @@ void	HttpRequest::validateHeader(const Location& location)
 {
 	this->location = location;
 	this->isRedirect = location.getIsRedirect();
-	std::set<std::string>	allowedMethods = location.getAllowMethods();
-	this->allowedMethods = allowedMethods;
+	this->allowedMethods = location.getAllowMethods();
+	this->requestBodySizeLimit = location.getRequestBodySizeLimit();
+
 	if (std::find(allowedMethods.begin(), allowedMethods.end(), this->requestLine.method) == allowedMethods.end())
 		this->response.updateStatus(405, "Method Not Allowed");
 	this->validateConnectionOption();
@@ -687,8 +708,7 @@ void	HttpRequest::validateHeader(const Location& location)
 	this->manageExpectations();
 }
 
-// check max body size
-// also should check for valid characters  in extension(?)
+// also should check for valid characters in extension(?)
 size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 {
 	size_t	bytesRead = 0;
@@ -698,7 +718,9 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 		return (0);
 	}
 	if (this->messageFraming == CONTENT_LENGTH)
-	{		
+	{
+		if (this->contentLength > static_cast<size_t>(this->requestBodySizeLimit))
+			throw (ResponseException(413, "Payload too large"));
 		this->requestBody = octets_t(bufferedBody.begin(), bufferedBody.begin() + this->contentLength);
 		this->readingBodyInProgress = false;
 		this->requestComplete = true;
@@ -717,18 +739,18 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 			std::cout << "Chunk size: " << chunkSizeOct << std::endl;
 			bufferedBody.erase(bufferedBody.begin(), newline + 1); // move to the beginning of the chunk
 			if (chunkSizeOct.size() > 0 && !isxdigit(chunkSizeOct[0]))
-				throw (ResponseException(400, "Invalid chunk size value (whitespace)")); // anything else than a hexdigit at the start isn't allowed
+				throw (ResponseException(400, "Invalid chunk size value")); // anything else than a hexdigit at the start isn't allowed
 			if (std::count(chunkSizeOct.begin(), chunkSizeOct.end(), '\0') > 0)
 				throw (ResponseException(400, "Invalid chunk size value (null byte)")); // needs special check prior to conversion to string
-			std::string		chunkSizeStr(chunkSizeOct.begin(), chunkSizeOct.end());
+			std::string	chunkSizeStr(chunkSizeOct.begin(), chunkSizeOct.end());
 			chunkSizeStr = trim(chunkSizeStr);
 			if (chunkSizeStr.find_first_not_of(HEXDIGITS) != std::string::npos)
 				throw (ResponseException(400, "Invalid chunk size value"));
 			errno = 0;
 			size_t chunkSize = strtoul(chunkSizeStr.c_str(), NULL, 16);
 			int	error = errno;
-			if (error == ERANGE || chunkSize > INT_MAX) // update to max_body_size too
-				throw (ResponseException(413, "Chunk is too big"));
+			if (error || this->requestBody.size() + chunkSize > static_cast<size_t>(this->requestBodySizeLimit) || chunkSize > INT_MAX)
+				throw (ResponseException(413, "Payload too large"));
 
 			if (chunkSize == 0)
 			{
@@ -840,7 +862,15 @@ const bool&	HttpRequest::getTargetIsDirectory() const
 	return (this->targetIsDirectory);
 }
 
+bool	HttpRequest::getHasExpect() const
+{
+    return (this->hasExpect);
+}
 
+void	HttpRequest::disableHasExpect()
+{
+	this->hasExpect = false;
+}
 
 std::ostream &operator<<(std::ostream &os, const octets_t &vec)
 {
@@ -899,6 +929,7 @@ void	HttpRequest::resetRequestObject(void)
 	this->requestLine = newRequest.requestLine;
 	this->headerFields = newRequest.headerFields;
 	this->requestBody.clear();
+	this->requestBodySizeLimit = newRequest.requestBodySizeLimit;
 	this->targetResource.clear();
 	this->connectionStatus = newRequest.connectionStatus;
 	this->allowedDirListing = newRequest.allowedDirListing;
@@ -909,4 +940,7 @@ void	HttpRequest::resetRequestObject(void)
 	this->readingBodyInProgress = newRequest.readingBodyInProgress;
 	this->response = newResponse;
 	this->targetIsDirectory = newRequest.targetIsDirectory;
+	this->hasExpect = newRequest.hasExpect;
+	this->location = newRequest.location;
+	this->silentErrorRaised = newRequest.silentErrorRaised;
 }

@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/21 15:54:03 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/27 11:28:30 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -97,6 +97,7 @@ class HttpRequest
 		requestLine_t			requestLine;
 		stringmap_t				headerFields;
 		octets_t				requestBody;
+		int						requestBodySizeLimit;
 		std::string				targetResource; // used to access the resource after URI with location's root
 		bool					targetIsDirectory;
 		std::set<std::string>	allowedMethods;
@@ -104,6 +105,8 @@ class HttpRequest
 		MessageFraming			messageFraming;
 		bool					allowedDirListing;
 		bool					isRedirect;
+		bool					hasExpect;
+		bool					silentErrorRaised;
 		size_t					contentLength;
 		Location				location;
 		void					parseRequestLine(std::string requestLine);
@@ -142,6 +145,8 @@ class HttpRequest
 		const std::string&				getTargetResource() const;
 		const bool&						getTargetIsDirectory() const;
 		void							resetRequestObject(void);
+		bool							getHasExpect() const;
+		void							disableHasExpect();
 };
 
 std::ostream &operator<<(std::ostream &os, const octets_t &vec);

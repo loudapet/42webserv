@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/21 16:36:36 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/27 11:29:46 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,6 +76,7 @@ HttpResponse& HttpResponse::operator=(const HttpResponse& refObj)
 		responseBody = refObj.responseBody;
 		completeResponse = refObj.completeResponse;
 		codeDict = refObj.codeDict;
+		this->statusLocked = refObj.statusLocked;
 	}
 	return (*this);
 }
@@ -148,7 +149,10 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 	}
 	if (this->statusLine.statusCode >= 300 && this->statusLine.statusCode <= 308)
 	{
-		this->headerFields["Location: "] = request.getLocation().getReturnURLOrBody();
+		if (this->statusDetails == "Trying to access a directory")
+			this->headerFields["Location: "] = request.getAbsolutePath() + "/";
+		else
+			this->headerFields["Location: "] = request.getLocation().getReturnURLOrBody();
 	}
 	if (this->statusLine.statusCode == 405)
 	{
@@ -197,6 +201,7 @@ void	HttpResponse::readErrorPage(const Location &location)
 
 void HttpResponse::readRequestedFile(const std::string &targetResource)
 {
+	std::cout << CLR3 << targetResource << RESET << std::endl;
 	std::ifstream	stream(targetResource.c_str(), std::ios::binary);
 	octets_t		contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
 	this->responseBody.insert(this->responseBody.end(), contents.begin(), contents.end());
@@ -332,7 +337,6 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 				<< "\r\n";
 			}
 		}
-		//bzero(&fileCheckBuff, sizeof(fileCheckBuff));
 		strings.insert(tempstream.str());
 	}
 	std::set<std::string>::iterator it;
@@ -355,21 +359,26 @@ void	HttpResponse::readReturnDirective(const Location &location)
 
 const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 {
-	if (codeDict.find(this->statusLine.statusCode) == codeDict.end())
-		this->codeDict[this->statusLine.statusCode] = "Undefined";
-	this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
-	if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
-		request.response.readDirectoryListing(request.getTargetResource());
-	else if (this->statusLine.statusCode == 200)
-		request.response.readRequestedFile(request.getTargetResource());
-	else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
-		request.response.readReturnDirective(request.getLocation());
+	if (request.getHasExpect())
+		return (convertStringToOctets("HTTP/1.1 100 Continue"));
 	else
-		request.response.readErrorPage(request.getLocation());
-	request.response.buildResponseHeaders(request);
-	request.response.buildCompleteResponse();
-	octets_t message = request.response.getCompleteResponse();
-	return (message);
+	{
+		if (codeDict.find(this->statusLine.statusCode) == codeDict.end())
+			this->codeDict[this->statusLine.statusCode] = "Undefined";
+		this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
+		if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
+			request.response.readDirectoryListing(request.getTargetResource());
+		else if (this->statusLine.statusCode == 200)
+			request.response.readRequestedFile(request.getTargetResource());
+		else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
+			request.response.readReturnDirective(request.getLocation());
+		else
+			request.response.readErrorPage(request.getLocation());
+		request.response.buildResponseHeaders(request);
+		request.response.buildCompleteResponse();
+		octets_t message = request.response.getCompleteResponse();
+		return (message);
+	}
 }
 
 const octets_t &HttpResponse::getCompleteResponse() const

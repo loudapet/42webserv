@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/21 17:05:16 by okraus           ###   ########.fr       */
+/*   Updated: 2024/06/27 11:53:30 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -285,20 +285,20 @@ void	ServerMaster::listenForConnections(void)
 		// run through the existing connections looking for data to read
 		for (int i = 0; i <= this->_fdMax; i++)
 		{
-			if (FD_ISSET(i, &readFds)) // finds a socket with data to read
+			if (FD_ISSET(i, &readFds) || (this->_clients.count(i) && this->_clients.find(i)->second.bufferUnchecked)) // finds a socket with data to read
 			{
 				if (this->_servers.count(i)) // indicates that the server socket is ready to read which means that a client is attempting to connect
 					acceptConnection(i);
 				else if (this->_clients.count(i))
 				{
-					handleDataFromClient(i);
+					if (FD_ISSET(i, &readFds))
+						handleDataFromClient(i);
+					this->_clients.find(i)->second.bufferUnchecked = false;
 					size_t	bytesToDelete = 0;
 					if (this->_clients.find(i) == this->_clients.end()) // temp fix for a closed client
-					{
-						std::cout << CLR4 << "I have been closed" << RESET << std::endl;
 						continue;
-					}
 					Client	&client = this->_clients.find(i)->second;
+					std::cout << client.getReceivedData().size() << std::endl;
 					while (client.getReceivedData().size() > 0 && this->_clients.find(i) != this->_clients.end()) // won't go back to select until it processes all the data in the buffer
 					{
 						try
@@ -317,18 +317,20 @@ void	ServerMaster::listenForConnections(void)
 								client.request.validateHeader(matchLocation( client.request.getAbsolutePath(), serverConfig.getLocations(),
 									serverConfig.getIsRedirect(), serverConfig.getReturnCode(), serverConfig.getReturnURLOrBody()));
 								client.request.readingBodyInProgress = true;
+								/* if (client.request.getHasExpect()) 
+									throw (ResponseException(100, "Continue")); - moved to HttpRequest */
 							}
-							std::cout << CLR1 << "Header:\n" << client.getReceivedHeader();
 							std::cout << "Body:\n" << client.getReceivedData() << RESET << std::endl;
 							if (client.request.readingBodyInProgress) // processing request body
 							{
-								bytesToDelete = client.request.readRequestBody(client.getReceivedData());
+								bytesToDelete = client.request.readRequestBody(client.getReceivedData());									
 								client.eraseRangeReceivedData(0, bytesToDelete);
-								if (!client.request.requestComplete && bytesToDelete == 0)
+								if (!client.request.requestComplete && bytesToDelete == 0) // waiting for the rest of the body as indicated by message framing - going back to select()
 									break ;
 							}
 							if (client.request.requestComplete)
 							{
+								std::cout << "Changing to send() " << i << std::endl;
 								removeFdFromSet(this->_readFds, i);
 								addFdToSet(this->_writeFds, i);
 								break ;
@@ -336,8 +338,12 @@ void	ServerMaster::listenForConnections(void)
 						}
 						catch(const ResponseException& e) // this should be in the loop, in order not to close connection for 3xx status codes
 						{
-							client.request.response.setStatusLineAndDetails(e.getStatusLine(), e.getStatusDetails());
-							client.request.setConnectionStatus(CLOSE);
+							if (e.getStatusLine().statusCode != 100)
+							{
+								client.request.response.setStatusLineAndDetails(e.getStatusLine(), e.getStatusDetails());
+								client.request.setConnectionStatus(CLOSE);
+							}
+							std::cout << "Changing to send() " << i << std::endl;
 							removeFdFromSet(this->_readFds, i);
 							addFdToSet(this->_writeFds, i);
 							break ;
@@ -348,6 +354,7 @@ void	ServerMaster::listenForConnections(void)
 			else if (FD_ISSET(i, &writeFds) && this->_clients.count(i))
 			{
 				// CGI TBA - add conditions for it, othwerwise send normal response
+				std::cout << "WE'RE IN WRITE FD" << std::endl;
 				Client	&client = this->_clients.find(i)->second;
 				octets_t message = client.request.response.prepareResponse(client.request);
 				size_t buffLen = message.size();
@@ -355,16 +362,25 @@ void	ServerMaster::listenForConnections(void)
 				for (size_t i = 0; i < buffLen; i++)
 					buff[i] = message[i];
 				std::string buffStr(buff, buffLen); // prevents invalid read size from valgrind as buff is not null-terminated, it's a binary buffer so that we can send binery files too (e.g. executables)
-				std::cout << CLR4 << "SEND: " << buffStr << RESET << std::endl;
+				//std::cout << CLR4 << "SEND: " << buffStr << RESET << std::endl;
+				//std::cout << "BUFF: " << client.getReceivedData() << std::endl;
 				if (send(i, buff, buffLen, 0) == -1)
 					std::cerr << "Error sending acknowledgement to client." << std::endl;
 				delete[] buff;
+				std::cout << "Changing to recv() " << i << std::endl;
+				if (client.getReceivedData().size() > 0) // ensures we get back to reading the buffer without needing to go through select()
+					this->_clients.find(i)->second.bufferUnchecked = true;
 				removeFdFromSet(this->_writeFds, i);
 				addFdToSet(this->_readFds, i);
-				if (client.request.getConnectionStatus() == CLOSE)
-					closeConnection(i);
+				if (!client.request.getHasExpect())
+				{
+					if (client.request.getConnectionStatus() == CLOSE)
+						closeConnection(i);
+					else
+						client.request.resetRequestObject(); // reset request object for the next request, resetting requestComplete and readingBodyInProgress flags is particularly important
+				}
 				else
-					client.request.resetRequestObject(); // reset request object for the next request, resetting requestComplete and readingBodyInProgress flags is particularly important
+					client.request.disableHasExpect();
 			}
 		}
 		checkForTimeout();
@@ -490,6 +506,7 @@ void	ServerMaster::handleDataFromClient(const int clientSocket)
 	
 	memset(recvBuf, 0, sizeof(recvBuf)); // clear the receive buffer
 	Client &clientToHandle = this->_clients.find(clientSocket)->second; // reference to the client object
+	//if (((bytesReceived = recv(clientSocket, recvBuf, sizeof(recvBuf), 0)) <= 0) && clientToHandle.getReceivedData().size() == 0)
 	if ((bytesReceived = recv(clientSocket, recvBuf, sizeof(recvBuf), 0)) <= 0)
 	{
 		if (bytesReceived == 0) // if the client has closed the connection

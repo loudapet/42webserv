@@ -6,11 +6,12 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/21 14:49:47 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/27 11:43:06 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/webserv.hpp"
+#include "../inc/ResponseException.hpp"
 
 bool	validateElement(std::string &element)
 {
@@ -201,7 +202,7 @@ std::string	resolveDotSegments(std::string path, DotSegmentsResolution flag)
 			else if (flag == CONFIG)
 				throw(std::invalid_argument("Config parser: Path above root.")); // will be caught in main
 			else
-				throw(std::invalid_argument("400 Bad Request: Invalid relative reference")); //rewrite to custom exception
+				throw(ResponseException(400, "Invalid relative path segment"));
 		}
 		else if (buffer != "." && buffer != "")
 			output.push(buffer + std::string("/"));
@@ -227,6 +228,7 @@ bool hasValidHeaderEnd(const octets_t &receivedData)
 		if (endOfSequence != receivedData.end())
 			return (true);
 	}
+	std::cout << "NO HEADER" << std::endl;
 	return (false);
 }
 
