@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/24 17:46:43 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/27 11:29:46 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,6 +76,7 @@ HttpResponse& HttpResponse::operator=(const HttpResponse& refObj)
 		responseBody = refObj.responseBody;
 		completeResponse = refObj.completeResponse;
 		codeDict = refObj.codeDict;
+		this->statusLocked = refObj.statusLocked;
 	}
 	return (*this);
 }
@@ -336,7 +337,6 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 				<< "\r\n";
 			}
 		}
-		//bzero(&fileCheckBuff, sizeof(fileCheckBuff));
 		strings.insert(tempstream.str());
 	}
 	std::set<std::string>::iterator it;
