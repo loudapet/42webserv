@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/27 12:41:18 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/27 15:34:58 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -131,9 +131,6 @@ void	HttpRequest::parseMethod(std::string& token)
 	else if (token == "HEAD" || token == "PUT" || token == "CONNECT"
 			|| token == "OPTIONS" || token == "PATCH" || token == "TRACE")
 		this->response.updateStatus(501, "Method not supported");
-		//throw (ResponseException(501, "Method not supported"));
-	// else
-	// 	throw (ResponseException(400, "Unknown method name"));
 }
 
 void resolvePercentEncoding(std::string& path, size_t& pos)
@@ -194,9 +191,17 @@ stringpair_t	HttpRequest::parseAuthority(std::string& authority, HostLocation pa
 	std::string		port("");
 	size_t			portPos = authority.find_first_of(":");
 	int	i = 0;
+	std::cout << CLR2 << portPos << RESET << std::endl;
 	if (portPos == std::string::npos)
 	{
 		host = std::string(authority);
+		if (host.size() == 0)
+		{
+			if (parseLocation == URI)
+				throw(ResponseException(400, "Empty host name in URI"));
+			else
+				throw(ResponseException(400, "Empty host name in host header field"));
+		}
 		port = "";
 	}
 	else if (portPos == 0)
@@ -297,7 +302,6 @@ void	HttpRequest::parseRequestTarget(std::string& uri)
 	return ;
 }
 
-// pending response to invalid versions and to version 1.0
 void	HttpRequest::parseHttpVersion(std::string& token)
 {
 	std::string::iterator	slash = std::find(token.begin(), token.end(), '/');
@@ -306,8 +310,15 @@ void	HttpRequest::parseHttpVersion(std::string& token)
 		throw(ResponseException(400, "Invalid protocol specification"));
 	std::string	version(slash + 1, std::find_if(token.begin(), token.end(), isspace));
 	if (version != "1.1")
-		throw(ResponseException(505, "Currently only 1.1 supported"));
-	this->requestLine.httpVersion = token;
+	{
+		if (version == "0.9")
+			throw (ResponseException(426, "Supported HTTP versions: 1.0, 1.1"));
+		else if (version != "1.0")
+			throw (ResponseException(505, "Currently only 1.x supported"));
+	}
+	this->requestLine.httpVersion = version;
+	if (version == "1.0")
+		this->connectionStatus = CLOSE;
 }
 
 void	HttpRequest::parseRequestLine(std::string requestLine)
@@ -384,7 +395,7 @@ void	HttpRequest::parseFieldSection(std::vector<std::string>& fields)
 			mapIter->second.append(std::string(",") + std::string(fieldValue));
 		}
 	}
-	if (this->headerFields.find("host") == this->headerFields.end())
+	if (this->headerFields.find("host") == this->headerFields.end() && this->requestLine.httpVersion == "1.1")
 		throw(ResponseException(400, "Missing Host header field"));
 }
 
@@ -394,26 +405,28 @@ void	HttpRequest::parseFieldSection(std::vector<std::string>& fields)
 // 3/ identify comma-separated hosts (or automatically consider them as a singleton field)
 stringpair_t	HttpRequest::resolveHost(void)
 {
-	stringmap_t::iterator	hostIter = this->headerFields.find("host");
-	stringpair_t			hostHeader = this->parseAuthority(hostIter->second, HEADER_FIELD);
 	stringpair_t			authority("","");
-	size_t					pos = 0;
-	pos = hostHeader.first.find('%');
-	while (pos != std::string::npos && pos < hostHeader.first.size())
+	if (this->headerFields.find("host") != this->headerFields.end()) // relevant for 1.0, where it is possible not to have a Host header field
 	{
-		resolvePercentEncoding(hostHeader.first, pos);
-		pos = hostHeader.first.find('%', pos);
+		stringmap_t::iterator	hostIter = this->headerFields.find("host");
+		stringpair_t			hostHeader = this->parseAuthority(hostIter->second, HEADER_FIELD);
+		size_t					pos = 0;
+		pos = hostHeader.first.find('%');
+		while (pos != std::string::npos && pos < hostHeader.first.size())
+		{
+			resolvePercentEncoding(hostHeader.first, pos);
+			pos = hostHeader.first.find('%', pos);
+		}
+		if (hostHeader.first != "")
+		{
+			authority.first = hostHeader.first;
+			authority.second = hostHeader.second;
+		}
 	}
-
 	if (this->requestLine.requestTarget.authority.first != "")
 	{
 		authority.first = this->requestLine.requestTarget.authority.first;
 		authority.second = this->requestLine.requestTarget.authority.second;
-	}
-	else if (hostHeader.first != "")
-	{
-		authority.first = hostHeader.first;
-		authority.second = hostHeader.second;
 	}
 	return (authority);
 }
@@ -530,13 +543,25 @@ void	HttpRequest::validateConnectionOption(void)
 				throw (ResponseException(400, "Invalid characters in Connection header field"));
 			std::transform(option->begin(), option->end(), option->begin(), tolower);
 		}
-		if (std::find(values.begin(), values.end(), "close") != values.end())
-			connectionStatus = CLOSE;
+		if (this->requestLine.httpVersion == "1.1")
+		{
+			if (std::find(values.begin(), values.end(), "close") != values.end())
+				connectionStatus = CLOSE;
+			else
+				connectionStatus = KEEP_ALIVE;
+		}
 		else
-			connectionStatus = KEEP_ALIVE;
+		{
+			if (std::find(values.begin(), values.end(), "keep-alive") != values.end() && this->requestLine.httpVersion == "1.0")
+				connectionStatus = KEEP_ALIVE;
+			else
+				connectionStatus = CLOSE;
+		}
 	}
-	else
+	else if (this->requestLine.httpVersion == "1.1")
 		this->connectionStatus = KEEP_ALIVE;
+	else
+		this->connectionStatus = CLOSE;
 	if (keepAlive != this->headerFields.end() && std::find(values.begin(), values.end(), "keep-alive") != values.end() 
 			&& this->connectionStatus == KEEP_ALIVE) // only apply this when keep-alive option is set in Connection and close wasn't indicated
 	{
@@ -639,6 +664,8 @@ void	HttpRequest::validateMessageFraming(void)
 	stringmap_t::iterator	transferEncoding = this->headerFields.find("transfer-encoding");
 	stringmap_t::iterator	contentLength = this->headerFields.find("content-length");
 	std::vector<std::string>	values;
+	if (transferEncoding != this->headerFields.end() && this->requestLine.httpVersion == "1.0")
+		throw (ResponseException(400, "Faulty message framing - TE disallowed in HTTP/1.0"));
 	if (transferEncoding != this->headerFields.end() && contentLength != this->headerFields.end())
 		throw (ResponseException(400, "Ambiguous message framing"));
 	if (transferEncoding != this->headerFields.end())
@@ -705,7 +732,8 @@ void	HttpRequest::validateHeader(const Location& location)
 	this->validateConnectionOption();
 	this->validateResourceAccess(location);
 	this->validateMessageFraming();
-	this->manageExpectations();
+	if (this->requestLine.httpVersion == "1.1")
+		this->manageExpectations();
 }
 
 // also should check for valid characters in extension(?)

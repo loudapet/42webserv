@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/27 11:29:46 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/27 13:37:41 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,24 +23,46 @@ HttpResponse::HttpResponse()
 	this->codeDict[200] = "OK";
 	this->codeDict[201] = "Created";
 	this->codeDict[202] = "Accepted";
+	this->codeDict[203] = "Non-Authoritative Information";
+	this->codeDict[204] = "No Content";
+	this->codeDict[205] = "Reset Content";
+	this->codeDict[206] = "Partial Content";
+	this->codeDict[300] = "Multiple Choices";
 	this->codeDict[301] = "Moved Permanently";
 	this->codeDict[302] = "Found";
 	this->codeDict[303] = "See Other";
+	this->codeDict[304] = "Not Modified";
+	this->codeDict[305] = "Use Proxy";
+	this->codeDict[306] = "Unused";
 	this->codeDict[307] = "Temporary Redirect";
 	this->codeDict[308] = "Permanent Redirect";
 	this->codeDict[400] = "Bad Request";
+	this->codeDict[401] = "Unauthorized";
+	this->codeDict[402] = "Payment required";
 	this->codeDict[403] = "Forbidden";
 	this->codeDict[404] = "Not Found";
 	this->codeDict[405] = "Method Not Allowed";
+	this->codeDict[406] = "Not Acceptable";
+	this->codeDict[407] = "Proxy Authentication Required";
 	this->codeDict[408] = "Request Timeout";
+	this->codeDict[409] = "Conflict";
+	this->codeDict[410] = "Gone";
 	this->codeDict[411] = "Length Required";
+	this->codeDict[412] = "Precondition Failed";
 	this->codeDict[413] = "Content Too Large";
 	this->codeDict[414] = "URI Too Long";
 	this->codeDict[415] = "Unsupported Media Type";
+	this->codeDict[416] = "Range Not Satisfiable";
 	this->codeDict[417] = "Expectation Failed";
+	this->codeDict[418] = "Unused";
 	this->codeDict[421] = "Misdirected Request";
+	this->codeDict[422] = "Unprocessable Content";
+	this->codeDict[426] = "Upgrade Required";
 	this->codeDict[500] = "Internal Server Error";
 	this->codeDict[501] = "Not Implemented";
+	this->codeDict[502] = "Bad Gateway";
+	this->codeDict[503] = "Service Unavailable";
+	this->codeDict[504] = "Gateway Timeout";
 	this->codeDict[505] = "HTTP Version Not Supported";
 	this->responseBody = octets_t();
 	this->completeResponse = octets_t();
@@ -165,6 +187,11 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 				methods.append(", ");
 		}
 		this->headerFields["Allow: "] = methods;
+	}
+	if (this->statusLine.statusCode == 426)
+	{
+		this->headerFields["Connection: "].append(", Upgrade");
+		this->headerFields["Upgrade: "] = "HTTP/1.1";
 	}
 	for (stringmap_t::iterator it = this->headerFields.begin() ; it != this->headerFields.end() ; it++)
 		it->second.append(CRLF);
