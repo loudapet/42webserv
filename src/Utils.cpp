@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/28 09:33:48 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/28 16:50:03 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -215,23 +215,6 @@ std::string	resolveDotSegments(std::string path, DotSegmentsResolution flag)
 		output.pop();
 	}
 	return (newPath);
-}
-
-bool hasValidHeaderEnd(const octets_t &receivedData)
-{
-	std::string sequences[] = {"\r\n\n", "\n\n", "\n\r\n", "\r\n\r\n"};
-	std::vector<unsigned char>::const_iterator endOfSequence;
-
-	for (int i = 0; i < 4; ++i)
-	{
-		endOfSequence = std::search(receivedData.begin(), receivedData.end(), sequences[i].begin(), sequences[i].end());
-		if (endOfSequence != receivedData.end())
-			return (true);
-	}
-	std::cout << "NO HEADER" << std::endl;
-	if (receivedData.size() > CLIENT_MESSAGE_BUFF * 2)
-		throw(ResponseException(413, "Request header too large"));
-	return (false);
 }
 
 octets_t	convertStringToOctets(std::string str)

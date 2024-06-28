@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/28 16:24:04 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/28 17:12:42 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -304,7 +304,7 @@ void	ServerMaster::listenForConnections(void)
 					{
 						try
 						{	
-							if (!client.request.requestComplete && !client.request.readingBodyInProgress && !hasValidHeaderEnd(client.getReceivedData())) // client hasn't sent a valid header yet so we need to go back to select
+							if (!client.request.requestComplete && !client.request.readingBodyInProgress && !client.hasValidHeaderEnd()) // client hasn't sent a valid header yet so we need to go back to select
 								break ;
 							if (!client.request.requestComplete && !client.request.readingBodyInProgress) // client has sent a valid header, this is the first while iteration, so we parse it
 							{
@@ -508,6 +508,7 @@ void	ServerMaster::acceptConnection(int serverSocket)
 	newClient.setPortConnectedOn(ntohs(serverAddr.sin_port));
 	std::cout << "Client connected to server port: " << newClient.getPortConnectedOn() << std::endl;
 	newClient.updateTimeLastMessage();
+	newClient.updateTimeLastValidHeaderEnd();
 	addFdToSet(this->_readFds, clientSocket);
 	if (fcntl(clientSocket, F_SETFL, O_NONBLOCK) < 0) // so that the sockets don't block each other in nested while on recv
 	{
@@ -562,6 +563,8 @@ void	ServerMaster::checkForTimeout(void)
 		{
 			if (time(NULL) - it->second.getTimeLastMessage() > CONNECTION_TIMEOUT)
 				throw(ResponseException(408, "Connection inactive for too long"));
+			if (time(NULL) - it->second.getTimeLastValidHeaderEnd() > VALID_HEADER_TIMEOUT && it->second.getReceivedData().size() > 0)
+				throw(ResponseException(408, "Request header timeout"));
 		}
 		catch(const ResponseException& e)
 		{
