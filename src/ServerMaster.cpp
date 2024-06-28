@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/28 14:34:32 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/28 16:24:04 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -357,9 +357,18 @@ void	ServerMaster::listenForConnections(void)
 				// CGI TBA - add conditions for it, othwerwise send normal response
 				std::cout << "WE'RE IN WRITE FD" << std::endl;
 				Client	&client = this->_clients.find(i)->second;
-				client.request.response.setMessage(client.request.response.prepareResponse(client.request));
+				if(!client.request.response.getMessageTooLongForOneSend())
+					client.request.response.setMessage(client.request.response.prepareResponse(client.request));
 				octets_t message = client.request.response.getMessage();
-				size_t buffLen = message.size();
+				size_t messageLen = message.size();
+				size_t buffLen;
+				if (messageLen <= CLIENT_MESSAGE_BUFF)
+					buffLen = messageLen;
+				else
+				{
+					buffLen = CLIENT_MESSAGE_BUFF;
+					client.request.response.setMessageTooLongForOneSend(true);
+				}
 				char*	buff = new char [buffLen];
 				for (size_t i = 0; i < buffLen; i++)
 					buff[i] = message[i];
@@ -367,6 +376,8 @@ void	ServerMaster::listenForConnections(void)
 				//std::cout << CLR4 << "SEND: " << buffStr << RESET << std::endl;
 				//std::cout << "BUFF: " << client.getReceivedData() << std::endl;
 				sendResult = send(i, buff, buffLen, 0);
+				if (DEBUG)
+					std::cout << "\033[31m" << "Bytes sent: " << sendResult << RESET << std::endl;
 				if (sendResult == -1)
 				{
 					std::cerr << "Error sending acknowledgement to client." << std::endl;
@@ -374,6 +385,16 @@ void	ServerMaster::listenForConnections(void)
 				}
 				else if (sendResult < static_cast<int>(buffLen))
 					client.request.response.eraseRangeMessage(0, sendResult);
+				else if (messageLen > CLIENT_MESSAGE_BUFF)
+				{
+					if (DEBUG)
+						std::cout << "\033[31m" << "message too long for 8 KB buffer" << RESET << std::endl;
+					if (DEBUG)
+						std::cout << "Message size before erase of buffLen: " << client.request.response.getMessage().size() << std::endl;
+					client.request.response.eraseRangeMessage(0, buffLen);
+					if (DEBUG)
+						std::cout << "Message size after erase of buffLen: " << client.request.response.getMessage().size() << std::endl;
+				}
 				else
 				{
 					std::cout << "Changing to recv() " << i << std::endl;

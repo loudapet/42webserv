@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/28 10:30:43 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/28 15:25:16 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,6 +68,7 @@ HttpResponse::HttpResponse()
 	this->completeResponse = octets_t();
 	this->statusLocked = false;
 	this->message = octets_t();
+	this->messageTooLongForOneSend = false;
 	return ;
 }
 
@@ -101,6 +102,7 @@ HttpResponse& HttpResponse::operator=(const HttpResponse& refObj)
 		codeDict = refObj.codeDict;
 		statusLocked = refObj.statusLocked;
 		message = refObj.message;
+		messageTooLongForOneSend = refObj.messageTooLongForOneSend;
 	}
 	return (*this);
 }
@@ -430,4 +432,14 @@ void	HttpResponse::eraseRangeMessage(size_t start, size_t end)
 {
 	if (start <= end && end <= this->message.size())
 		this->message.erase(this->message.begin() + start, this->message.begin() + end);
+}
+
+bool	HttpResponse::getMessageTooLongForOneSend() const
+{
+	return (this->messageTooLongForOneSend);
+}
+
+void	HttpResponse::setMessageTooLongForOneSend(bool value)
+{
+	this->messageTooLongForOneSend = value;
 }

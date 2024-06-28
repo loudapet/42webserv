@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/28 10:30:56 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/28 15:22:09 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,9 +34,10 @@ class HttpResponse
 		stringmap_t		headerFields;
 		octets_t		responseBody;
 		octets_t		completeResponse;
-		octets_t		message;
 		bool			statusLocked;
 		std::map<unsigned short,std::string>	codeDict;
+		octets_t		message;
+		bool			messageTooLongForOneSend;
 
 		void				readRequestedFile(const std::string& targetResource);
 		void				readErrorPage(const Location &location);
@@ -64,6 +65,8 @@ class HttpResponse
 		const octets_t&			getMessage() const;
 		void					setMessage(const octets_t& message);
 		void					eraseRangeMessage(size_t start, size_t end);
+		bool					getMessageTooLongForOneSend() const;
+		void					setMessageTooLongForOneSend(bool value);
 };
 
 #endif  // HTTPRESPONSE_HPP
