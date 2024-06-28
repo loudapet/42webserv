@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/27 11:43:06 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/28 09:33:48 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -229,6 +229,8 @@ bool hasValidHeaderEnd(const octets_t &receivedData)
 			return (true);
 	}
 	std::cout << "NO HEADER" << std::endl;
+	if (receivedData.size() > CLIENT_MESSAGE_BUFF * 2)
+		throw(ResponseException(413, "Request header too large"));
 	return (false);
 }
 
