@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/24 17:39:40 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/27 16:22:12 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -173,7 +173,7 @@ void Client::separateValidHeader(void)
 // we can be sure that the sequence will be found since this function is called only once hasValidHeaderEnd returns true
 //	if (endOfSequence == this->_receivedData.end())
 //		return (false);
-	std::cout << CLR2 << "HELLO SEPARATED HEADER" << RESET << std::endl;
+	//std::cout << CLR2 << "HELLO SEPARATED HEADER" << RESET << std::endl;
 	this->_receivedHeader.insert(this->_receivedHeader.end(), this->_receivedData.begin(), sequenceEnd);
 	this->_receivedData.erase(this->_receivedData.begin(), sequenceEnd);
 }

@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/27 11:42:52 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/27 16:13:21 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,6 +34,10 @@
 # include <sstream>
 # include <arpa/inet.h>
 # include <limits.h>
+
+#ifndef DEBUG
+# define DEBUG 0
+#endif
 
 extern bool g_runWebserv;
 
