@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/27 15:27:29 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/06/28 14:34:32 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -267,6 +267,7 @@ void	ServerMaster::listenForConnections(void)
 	fd_set			writeFds; // temp fds list for select()
 	struct timeval	selectTimer;
 	stringpair_t	parserPair;
+	int				sendResult;
 	
 	
 	// main listening loop
@@ -277,7 +278,7 @@ void	ServerMaster::listenForConnections(void)
 		readFds = this->_readFds; // copy whole fds master list in the fds list for select (only listener socket in the first run)
 		writeFds = this->_writeFds;
 		if (select(this->_fdMax + 1, &readFds, &writeFds, NULL, &selectTimer) == -1)
-		{
+		{ // QUESTION: is this errno according to subject?
 			if (errno == EINTR) // prevents throwing an exception due to select being interrupted by SIGINT
 				return ;
 			throw(std::runtime_error("Select failed. + " + std::string(strerror(errno))));
@@ -356,31 +357,41 @@ void	ServerMaster::listenForConnections(void)
 				// CGI TBA - add conditions for it, othwerwise send normal response
 				std::cout << "WE'RE IN WRITE FD" << std::endl;
 				Client	&client = this->_clients.find(i)->second;
-				octets_t message = client.request.response.prepareResponse(client.request);
+				client.request.response.setMessage(client.request.response.prepareResponse(client.request));
+				octets_t message = client.request.response.getMessage();
 				size_t buffLen = message.size();
 				char*	buff = new char [buffLen];
 				for (size_t i = 0; i < buffLen; i++)
 					buff[i] = message[i];
-				std::string buffStr(buff, buffLen); // prevents invalid read size from valgrind as buff is not null-terminated, it's a binary buffer so that we can send binery files too (e.g. executables)
+				//std::string buffStr(buff, buffLen); // prevents invalid read size from valgrind as buff is not null-terminated, it's a binary buffer so that we can send binery files too (e.g. executables)
 				//std::cout << CLR4 << "SEND: " << buffStr << RESET << std::endl;
 				//std::cout << "BUFF: " << client.getReceivedData() << std::endl;
-				if (send(i, buff, buffLen, 0) == -1)
-					std::cerr << "Error sending acknowledgement to client." << std::endl;
-				delete[] buff;
-				std::cout << "Changing to recv() " << i << std::endl;
-				if (client.getReceivedData().size() > 0) // ensures we get back to reading the buffer without needing to go through select()
-					this->_clients.find(i)->second.bufferUnchecked = true;
-				removeFdFromSet(this->_writeFds, i);
-				addFdToSet(this->_readFds, i);
-				if (!client.request.getHasExpect())
+				sendResult = send(i, buff, buffLen, 0);
+				if (sendResult == -1)
 				{
-					if (client.request.getConnectionStatus() == CLOSE)
-						closeConnection(i);
-					else
-						client.request.resetRequestObject(); // reset request object for the next request, resetting requestComplete and readingBodyInProgress flags is particularly important
+					std::cerr << "Error sending acknowledgement to client." << std::endl;
+					closeConnection(i);
 				}
+				else if (sendResult < static_cast<int>(buffLen))
+					client.request.response.eraseRangeMessage(0, sendResult);
 				else
-					client.request.disableHasExpect();
+				{
+					std::cout << "Changing to recv() " << i << std::endl;
+					if (client.getReceivedData().size() > 0) // ensures we get back to reading the buffer without needing to go through select()
+						this->_clients.find(i)->second.bufferUnchecked = true;
+					removeFdFromSet(this->_writeFds, i);
+					addFdToSet(this->_readFds, i);
+					if (!client.request.getHasExpect())
+					{
+						if (client.request.getConnectionStatus() == CLOSE)
+							closeConnection(i);
+						else
+							client.request.resetRequestObject(); // reset request object for the next request, resetting requestComplete and readingBodyInProgress flags is particularly important
+					}
+					else
+						client.request.disableHasExpect();
+				}
+				delete[] buff;
 			}
 		}
 		checkForTimeout();

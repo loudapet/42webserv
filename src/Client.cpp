@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/24 17:39:40 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/28 10:29:25 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -132,9 +132,7 @@ void	Client::eraseRangeReceivedData(size_t start, size_t end)
 {
 	//std::cout << "RECEIVED DATA " << this->_receivedData.size() << std::endl;
 	if (start <= end && end <= this->_receivedData.size())
-	{
 		this->_receivedData.erase(this->_receivedData.begin() + start, this->_receivedData.begin() + end);
-	}
 }
 
 void	Client::clearReceivedHeader(void)
