@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/24 13:08:23 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/01 17:01:35 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,9 +20,8 @@ Location::Location(void)
 	this->_requestBodySizeLimit = REQUEST_BODY_SIZE_LIMIT;
 	this->_autoindex = 0;
 	this->_allowMethods.insert("GET");
-	this->_cgiPath = std::vector<std::string>();
-	this->_cgiExt = std::vector<std::string>();
-	this->_cgiMap = std::map<std::string, std::string>();
+	this->_cgiPath = "";
+	this->_relativeCgiPath = "";
 	this->_returnURLOrBody = "/";
 	this->_returnCode = 0;
 	this->_isRedirect = false;
@@ -37,9 +36,8 @@ Location::Location(unsigned short serverReturnCode, std::string serverReturnURLO
 	this->_requestBodySizeLimit = REQUEST_BODY_SIZE_LIMIT;
 	this->_autoindex = 0;
 	this->_allowMethods.insert("GET");
-	this->_cgiPath = std::vector<std::string>();
-	this->_cgiExt = std::vector<std::string>();
-	this->_cgiMap = std::map<std::string, std::string>();
+	this->_cgiPath = "";
+	this->_relativeCgiPath = "";
 	this->_returnURLOrBody = serverReturnURLOrBody;
 	this->_returnCode = serverReturnCode;
 	this->_isRedirect = true;
@@ -106,17 +104,11 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 			i += allowMethodsLine.size(); // not -1 bcs there is the directive to skip too
 			allowMethodsLine.clear();
 		}
-		else if (locationBlockElements[i] == "cgi_path" && (i + 1) < locationBlockElements.size())
+		else if (locationBlockElements[i] == "cgi_path" && (i + 1) < locationBlockElements.size()
+			&& validateElement(locationBlockElements[i + 1]))
 		{
-			this->_cgiPath = extractVectorUntilSemicolon(locationBlockElements, i + 1);
-			validateElement(this->_cgiPath.back());
-			i += this->_cgiPath.size(); // not -1 bcs there is the directive name to skip too
-		}
-		else if (locationBlockElements[i] == "cgi_ext" && (i + 1) < locationBlockElements.size())
-		{
-			this->_cgiExt = extractVectorUntilSemicolon(locationBlockElements, i + 1);
-			validateElement(this->_cgiExt.back());
-			i += this->_cgiExt.size(); // not -1 bcs there is the directive name to skip too
+			this->_cgiPath = locationBlockElements[i + 1];
+			i++;
 		}
 		else if (locationBlockElements[i] == "return" && (i + 2) < locationBlockElements.size()
 			&& locationBlockElements[i + 1].find_first_of(";") == std::string::npos && validateElement(locationBlockElements[i + 2]))
@@ -162,8 +154,7 @@ Location::Location(const Location& copy)
 	this->_autoindex = copy._autoindex;
 	this->_allowMethods = copy._allowMethods;
 	this->_cgiPath = copy._cgiPath;
-	this->_cgiExt = copy._cgiExt;
-	this->_cgiMap = copy._cgiMap;
+	this->_relativeCgiPath = copy._relativeCgiPath;
 	this->_returnURLOrBody = copy._returnURLOrBody;
 	this->_returnCode = copy._returnCode;
 	this->_isRedirect = copy._isRedirect;
@@ -181,8 +172,7 @@ Location &Location::operator = (const Location &src)
 		this->_autoindex = src._autoindex;
 		this->_allowMethods = src._allowMethods;
 		this->_cgiPath = src._cgiPath;
-		this->_cgiExt = src._cgiExt;
-		this->_cgiMap = src._cgiMap;
+		this->_relativeCgiPath = src._relativeCgiPath;
 		this->_returnURLOrBody = src._returnURLOrBody;
 		this->_returnCode = src._returnCode;
 		this->_isRedirect = src._isRedirect;
@@ -227,19 +217,14 @@ const std::set<std::string>	&Location::getAllowMethods(void) const
 	return (this->_allowMethods);
 }
 
-const std::vector<std::string>		&Location::getCgiPath(void) const
+const std::string	&Location::getCgiPath(void) const
 {
 	return (this->_cgiPath);
 }
 
-const std::vector<std::string>		&Location::getCgiExt(void) const
+const std::string	&Location::getRelativeCgiPath(void) const
 {
-	return (this->_cgiExt);
-}
-
-const std::map<std::string, std::string>	&Location::getCgiMap(void) const
-{
-	return (this->_cgiMap);
+	return (this->_relativeCgiPath);
 }
 
 const std::string		&Location::getReturnURLOrBody(void) const
@@ -287,14 +272,14 @@ void	Location::setAutoindex(int autoindex)
 	this->_autoindex = autoindex;
 }
 
-void	Location::setCgiMap(std::map<std::string, std::string> &cgiMap)
-{
-	this->_cgiMap = cgiMap;
-}
-
 void	Location::setAllowMethods(const std::set<std::string> &allowMethods)
 {
 	this->_allowMethods = allowMethods;
+}
+
+void	Location::setRelativeCgiPath(const std::string &relativeCgiPath)
+{
+	this->_relativeCgiPath = relativeCgiPath;
 }
 
 void	Location::setReturnURLOrBody(const std::string &returnURLOrBody)
@@ -325,9 +310,8 @@ void	Location::initLocation(void)
 	this->_requestBodySizeLimit = -1;
 	this->_autoindex = -1;
 	this->_allowMethods = std::set<std::string>();
-	this->_cgiPath = std::vector<std::string>();
-	this->_cgiExt = std::vector<std::string>();
-	this->_cgiMap = std::map<std::string, std::string>();
+	this->_cgiPath = "";
+	this->_relativeCgiPath = "";
 	this->_returnURLOrBody = "/";
 	this->_returnCode = 0;
 	this->_isRedirect = false;
@@ -366,10 +350,8 @@ void	Location::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
 
 std::ostream &operator << (std::ostream &o, Location const &instance)
 {
-	std::map<std::string, std::string>	cgiMap;
 	std::map<unsigned short, std::string>		errorPages;
 
-	cgiMap = instance.getCgiMap();
 	errorPages = instance.getErrorPages();
 	o << "*** Location ***" << '\n'
 		<< "path: " << instance.getPath() << '\n'
@@ -379,12 +361,9 @@ std::ostream &operator << (std::ostream &o, Location const &instance)
 		<< "autoindex: " << instance.getAutoindex() << '\n'
 		<< "allow_methods: " << instance.getAllowMethods() << '\n'
 		<< "cgi_path: " << instance.getCgiPath() << '\n'
-		<< "cgi_ext: " << instance.getCgiExt() << '\n'
-		<< "cgi_map: \n";
-	for (std::map<std::string, std::string>::iterator it = cgiMap.begin(); it != cgiMap.end(); it++)
-		o << it->first << ": " << it->second << '\n';
-	o << "return: " << instance.getReturnCode() << " " << instance.getReturnURLOrBody() << '\n';
-	o << "error pages: ";
+		<< "relative cgi_path: " << instance.getRelativeCgiPath() << '\n'
+		<< "return: " << instance.getReturnCode() << " " << instance.getReturnURLOrBody() << '\n'
+		<< "error pages: ";
 	if (errorPages.size() > 0)
 		o << "\n";
 	for (std::map<unsigned short, std::string>::const_iterator it = errorPages.begin(); it != errorPages.end(); ++it)
