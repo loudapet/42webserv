@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webserv.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/27 11:42:52 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/28 17:18:52 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,6 +35,10 @@
 # include <arpa/inet.h>
 # include <limits.h>
 
+#ifndef DEBUG
+# define DEBUG 0
+#endif
+
 extern bool g_runWebserv;
 
 enum	DotSegmentsResolution
@@ -49,7 +53,8 @@ typedef std::map<std::string,std::string> stringmap_t;
 octets_t	convertStringToOctets(std::string str);
 
 # define PORT_SERVER 8000
-# define CONNECTION_TIMEOUT 5
+# define CONNECTION_TIMEOUT 20
+# define VALID_HEADER_TIMEOUT 30
 //# define CLIENT_MESSAGE_BUFF 4096 // 4 KB
 # define CLIENT_MESSAGE_BUFF 8196 // 8 KB
 //# define CLIENT_MESSAGE_BUFF 65536 // 64 KB
@@ -70,7 +75,6 @@ std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::stri
 void						fileIsValidAndAccessible(const std::string &path, const std::string &exceptionMessage);
 std::string					dirIsValidAndAccessible(const std::string &path, const std::string &accessMessage, const std::string &dirOrFileMessage);
 std::string					resolveDotSegments(std::string path, DotSegmentsResolution flag);
-bool						hasValidHeaderEnd(const octets_t &receivedData);
 void						logSockets(int socket, std::string action);
 
 /* inline std::ostream &operator << (std::ostream &o, std::vector<std::string> &stringVectorToPrint)

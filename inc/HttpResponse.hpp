@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/24 14:38:13 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/28 15:22:09 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,6 +36,8 @@ class HttpResponse
 		octets_t		completeResponse;
 		bool			statusLocked;
 		std::map<unsigned short,std::string>	codeDict;
+		octets_t		message;
+		bool			messageTooLongForOneSend;
 
 		void				readRequestedFile(const std::string& targetResource);
 		void				readErrorPage(const Location &location);
@@ -55,11 +57,16 @@ class HttpResponse
 		void				setStatusLineAndDetails(const statusLine_t& statusLine, const std::string& details);
 		void				lockStatusCode();
 
-		const statusLine_t&	getStatusLine()	const;
+		const statusLine_t&		getStatusLine()	const;
 		const unsigned short&	getStatusCode() const;
 		const bool&				getStatusLocked() const;
 		void					setStatusCode(unsigned short code);
 		void					updateStatus(unsigned short code, const char* details);
+		const octets_t&			getMessage() const;
+		void					setMessage(const octets_t& message);
+		void					eraseRangeMessage(size_t start, size_t end);
+		bool					getMessageTooLongForOneSend() const;
+		void					setMessageTooLongForOneSend(bool value);
 };
 
 #endif  // HTTPRESPONSE_HPP
