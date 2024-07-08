@@ -48,7 +48,8 @@ int main(void)
 	// 						"H"
 	// 						"GET /testdir/test.html HTTP/1.1\nConnection: keep-alive\ntest:\n"
 	// 						"Host: example.org:80\nConnection: low\ntest: no\n\n";
-	const char	*message = "\n\r\n\nGET http://localhost/tours/index.html HTTP/1.0\r\n"
+	// const char	*message = "\n\r\n\nGET http://localhost/tours/index.html HTTP/1.0\r\n"
+	const char	*message = "\n\r\n\nGET http://localhost/cgitest/index.html HTTP/1.0\r\n"
 							"Host: s\r\n"
 							"User-Agent: Mozilla/5.0\n"
 							"Accept: text/html, */*\r\n"

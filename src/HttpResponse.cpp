@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/28 15:25:16 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/08 18:40:20 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -394,6 +394,74 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 		return (convertStringToOctets("HTTP/1.1 100 Continue"));
 	else
 	{
+		// status code for CGI needs to be properly updated, I think?
+		std::cout << CLR6 << request.getLocation().getRelativeCgiPath() << RESET << std::endl;
+		// this if might deserve its own function later
+		if (request.getLocation().getRelativeCgiPath().size())
+		{
+			std::cout << CLR6 "Processing CGI stuff" RESET << std::endl;
+			int	pid;
+			int	fd[2];
+			uint8_t	buffer[65536];
+			if (pipe(fd) == -1)
+			{
+				std::cerr << "Error: Pipe" << std::endl;
+			}
+			else
+			{
+				pid = fork();
+				if (pid == -1)
+				{
+					std::cerr << "Error: Fork" << std::endl;
+				}
+				else if (pid == 0)
+				{
+					//child
+					//some shenanigans to get execve working
+					dup2 (fd[1], STDOUT_FILENO);
+					close (fd[0]);
+					close (fd[1]);
+					char **env;
+					char *end;
+					end = NULL;
+					env = &end;
+					execve(request.getLocation().getRelativeCgiPath().c_str(), env, env);
+					//clean exit later, get pid is not legal, maybe a better way to do it?
+					kill(getpid(), SIGINT);
+					exit (1);
+				}
+				else
+				{
+					//parent
+					//close reading end of the pipe
+					close(fd[1]);
+					int	status;
+					int	r;
+					// read needs to be in select somehow
+					r = read(fd[0], buffer, 65536);
+					close(fd[0]);
+					// fork and wait ? Make it non blocking
+					// waitpid WNOHANG? flag for waiting for a response?
+					waitpid(pid, &status, 0);
+					if (r > 0)
+					{
+						octets_t message;
+						for (int i = 0; i < r; i++)
+						{
+							//there might be a better way
+							message.push_back(buffer[i]);
+						}
+						std::cout << CLR6 "CGI Processed!" RESET << std::endl;
+						return (message);
+					}
+					else
+					{
+						std::cerr << CLRE "read fail or nothing was read" RESET << std::endl;
+					}
+				}
+			}
+		}
+		std::cout << CLR1 << this->statusLine.statusCode << RESET << std::endl;
 		if (codeDict.find(this->statusLine.statusCode) == codeDict.end())
 			this->codeDict[this->statusLine.statusCode] = "Undefined";
 		this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
