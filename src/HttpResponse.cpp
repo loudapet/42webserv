@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/08 18:40:20 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/09 15:51:24 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -425,8 +425,13 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 					char *end;
 					end = NULL;
 					env = &end;
-					execve(request.getLocation().getRelativeCgiPath().c_str(), env, env);
+					char **av;
+					char *ex;
+					ex = (char *)request.getLocation().getRelativeCgiPath().c_str();
+					av = &ex;
+					execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
 					//clean exit later, get pid is not legal, maybe a better way to do it?
+					//free env?
 					kill(getpid(), SIGINT);
 					exit (1);
 				}
@@ -438,7 +443,9 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 					int	status;
 					int	r;
 					// read needs to be in select somehow
+					//what is read is sent?
 					r = read(fd[0], buffer, 65536);
+					// close when read finished (<= 0)
 					close(fd[0]);
 					// fork and wait ? Make it non blocking
 					// waitpid WNOHANG? flag for waiting for a response?
