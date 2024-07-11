@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/09 15:51:24 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/11 10:33:33 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -401,9 +401,10 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 		{
 			std::cout << CLR6 "Processing CGI stuff" RESET << std::endl;
 			int	pid;
-			int	fd[2];
+			int	fd1[2]; // writing to child
+			int	fd2[2]; // reading from child
 			uint8_t	buffer[65536];
-			if (pipe(fd) == -1)
+			if (pipe(fd1) == -1 || pipe(fd2) == -1 )
 			{
 				std::cerr << "Error: Pipe" << std::endl;
 			}
@@ -418,17 +419,21 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 				{
 					//child
 					//some shenanigans to get execve working
-					dup2 (fd[1], STDOUT_FILENO);
-					close (fd[0]);
-					close (fd[1]);
+					dup2 (fd1[0], STDIN_FILENO);
+					close (fd1[0]);
+					close (fd1[1]);
+					dup2 (fd2[1], STDOUT_FILENO);
+					close (fd2[0]);
+					close (fd2[1]);
 					char **env;
 					char *end;
 					end = NULL;
 					env = &end;
 					char **av;
-					char *ex;
-					ex = (char *)request.getLocation().getRelativeCgiPath().c_str();
-					av = &ex;
+					char *ex[2];
+					ex[0] = (char *)request.getLocation().getRelativeCgiPath().c_str();
+					ex[1] = NULL;
+					av = &ex[0];
 					execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
 					//clean exit later, get pid is not legal, maybe a better way to do it?
 					//free env?
@@ -438,15 +443,29 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 				else
 				{
 					//parent
-					//close reading end of the pipe
-					close(fd[1]);
+					//close writing end of the first pipe
+					close(fd1[0]);
+					int	w;
+					w = write(fd1[1], "Hello\nthere\n", 12);
+					if (w > 0)
+					{
+						std::cout << CLR6 "Written to CGI" RESET << std::endl;
+					}
+					else
+					{
+						std::cerr << CLRE "write fail or nothing was written" RESET << std::endl;
+					}
+					//close the first pipe
+					close(fd1[1]);
+					//close reading end of the second pipe
+					close(fd2[1]);
 					int	status;
 					int	r;
 					// read needs to be in select somehow
 					//what is read is sent?
-					r = read(fd[0], buffer, 65536);
+					r = read(fd2[0], buffer, 65536);
 					// close when read finished (<= 0)
-					close(fd[0]);
+					close(fd2[0]);
 					// fork and wait ? Make it non blocking
 					// waitpid WNOHANG? flag for waiting for a response?
 					waitpid(pid, &status, 0);
