@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+         #
+#    By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/16 10:28:25 by plouda            #+#    #+#              #
-#    Updated: 2024/06/18 14:14:36 by plouda           ###   ########.fr        #
+#    Updated: 2024/07/08 16:35:07 by okraus           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -37,7 +37,7 @@ YELLOW		=	$(shell printf "\033[1;33m")
 CYAN		=	$(shell printf "\033[1;36m")
 RESET		=	$(shell printf "\033[0m")
 
-all: $(NAME) client
+all: $(NAME) client cgi
 
 $(NAME): $(OBJS)
 	@echo "$(YELLOW)Initiating compilation of '${NAME}'$(RESET)"
@@ -56,6 +56,11 @@ client: $(OBJS_CLIENT)
 	@$(COMP) $(OBJS_CLIENT) -o client
 	@echo "$(GREEN)Compilation of 'client' successful.$(RESET)"
 
+cgi: ./test_cgi-bin/test_cgi1.cpp
+	@echo "$(CYAN)Compiling cgi...$(RESET)"
+	$(COMP) ./test_cgi-bin/test_cgi1.cpp -o ./test_cgi-bin/test1.cgi
+	@echo "$(GREEN)Compilation of 'cgi' complete.$(RESET)"
+
 %.o: %.cpp
 	@$(COMP) -c $< -o $@
 
@@ -73,8 +78,10 @@ clean:
 fclean: clean
 	@rm -f $(NAME)
 	@rm -f client
+	rm -f ./test_cgi-bin/test1.cgi
 	@echo "$(YELLOW)Executable '${NAME}' successfully removed.$(RESET)"
 	@echo "$(YELLOW)Executable 'client' successfully removed.$(RESET)"
+	@echo "$(YELLOW)Executable 'test1.cgi' successfully removed.$(RESET)"
 
 re: fclean all
 

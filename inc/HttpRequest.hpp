@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/27 11:28:30 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/08 18:22:09 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,8 @@
 # define CLR3 "\e[38;5;213m"
 # define CLR4 "\e[38;5;161m"
 # define CLR5 "\e[38;5;34m"
+# define CLR6 "\e[38;5;226m"
+# define CLRE "\e[38:5:226;48:5:196m"
 #define UNDERLINE "\033[4m"
 #define	RESET "\033[0m"
 #define CR '\r'
