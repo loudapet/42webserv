@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/14 19:17:59 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/24 17:23:06 by plouda           ###   ########.fr       */
+/*   Updated: 2024/06/28 17:11:36 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 # include "webserv.hpp"
 # include "ServerConfig.hpp"
 # include "HttpRequest.hpp"
+# include "ResponseException.hpp"
 
 class Client
 {
@@ -27,12 +28,14 @@ class Client
 
 		void	setClientSocket(int clientSocket);
 		void	updateTimeLastMessage(void);
+		void	updateTimeLastValidHeaderEnd(void);
 		void	updateReceivedData(uint8_t *recvBuf, ssize_t &bytesReceived);
 		void	setPortConnectedOn(unsigned short portConnectedOn);
 		void	setServerConfig(const ServerConfig &serverConfig);
 
 		int					getClientSocket(void) const;
 		time_t				getTimeLastMessage(void) const;
+		time_t				getTimeLastValidHeaderEnd(void) const;
 		const octets_t		&getReceivedData(void) const;
 		octets_t			getReceivedHeader(void) const;
 		unsigned short		getPortConnectedOn(void) const;
@@ -45,6 +48,7 @@ class Client
 		void		eraseRangeReceivedData(size_t start, size_t end);
 		void		clearReceivedHeader(void);
 		void		trimHeaderEmptyLines(void);
+		bool		hasValidHeaderEnd(void);
 		void		separateValidHeader(void);
 		
 		HttpRequest	request;
@@ -53,6 +57,7 @@ class Client
 	private:
 		int					_clientSocket;
 		time_t				_timeLastMessage;
+		time_t				_timeLastValidHeaderEnd;
 		octets_t			_receivedData;
 		octets_t			_receivedHeader;
 		unsigned short		_portConnectedOn;

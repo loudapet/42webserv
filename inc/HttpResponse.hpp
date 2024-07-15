@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/24 14:38:13 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/08 18:07:59 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,8 @@
 #include <iostream>
 #include <iomanip>
 #include <ctime>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "Location.hpp"
 #include "webserv.hpp"
 
@@ -36,6 +38,8 @@ class HttpResponse
 		octets_t		completeResponse;
 		bool			statusLocked;
 		std::map<unsigned short,std::string>	codeDict;
+		octets_t		message;
+		bool			messageTooLongForOneSend;
 
 		void				readRequestedFile(const std::string& targetResource);
 		void				readErrorPage(const Location &location);
@@ -55,11 +59,16 @@ class HttpResponse
 		void				setStatusLineAndDetails(const statusLine_t& statusLine, const std::string& details);
 		void				lockStatusCode();
 
-		const statusLine_t&	getStatusLine()	const;
+		const statusLine_t&		getStatusLine()	const;
 		const unsigned short&	getStatusCode() const;
 		const bool&				getStatusLocked() const;
 		void					setStatusCode(unsigned short code);
 		void					updateStatus(unsigned short code, const char* details);
+		const octets_t&			getMessage() const;
+		void					setMessage(const octets_t& message);
+		void					eraseRangeMessage(size_t start, size_t end);
+		bool					getMessageTooLongForOneSend() const;
+		void					setMessageTooLongForOneSend(bool value);
 };
 
 #endif  // HTTPRESPONSE_HPP

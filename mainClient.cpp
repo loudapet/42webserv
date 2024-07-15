@@ -27,7 +27,16 @@ int main(void)
 		close(clientSocket);
 		return (1);
 	}
-	const char	*message = "\n\r\n\nGET http://localhost/tours/index.html HTTP/1.1\r\n"
+	// Send data to the server
+	//const char *message = "\nGET /index.html?%71=key#key HTTP/1.1\nHost: example.com\nConnection: close\n\n";
+	//  const char *message = "\nGET /testdir/test.html HTTP/1.1\nConnection: keep-alive\ntest:\n"
+	// 						"Host:  localhost:8002\nConnection: low\ntest: no\n"
+	// 						"Content-Length: 1\r\n\n"
+	// 						"H"
+	// 						"GET /testdir/test.html HTTP/1.1\nConnection: keep-alive\ntest:\n"
+	// 						"Host: example.org:80\nConnection: low\ntest: no\n\n";
+	// const char	*message = "\n\r\n\nGET http://localhost/tours/index.html HTTP/1.0\r\n"
+	const char	*message = "\n\r\n\nGET http://localhost/cgitest/index.html HTTP/1.0\r\n"
 							"Host: s\r\n"
 							"User-Agent: Mozilla/5.0\n"
 							"Accept: text/html, */*\r\n"
@@ -35,7 +44,11 @@ int main(void)
 							"Accept-Charset: \tISO-8859-1,utf-8\n"
 							"Connection: keep-alive , \r\n"
 							"Keep-Alive: max=100,timeout=30\n"
-							"Expect: 100-continue\n\n"
+							"Content-Length: 11\n"
+							// "Expect: 100-continue\n\n"
+							// "Transfer-Encoding: chunked\n"
+							"\n"
+							"1234567890a"
 							"GET /tours HTTP/1.0\r\n"
 							"Host: localhost\r\n"
 							"User-Agent: Mozilla/5.0\n"

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/27 16:26:56 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/08 17:26:24 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -279,6 +279,7 @@ void	ServerMaster::listenForConnections(void)
 	fd_set			writeFds; // temp fds list for select()
 	struct timeval	selectTimer;
 	stringpair_t	parserPair;
+	int				sendResult;
 	
 	
 	// main listening loop
@@ -289,7 +290,7 @@ void	ServerMaster::listenForConnections(void)
 		readFds = this->_readFds; // copy whole fds master list in the fds list for select (only listener socket in the first run)
 		writeFds = this->_writeFds;
 		if (select(this->_fdMax + 1, &readFds, &writeFds, NULL, &selectTimer) == -1)
-		{
+		{ // QUESTION: is this errno according to subject?
 			if (errno == EINTR) // prevents throwing an exception due to select being interrupted by SIGINT
 				return ;
 			throw(std::runtime_error("Select failed. + " + std::string(strerror(errno))));
@@ -316,7 +317,7 @@ void	ServerMaster::listenForConnections(void)
 					{
 						try
 						{	
-							if (!client.request.requestComplete && !client.request.readingBodyInProgress && !hasValidHeaderEnd(client.getReceivedData())) // client hasn't sent a valid header yet so we need to go back to select
+							if (!client.request.requestComplete && !client.request.readingBodyInProgress && !client.hasValidHeaderEnd()) // client hasn't sent a valid header yet so we need to go back to select
 								break ;
 							if (!client.request.requestComplete && !client.request.readingBodyInProgress) // client has sent a valid header, this is the first while iteration, so we parse it
 							{
@@ -371,34 +372,62 @@ void	ServerMaster::listenForConnections(void)
 			{
 				// CGI TBA - add conditions for it, othwerwise send normal response
 				Client	&client = this->_clients.find(i)->second;
-				octets_t message = client.request.response.prepareResponse(client.request);
-				size_t buffLen = message.size();
+				if(!client.request.response.getMessageTooLongForOneSend())
+					client.request.response.setMessage(client.request.response.prepareResponse(client.request));
+				octets_t message = client.request.response.getMessage();
+				size_t messageLen = message.size();
+				size_t buffLen;
+				if (messageLen <= CLIENT_MESSAGE_BUFF)
+					buffLen = messageLen;
+				else
+				{
+					buffLen = CLIENT_MESSAGE_BUFF;
+					client.request.response.setMessageTooLongForOneSend(true);
+				}
 				char*	buff = new char [buffLen];
 				for (size_t i = 0; i < buffLen; i++)
 					buff[i] = message[i];
-				std::string buffStr(buff, buffLen); // prevents invalid read size from valgrind as buff is not null-terminated, it's a binary buffer so that we can send binery files too (e.g. executables)
+				//std::string buffStr(buff, buffLen); // prevents invalid read size from valgrind as buff is not null-terminated, it's a binary buffer so that we can send binery files too (e.g. executables)
+				//std::cout << CLR4 << "SEND: " << buffStr << RESET << std::endl;
+				//std::cout << "BUFF: " << client.getReceivedData() << std::endl;
+				sendResult = send(i, buff, buffLen, 0);
 				if (DEBUG)
-					std::cout << CLR4 << "SEND: " << buffStr << RESET << std::endl;
-				if (DEBUG)
-					std::cout << "BUFF: " << client.getReceivedData() << std::endl;
-				if (send(i, buff, buffLen, 0) == -1)
-					std::cerr << "Error sending acknowledgement to client." << std::endl;
-				delete[] buff;
-				if (DEBUG)
-					std::cout << "Changing to recv() " << i << std::endl;
-				if (client.getReceivedData().size() > 0) // ensures we get back to reading the buffer without needing to go through select()
-					this->_clients.find(i)->second.bufferUnchecked = true;
-				removeFdFromSet(this->_writeFds, i);
-				addFdToSet(this->_readFds, i);
-				if (!client.request.getHasExpect())
+					std::cout << "\033[31m" << "Bytes sent: " << sendResult << RESET << std::endl;
+				if (sendResult == -1)
 				{
-					if (client.request.getConnectionStatus() == CLOSE)
-						closeConnection(i);
-					else
-						client.request.resetRequestObject(); // reset request object for the next request, resetting requestComplete and readingBodyInProgress flags is particularly important
+					std::cerr << "Error sending acknowledgement to client." << std::endl;
+					closeConnection(i);
+				}
+				else if (sendResult < static_cast<int>(buffLen))
+					client.request.response.eraseRangeMessage(0, sendResult);
+				else if (messageLen > CLIENT_MESSAGE_BUFF)
+				{
+					if (DEBUG)
+						std::cout << "\033[31m" << "message too long for 8 KB buffer" << RESET << std::endl;
+					if (DEBUG)
+						std::cout << "Message size before erase of buffLen: " << client.request.response.getMessage().size() << std::endl;
+					client.request.response.eraseRangeMessage(0, buffLen);
+					if (DEBUG)
+						std::cout << "Message size after erase of buffLen: " << client.request.response.getMessage().size() << std::endl;
 				}
 				else
-					client.request.disableHasExpect();
+				{
+					std::cout << "Changing to recv() " << i << std::endl;
+					if (client.getReceivedData().size() > 0) // ensures we get back to reading the buffer without needing to go through select()
+						this->_clients.find(i)->second.bufferUnchecked = true;
+					removeFdFromSet(this->_writeFds, i);
+					addFdToSet(this->_readFds, i);
+					if (!client.request.getHasExpect())
+					{
+						if (client.request.getConnectionStatus() == CLOSE)
+							closeConnection(i);
+						else
+							client.request.resetRequestObject(); // reset request object for the next request, resetting requestComplete and readingBodyInProgress flags is particularly important
+					}
+					else
+						client.request.disableHasExpect();
+				}
+				delete[] buff;
 			}
 		}
 		checkForTimeout();
@@ -496,6 +525,7 @@ void	ServerMaster::acceptConnection(int serverSocket)
 	newClient.setPortConnectedOn(ntohs(serverAddr.sin_port));
 	std::cout << "Client connected to server port: " << newClient.getPortConnectedOn() << std::endl;
 	newClient.updateTimeLastMessage();
+	newClient.updateTimeLastValidHeaderEnd();
 	addFdToSet(this->_readFds, clientSocket);
 	if (fcntl(clientSocket, F_SETFL, O_NONBLOCK) < 0) // so that the sockets don't block each other in nested while on recv
 	{
@@ -553,6 +583,8 @@ void	ServerMaster::checkForTimeout(void)
 		{
 			if (time(NULL) - it->second.getTimeLastMessage() > CONNECTION_TIMEOUT)
 				throw(ResponseException(408, "Connection inactive for too long"));
+			if (time(NULL) - it->second.getTimeLastValidHeaderEnd() > VALID_HEADER_TIMEOUT && it->second.getReceivedData().size() > 0)
+				throw(ResponseException(408, "Request header timeout"));
 		}
 		catch(const ResponseException& e)
 		{

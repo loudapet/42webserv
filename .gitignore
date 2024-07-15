@@ -36,6 +36,7 @@ obj/
 .vscode/settings.json
 cgi-bin/
 docs/
+*.cgi
 
 # Executables
 parser
