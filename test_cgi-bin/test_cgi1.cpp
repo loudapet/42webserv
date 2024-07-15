@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 16:36:47 by okraus            #+#    #+#             */
-/*   Updated: 2024/07/11 10:30:03 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/15 12:07:10 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,8 +48,10 @@ int	main(int argc, char *argv[], char *envp[])
 	{
 		for (int i = 0; i < r; i++)
 			std::cerr << buffer[i];
+		std::cerr << std::endl;
+		std::cerr << "read is: " << r << std::endl;
 	}
-	std::cerr << r << std::endl;
+	std::cerr << "read is: " << r << std::endl;
 	std::cerr << NO_COLOUR << std::endl;
 	std::cerr << MAGENTABG_COLOUR "CGI ARGS" NO_COLOUR << std::endl;
 	std::cerr << MAGENTA_COLOUR;

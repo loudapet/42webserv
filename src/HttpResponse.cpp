@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/11 10:33:33 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/15 12:03:21 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -446,10 +446,12 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 					//close writing end of the first pipe
 					close(fd1[0]);
 					int	w;
-					w = write(fd1[1], "Hello\nthere\n", 12);
+					std::string body(request.getRequestBody().begin(), request.getRequestBody().end());
+					w = write(fd1[1], body.c_str(), request.getRequestBody().size());
 					if (w > 0)
 					{
 						std::cout << CLR6 "Written to CGI" RESET << std::endl;
+						std::cout << CLR6 << body << RESET << std::endl;
 					}
 					else
 					{
