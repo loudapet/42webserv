@@ -38,12 +38,15 @@ ServerMaster::ServerMaster(std::string configFile)
 	file.close();
 	this->_configContent = tmpFileContent.str();
 
-//	std::cout << "CONTENT (initial)" << std::endl;
-//	std::cout << this->_configContent << std::endl;
+//	if (DEBUG)
+	//std::cout << "CONTENT (initial)" << std::endl;
+//	if (DEBUG)
+	//std::cout << this->_configContent << std::endl;
 	removeCommentsAndEmptyLines();
 	
 	detectServerBlocks();
-//	std::cout << "DETECTED SERVER BLOCKS" << std::endl;
+//	if (DEBUG)
+	//std::cout << "DETECTED SERVER BLOCKS" << std::endl;
 //	printServerBlocks();
 	for (size_t i = 0; i < this->_serverBlocks.size(); i++)
 	{
@@ -69,7 +72,8 @@ ServerMaster::ServerMaster(std::string configFile)
 
 ServerMaster::~ServerMaster(void)
 {
-	std::cout << std::endl;
+	if (DEBUG)
+		std::cout << std::endl;
 	std::map<int, Client>::iterator it = this->_clients.begin();
 	while (it != this->_clients.end())
 	{
@@ -83,7 +87,8 @@ ServerMaster::~ServerMaster(void)
 		this->_servers.erase(it2);
 		it2 = this->_servers.begin();
 	}
-	std::cout << "Warning: Received SIGINT. Closed all connections and exiting." << std::endl;
+	if (DEBUG)
+		std::cout << "Warning: Received SIGINT. Closed all connections and exiting." << std::endl;
 }
 
 std::string	ServerMaster::getFileContent(void) const
@@ -113,8 +118,10 @@ void	ServerMaster::removeCommentsAndEmptyLines(void)
 		this->_configContent.erase(start, end - start);
 		start = this->_configContent.find('#');
 	}
-//	std::cout << "CONTENT (removed comments)" << std::endl;
-//	std::cout << this->_configContent << std::endl;
+//	if (DEBUG)
+	//std::cout << "CONTENT (removed comments)" << std::endl;
+//	if (DEBUG)
+	//std::cout << this->_configContent << std::endl;
 	ss.str(this->_configContent);
 	while (std::getline(ss, line))
 	{
@@ -128,8 +135,10 @@ void	ServerMaster::removeCommentsAndEmptyLines(void)
 			newFileContent += line + '\n';
 	}
 	this->_configContent = newFileContent;
-//	std::cout << "CONTENT (removed empty lines)" << std::endl;
-//	std::cout << this->_configContent << std::endl;
+//	if (DEBUG)
+	//std::cout << "CONTENT (removed empty lines)" << std::endl;
+//	if (DEBUG)
+	//std::cout << this->_configContent << std::endl;
 }
 
 
@@ -200,8 +209,10 @@ void	ServerMaster::printServerBlocks(void) const
 {
 	for (size_t i = 0; i < this->_serverBlocks.size(); i++)
 	{
-		std::cout << "Server block " << i << ": " << std::endl;
-		std::cout << this->_serverBlocks[i] << std::endl;
+		if (DEBUG)
+			std::cout << "Server block " << i << ": " << std::endl;
+		if (DEBUG)
+			std::cout << this->_serverBlocks[i] << std::endl;
 	}
 }
 
@@ -215,7 +226,8 @@ void	ServerMaster::prepareServersToListen(void)
 			throw(std::runtime_error("Fcntl failed."));
 		FD_SET(this->_serverConfigs[i].getServerSocket(), &this->_readFds);
 		this->_servers.insert(std::make_pair(this->_serverConfigs[i].getServerSocket(), this->_serverConfigs[i]));
-		std::cout << "Server '" << this->_serverConfigs[i].getPrimaryServerName() << "' listening on port " << this->_serverConfigs[i].getPort() << "..." << std::endl;
+		if (DEBUG)
+			std::cout << "Server '" << this->_serverConfigs[i].getPrimaryServerName() << "' listening on port " << this->_serverConfigs[i].getPort() << "..." << std::endl;
 	}
 	this->_fdMax = this->_serverConfigs.back().getServerSocket();
 }
@@ -299,7 +311,8 @@ void	ServerMaster::listenForConnections(void)
 					if (this->_clients.find(i) == this->_clients.end()) // temp fix for a closed client
 						continue;
 					Client	&client = this->_clients.find(i)->second;
-					std::cout << client.getReceivedData().size() << std::endl;
+					if (DEBUG)
+						std::cout << client.getReceivedData().size() << std::endl;
 					while (client.getReceivedData().size() > 0 && this->_clients.find(i) != this->_clients.end()) // won't go back to select until it processes all the data in the buffer
 					{
 						try
@@ -321,7 +334,8 @@ void	ServerMaster::listenForConnections(void)
 								/* if (client.request.getHasExpect()) 
 									throw (ResponseException(100, "Continue")); - moved to HttpRequest */
 							}
-							std::cout << "Body:\n" << client.getReceivedData() << RESET << std::endl;
+							if (DEBUG)
+								std::cout << "Body:\n" << client.getReceivedData() << RESET << std::endl;
 							if (client.request.readingBodyInProgress) // processing request body
 							{
 								bytesToDelete = client.request.readRequestBody(client.getReceivedData());									
@@ -331,7 +345,8 @@ void	ServerMaster::listenForConnections(void)
 							}
 							if (client.request.requestComplete)
 							{
-								std::cout << "Changing to send() " << i << std::endl;
+								if (DEBUG)
+									std::cout << "Changing to send() " << i << std::endl;
 								removeFdFromSet(this->_readFds, i);
 								addFdToSet(this->_writeFds, i);
 								break ;
@@ -344,7 +359,8 @@ void	ServerMaster::listenForConnections(void)
 								client.request.response.setStatusLineAndDetails(e.getStatusLine(), e.getStatusDetails());
 								client.request.setConnectionStatus(CLOSE);
 							}
-							std::cout << "Changing to send() " << i << std::endl;
+							if (DEBUG)
+								std::cout << "Changing to send() " << i << std::endl;
 							removeFdFromSet(this->_readFds, i);
 							addFdToSet(this->_writeFds, i);
 							break ;
@@ -355,7 +371,6 @@ void	ServerMaster::listenForConnections(void)
 			else if (FD_ISSET(i, &writeFds) && this->_clients.count(i))
 			{
 				// CGI TBA - add conditions for it, othwerwise send normal response
-				std::cout << "WE'RE IN WRITE FD" << std::endl;
 				Client	&client = this->_clients.find(i)->second;
 				if(!client.request.response.getMessageTooLongForOneSend())
 					client.request.response.setMessage(client.request.response.prepareResponse(client.request));
@@ -464,7 +479,8 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 		if (hostReceived == host)
 		{
 			this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
-			//std::cout << "Choosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
+			if (DEBUG)
+				std::cout << "Choosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
 	   		return ;
 		}
 		else
@@ -477,7 +493,8 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 			if (parserPair.first == serverNames[i])
 			{
 				this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
-				//std::cout << "Choosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
+				if (DEBUG)
+					std::cout << "Choosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
 				return ;
 			}
 		}
@@ -544,9 +561,12 @@ void	ServerMaster::handleDataFromClient(const int clientSocket)
 		clientToHandle.updateTimeLastMessage();
 		clientToHandle.updateReceivedData(recvBuf, bytesReceived);
 		clientToHandle.trimHeaderEmptyLines();
-		std::cout << "Data from client on socket " << clientSocket << ": ";
-		clientToHandle.printReceivedData();
-		std::cout << std::endl;
+		if (DEBUG)
+			std::cout << "Data from client on socket " << clientSocket << ": ";
+		if (DEBUG)
+			clientToHandle.printReceivedData();
+		if (DEBUG)
+			std::cout << std::endl;
 		
 		// send acknowledgement to the client 
 		// if (send(clientSocket, confirmReceived, strlen(confirmReceived), 0) == -1)

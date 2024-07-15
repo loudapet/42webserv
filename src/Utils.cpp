@@ -217,6 +217,21 @@ std::string	resolveDotSegments(std::string path, DotSegmentsResolution flag)
 	return (newPath);
 }
 
+bool hasValidHeaderEnd(const octets_t &receivedData)
+{
+	std::string sequences[] = {"\r\n\n", "\n\n", "\n\r\n", "\r\n\r\n"};
+	std::vector<unsigned char>::const_iterator endOfSequence;
+
+	for (int i = 0; i < 4; ++i)
+	{
+		endOfSequence = std::search(receivedData.begin(), receivedData.end(), sequences[i].begin(), sequences[i].end());
+		if (endOfSequence != receivedData.end())
+			return (true);
+	}
+//	std::cout << "NO HEADER" << std::endl;
+	return (false);
+}
+
 octets_t	convertStringToOctets(std::string str)
 {
 	octets_t vec(str.begin(), str.end());

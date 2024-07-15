@@ -232,7 +232,7 @@ void	HttpResponse::readErrorPage(const Location &location)
 
 void HttpResponse::readRequestedFile(const std::string &targetResource)
 {
-	std::cout << CLR3 << targetResource << RESET << std::endl;
+	//std::cout << CLR3 << targetResource << RESET << std::endl;
 	std::ifstream	stream(targetResource.c_str(), std::ios::binary);
 	octets_t		contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
 	this->responseBody.insert(this->responseBody.end(), contents.begin(), contents.end());

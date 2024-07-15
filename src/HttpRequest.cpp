@@ -191,7 +191,6 @@ stringpair_t	HttpRequest::parseAuthority(std::string& authority, HostLocation pa
 	std::string		port("");
 	size_t			portPos = authority.find_first_of(":");
 	int	i = 0;
-	std::cout << CLR2 << portPos << RESET << std::endl;
 	if (portPos == std::string::npos)
 	{
 		host = std::string(authority);
@@ -242,9 +241,8 @@ stringpair_t	HttpRequest::parseAuthority(std::string& authority, HostLocation pa
 
 void	HttpRequest::parseRequestTarget(std::string& uri)
 {
-	//the following two lines should be in the constructor
-	this->requestLine.requestTarget.authority.first = "";
-	this->requestLine.requestTarget.authority.second = "";
+	if (uri.size() > 8192)
+		throw (ResponseException(414, "URI size should not exceed 8 kB"));
 	if (uri.find_first_of('/') != 0)
 	{
 		std::string scheme(uri.begin(), uri.begin() + 7);
@@ -339,11 +337,7 @@ void	HttpRequest::parseRequestLine(std::string requestLine)
 		space = std::find(requestLine.begin(), requestLine.end(), SP);
 	}
 	if (startLineTokens.size() != 3)
-	{
-		std::cout << startLineTokens.size() << std::endl;
-		std::cout << CLR2 << startLineTokens << RESET << std::endl;
 		throw(ResponseException(400, "Invalid start line"));
-	}
 	for (size_t i = 0; i < 3; i++)
 		(this->*parse[i])(startLineTokens[i]);
 }
@@ -358,6 +352,8 @@ void	HttpRequest::parseFieldSection(std::vector<std::string>& fields)
 	stringmap_t::iterator	mapIter;
 	for (std::vector<std::string>::iterator it = fields.begin() ; it != fields.end() ; it++)
 	{
+		if (it->size() > 8192)
+			throw (ResponseException(413, "Header field size should not exceed 8 kB"));
 		fieldIter = it->begin();
 		if (it->find_first_of(':') == std::string::npos)
 			throw (ResponseException(400, "Expected a field name"));
@@ -368,15 +364,11 @@ void	HttpRequest::parseFieldSection(std::vector<std::string>& fields)
 			throw(ResponseException(400, "Invalid field name"));
 		fieldValue = std::string(++fieldIter, it->end()); // to remove ':' from the value part
 		fieldValue = trim(fieldValue);
-		//valueIter = std::find_if_not(fieldValue.begin(), fieldValue.end(), isgraph);
 		valueIter = std::find_if(fieldValue.begin(), fieldValue.end(), std::not1(std::ptr_fun<int,int>(isgraph)));
 		while (valueIter != fieldValue.end())
 		{
-			/* std::bitset<8> x(*valueIter);
-			std::cout << x << std::endl; */
 			if (*valueIter >> 7) // UTF-8 encoding starts with 1 in its most-significant byte
 			{
-				//valueIter = std::find_if_not(++valueIter, fieldValue.end(), isgraph);
 				valueIter = std::find_if(++valueIter, fieldValue.end(), std::not1(std::ptr_fun<int,int>(isgraph)));
 				continue;
 			}
@@ -384,7 +376,6 @@ void	HttpRequest::parseFieldSection(std::vector<std::string>& fields)
 				throw(ResponseException(400, "Invalid field value - CTL characters forbidden"));
 			else if (isblank(*valueIter) && isblank(*(valueIter + 1)))
 				throw(ResponseException(400, "Invalid field value - multiple SP / HTAB detected"));
-			//valueIter = std::find_if_not(++valueIter, fieldValue.end(), isgraph);
 			valueIter = std::find_if(++valueIter, fieldValue.end(), std::not1(std::ptr_fun<int,int>(isgraph)));
 		}
 		if (!(this->headerFields.insert(std::make_pair(fieldName, fieldValue)).second)) // handle insertion of duplicates by concatenation
@@ -497,11 +488,6 @@ stringpair_t	HttpRequest::parseHeader(octets_t header)
 			splitLines.push_back(std::string(line.begin(), line.end()));
 		header.erase(header.begin(), nl + 1);
 		nl = std::find(header.begin(), header.end(), '\n');
-		/*
-		A sender MUST NOT send whitespace between the start-line and the first header field.
-		A recipient that receives whitespace between the start-line and the first header field
-		MUST either reject the message as invalid ...
-		*/
 		if (startLine && isspace(*header.begin()))
 			throw (ResponseException(400, "Dangerous whitespace detected"));
 		startLine = false;
@@ -515,8 +501,8 @@ stringpair_t	HttpRequest::parseHeader(octets_t header)
 	this->parseFieldSection(splitLines);
 	authority = this->resolveHost();
 	//std::cout << this->requestLine << this->headerFields << std::endl;
-	std::cout << "Final host:\t" << authority.first << std::endl;
-	std::cout << "Final port:\t" << authority.second << std::endl;
+	//std::cout << "Final host:\t" << authority.first << std::endl;
+	//std::cout << "Final port:\t" << authority.second << std::endl;
 	return (authority);
 }
 
@@ -532,7 +518,7 @@ void	HttpRequest::validateConnectionOption(void)
 	std::vector<std::string>			values;
 	std::vector<std::string>::iterator	option;
 	std::vector<std::string>::iterator	param;
-	std::vector<std::string>			paramValues;
+	//std::vector<std::string>			paramValues;
 	if (connection != this->headerFields.end())
 	{
 		values = splitQuotedString(connection->second, ',');
@@ -572,11 +558,11 @@ void	HttpRequest::validateConnectionOption(void)
 			if (param->find_first_not_of(allowedChars) != std::string::npos)
 				throw (ResponseException(400, "Invalid characters in Keep-Alive header field"));
 			std::transform(param->begin(), param->end(), param->begin(), tolower);
-			paramValues = splitQuotedString(*param, '=');
-			if (paramValues.size() == 2 && paramValues[0] == "max")
+			//paramValues = splitQuotedString(*param, '=');
+/* 			if (paramValues.size() == 2 && paramValues[0] == "max")
 				std::cout << "MAX REQUESTS/CLIENT PLACEHOLDER: " << paramValues[1] << std::endl;
 			else if (paramValues.size() == 2 && paramValues[0] == "timeout")
-				std::cout << "MAX TIMEOUT/CLIENT PLACEHOLDER: " << paramValues[1] << std::endl;
+				std::cout << "MAX TIMEOUT/CLIENT PLACEHOLDER: " << paramValues[1] << std::endl; */
 		}
 	}
 }
@@ -594,9 +580,12 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 	std::string	root = location.getRoot();
 	if (*this->requestLine.requestTarget.absolutePath.rbegin() == '/' && *path.rbegin() != '/')
 		path = path + "/";
-	std::cout << CLR3 << "path:\t" << path << RESET << std::endl;
-	std::cout << CLR3 << "root:\t" << root << RESET << std::endl;
-	std::cout << CLR3 << "URL:\t" << this->requestLine.requestTarget.absolutePath << RESET << std::endl;
+	if (DEBUG)
+	{
+		std::cout << CLR3 << "path:\t" << path << RESET << std::endl;
+		std::cout << CLR3 << "root:\t" << root << RESET << std::endl;
+		std::cout << CLR3 << "URL:\t" << this->requestLine.requestTarget.absolutePath << RESET << std::endl;
+	}
     std::size_t pos = this->requestLine.requestTarget.absolutePath.find(path);
 	this->targetResource = this->requestLine.requestTarget.absolutePath;
    	this->targetResource.replace(pos, path.length(), root);
@@ -757,7 +746,8 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 	}
 	else if (this->messageFraming == TRANSFER_ENCODING)
 	{
-		std::cout << CLR2 << "Received: " << bufferedBody.size() << " bytes" << RESET << std::endl;
+		if (DEBUG)
+			std::cout << CLR2 << "Received: " << bufferedBody.size() << " bytes" << RESET << std::endl;
 		for (octets_t::iterator	it = bufferedBody.begin() ; it != bufferedBody.end() ; it = bufferedBody.begin())
 		{
 			octets_t::iterator	newline = std::find(bufferedBody.begin(), bufferedBody.end(), '\n');
@@ -765,7 +755,6 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 			size_t				tempBytesRead = chunkSizeLine.size() + 1;
 			octets_t::iterator	semicolon = std::find(chunkSizeLine.begin(), chunkSizeLine.end(), ';');
 			octets_t			chunkSizeOct(chunkSizeLine.begin(), semicolon); // ignore chunk-extension
-			std::cout << "Chunk size: " << chunkSizeOct << std::endl;
 			bufferedBody.erase(bufferedBody.begin(), newline + 1); // move to the beginning of the chunk
 			if (chunkSizeOct.size() > 0 && !isxdigit(chunkSizeOct[0]))
 				throw (ResponseException(400, "Invalid chunk size value")); // anything else than a hexdigit at the start isn't allowed

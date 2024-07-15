@@ -1,18 +1,5 @@
-#include <iostream>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <cstring>
 
-//"\n\r\n\n\r\nGET /index.html HTTP/1.1\r\nHost: www.example.com\r\nUser-Agent: Mozilla/5.0\nAccept: text/html, */*\r\nAccept-Language: en-us\nAccept-Charset: ISO-8859-1,utf-8\nConnection: keep-alive\r\n\n";
-//GET / HTTP/1.1
-//Host: www.example.com
-//User-Agent: Mozilla/5.0
-//Accept: text/html, */*
-//Accept-Language: en-us
-//Accept-Charset: ISO-8859-1,utf-8\n
-//Connection: keep-alive
+#include "mainClient.hpp"
 
 int main(void)
 {
@@ -67,32 +54,6 @@ int main(void)
 							"User-Agent: Mozilla/5.0\n"
 							"Accept: text/html, */*\r\n"
 							"Expect: 100-continue\n";
-							// "t: €h\n"
-							// "\r\n"
-							// "7;\n"
-							// "Mozilla\r\n"
-							// "11\r\n"
-							// "Developer Network\r\n"
-							// "0\r\n"
-							// "\r\n";
-							// "GET /file_indocs.html HTTP/1.1\r\n"
-							// "Host: localhost\r\n"
-							// "User-Agent: Mozilla/5.0\n"
-							// "Accept: text/html, */*\r\n"
-							// "Accept-Language: en-us\n"
-							// "Accept-Charset: \tISO-8859-1,utf-8\n"
-							// "Connection: keep-alive , \r\n"
-							// "Keep-Alive: max=100,timeout=30\n"
-							// "Transfer-Encoding: chunked\n"
-							// "t: €h\n"
-							// "\r\n"
-							// "8;\n"
-							// "Chromium\r\n"
-							// "12\r\n"
-							// "Developers Network\r\n"
-							// "0\r\n"
-							// "\r\n"
-							// ;
 	const char *message1 = "Accept-Language: en-us\n"
 							"Accept-Charset: \tISO-8859-1,utf-8\n"
 							"Connection: keep-alive , \r\n"

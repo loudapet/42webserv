@@ -205,7 +205,7 @@ void Client::separateValidHeader(void)
 // we can be sure that the sequence will be found since this function is called only once hasValidHeaderEnd returns true
 //	if (endOfSequence == this->_receivedData.end())
 //		return (false);
-	std::cout << CLR2 << "HELLO SEPARATED HEADER" << RESET << std::endl;
+	//std::cout << CLR2 << "HELLO SEPARATED HEADER" << RESET << std::endl;
 	this->_receivedHeader.insert(this->_receivedHeader.end(), this->_receivedData.begin(), sequenceEnd);
 	this->_receivedData.erase(this->_receivedData.begin(), sequenceEnd);
 }
