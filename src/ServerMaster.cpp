@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/08 17:26:24 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/15 14:48:42 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -374,6 +374,8 @@ void	ServerMaster::listenForConnections(void)
 				Client	&client = this->_clients.find(i)->second;
 				if(!client.request.response.getMessageTooLongForOneSend())
 					client.request.response.setMessage(client.request.response.prepareResponse(client.request));
+				if (client.request.response.getMessage().size() == 0)
+					continue;
 				octets_t message = client.request.response.getMessage();
 				size_t messageLen = message.size();
 				size_t buffLen;

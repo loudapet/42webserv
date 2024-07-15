@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/15 12:03:21 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/15 14:44:48 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -480,7 +480,8 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 							message.push_back(buffer[i]);
 						}
 						std::cout << CLR6 "CGI Processed!" RESET << std::endl;
-						return (message);
+						//return (message);
+						this->responseBody.insert(this->responseBody.end(), message.begin(), message.end());
 					}
 					else
 					{
@@ -493,14 +494,18 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 		if (codeDict.find(this->statusLine.statusCode) == codeDict.end())
 			this->codeDict[this->statusLine.statusCode] = "Undefined";
 		this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
-		if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
-			request.response.readDirectoryListing(request.getTargetResource());
-		else if (this->statusLine.statusCode == 200)
-			request.response.readRequestedFile(request.getTargetResource());
-		else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
-			request.response.readReturnDirective(request.getLocation());
-		else
-			request.response.readErrorPage(request.getLocation());
+
+		if (!request.getLocation().getRelativeCgiPath().size())
+		{
+			if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
+				request.response.readDirectoryListing(request.getTargetResource());
+			else if (this->statusLine.statusCode == 200)
+				request.response.readRequestedFile(request.getTargetResource());
+			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
+				request.response.readReturnDirective(request.getLocation());
+			else
+				request.response.readErrorPage(request.getLocation());
+		}
 		request.response.buildResponseHeaders(request);
 		request.response.buildCompleteResponse();
 		octets_t message = request.response.getCompleteResponse();
