@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 16:36:47 by okraus            #+#    #+#             */
-/*   Updated: 2024/07/15 12:07:10 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/16 11:08:29 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,7 +58,7 @@ int	main(int argc, char *argv[], char *envp[])
 	for (int i = 0; argv[i]; i++)
 	{
 		str = argv[i];
-		std::cerr << "argv[" << i << "]: " << str << std::endl;
+		std::cerr << "argv[" << i << "]:\t" << str << std::endl;
 	}
 	std::cerr << NO_COLOUR << std::endl;
 	std::cerr << YELLOWBG_COLOUR "CGI ENV" NO_COLOUR << std::endl;
@@ -66,7 +66,7 @@ int	main(int argc, char *argv[], char *envp[])
 	for (int i = 0; envp[i]; i++)
 	{
 		str = envp[i];
-		std::cerr << "envp[" << i << "]: " << str << std::endl;
+		std::cerr << "envp[" << i << "]:\t" << str << std::endl;
 	}
 	std::cerr << NO_COLOUR << std::endl;
 	std::cout << "Content-type:text/html\r\n\r\n";

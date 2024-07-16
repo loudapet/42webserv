@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/15 14:44:48 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/16 11:19:44 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -387,6 +387,224 @@ void	HttpResponse::readReturnDirective(const Location &location)
 	this->responseBody = convertStringToOctets(location.getReturnURLOrBody());
 }
 
+// https://www.rfc-editor.org/rfc/rfc3875#section-4.1
+// "AUTH_TYPE"			//not needed? https://www.rfc-editor.org/rfc/rfc2617
+// "CONTENT_LENGTH"		//The server MUST set this meta-variable if and only if the request is
+						// accompanied by a message-body entity.  The CONTENT_LENGTH value must
+						// reflect the length of the message-body after the server has removed
+						// any transfer-codings or content-codings.
+// "CONTENT_TYPE"		The server MUST set this meta-variable if an HTTP Content-Type field
+						// is present in the client request header.  If the server receives a
+						// request with an attached entity but no Content-Type header field, it
+						// MAY attempt to determine the correct content type, otherwise it
+						// should omit this meta-variable.
+// "GATEWAY_INTERFACE"	//GATEWAY_INTERFACE = "CGI" "/" 1*digit "." 1*digit (1.1)
+// "PATH_INFO"			The PATH_INFO variable specifies a path to be interpreted by the CGI
+						// script.  It identifies the resource or sub-resource to be returned by
+						// the CGI script, and is derived from the portion of the URI path
+						// hierarchy following the part that identifies the script itself.
+// "PATH_TRANSLATED"	http://somehost.com/cgi-bin/somescript/this%2eis%2epath%3binfo
+// 							/this.is.the.path;info
+// 						http://somehost.com/this.is.the.path%3binfo
+// 							/usr/local/www/htdocs/this.is.the.path;info
+// "QUERY_STRING"		The server MUST set this variable; if the Script-URI does not include
+						// a query component, the QUERY_STRING MUST be defined as an empty
+						// string ("").
+// "REMOTE_ADDR"		//IPv.4
+// "REMOTE_HOST"		The server SHOULD set this variable.  If the hostname is not
+						// available for performance reasons or otherwise, the server MAY
+						// substitute the REMOTE_ADDR value.
+// "REMOTE_IDENT"		// not needed?
+// "REMOTE_USER"		// not needed?
+// "REQUEST_METHOD"		// GET POST HEAD + PUT DELETE token
+// "SCRIPT_NAME"		The SCRIPT_NAME variable MUST be set to a URI path (not URL-encoded)
+						// which could identify the CGI script
+// "SERVER_NAME"		// localhost?
+// "SERVER_PORT"		//8081
+// "SERVER_PROTOCOL"	"HTTP" "/" 1*digit "." 1*digit (1.1)
+// "SERVER_SOFTWARE"	The SERVER_SOFTWARE meta-variable MUST be set to the name and version
+						// of the information server software making the CGI request (and
+						// running the gateway).  It SHOULD be the same as the server
+						// description reported to the client, if any.
+
+static std::string	to_string(size_t num)
+{
+	std::stringstream	ss;
+
+	ss << num;
+	return (ss.str());
+}
+
+static void	get_env(HttpRequest& request, char **env)
+{
+	std::string			str;
+	
+	int					e = 0;
+
+	str = "AUTH_TYPE=" "";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	if (request.getRequestBody().size()) //message
+	{
+		str = "CONTENT_LENGTH=" + to_string(request.getRequestBody().size());
+		env[e] = new char[str.size() + 1];
+		std::copy(str.begin(), str.end(), env[e]);
+		env[e][str.size()] = '\0';
+		str.clear();
+		e++;
+	}
+	if (1) //Content type
+	{
+		str = "CONTENT_TYPE=" "multipart/form-data";
+		env[e] = new char[str.size() + 1];
+		std::copy(str.begin(), str.end(), env[e]);
+		env[e][str.size()] = '\0';
+		str.clear();
+		e++;
+	}
+	str = "GATEWAY_INTERFACE=CGI/1.1";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "PATH_INFO=";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "PATH_TRANSLATED=";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "QUERY_STRING=";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "REMOTE_ADDR=??? IPv4";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "REMOTE_HOST=ADDR?";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "REMOTE_IDENT=???";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "REMOTE_USER=???";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "REQUEST_METHOD= PUT GET DELETE";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "SCRIPT_NAME=";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "SERVER_NAME=localhost";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "SERVER_PORT=8081";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "SERVER_PROTOCOL=HTTP/1.1";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "SERVER_SOFTWARE=ft_webserv";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "BONUS ENV BELOW";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "HTTP_USER_AGENT=";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "REMOTE_PORT=";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "HTTPS=off";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	str = "More?";
+	env[e] = new char[str.size() + 1];
+	std::copy(str.begin(), str.end(), env[e]);
+	env[e][str.size()] = '\0';
+	str.clear();
+	e++;
+	env[e] = NULL;
+	
+}
+
+// Optional?
+// https://www.cgi101.com/book/ch3/text.html
+// DOCUMENT_ROOT	The root directory of your server
+// HTTP_COOKIE		The visitor's cookie, if one is set
+// HTTP_HOST		The hostname of the page being attempted
+// HTTP_REFERER		The URL of the page that called your program
+// HTTP_USER_AGENT	The browser type of the visitor
+// HTTPS			"on" if the program is being called through a secure server
+// PATH				The system path your server is running under
+// ////QUERY_STRING	The query string (see GET, below)
+// ////REMOTE_ADDR		The IP address of the visitor
+// ////REMOTE_HOST		The hostname of the visitor (if your server has reverse-name-lookups on; otherwise this is the IP address again)
+// REMOTE_PORT		The port the visitor is connected to on the web server
+// ////REMOTE_USER		The visitor's username (for .htaccess-protected pages)
+// ////REQUEST_METHOD	GET or POST
+// REQUEST_URI		The interpreted pathname of the requested document or CGI (relative to the document root)
+// SCRIPT_FILENAME	The full pathname of the current CGI
+// ////SCRIPT_NAME		The interpreted pathname of the current CGI (relative to the document root)
+// SERVER_ADMIN		The email address for your server's webmaster
+// ////SERVER_NAME		Your server's fully qualified domain name (e.g. www.cgi101.com)
+// ////SERVER_PORT		The port number your server is listening on
+// ////SERVER_SOFTWARE	The server software you're using (e.g. Apache 1.3)
 
 const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 {
@@ -425,10 +643,9 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 					dup2 (fd2[1], STDOUT_FILENO);
 					close (fd2[0]);
 					close (fd2[1]);
-					char **env;
-					char *end;
-					end = NULL;
-					env = &end;
+					char *env_vars[50];
+					char **env = &env_vars[0];
+					get_env(request, env);
 					char **av;
 					char *ex[2];
 					ex[0] = (char *)request.getLocation().getRelativeCgiPath().c_str();
@@ -436,7 +653,11 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 					av = &ex[0];
 					execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
 					//clean exit later, get pid is not legal, maybe a better way to do it?
-					//free env?
+					for (int i = 0; env[i]; i++)
+					{
+						delete env[i];
+					}
+					std::cerr << "Failed to execute: " << ex[0] << std::endl;
 					kill(getpid(), SIGINT);
 					exit (1);
 				}

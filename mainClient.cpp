@@ -5,7 +5,10 @@ int main(void)
 {
 	// Create a socket
 	int clientSocket;
-	
+
+	(void)request1;
+	(void)request2;
+	(void)request3;
 	clientSocket = socket(AF_INET, SOCK_STREAM, 0);
 	if (clientSocket == -1)
 	{

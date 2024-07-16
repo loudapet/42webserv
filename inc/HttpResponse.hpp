@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/08 18:07:59 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/16 10:30:42 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 #include <iostream>
 #include <iomanip>
 #include <ctime>
+#include <algorithm>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "Location.hpp"
