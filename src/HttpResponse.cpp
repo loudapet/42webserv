@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/15 14:44:48 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/16 12:34:22 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,6 +64,7 @@ HttpResponse::HttpResponse()
 	this->codeDict[503] = "Service Unavailable";
 	this->codeDict[504] = "Gateway Timeout";
 	this->codeDict[505] = "HTTP Version Not Supported";
+	this->statusDetails = "";
 	this->responseBody = octets_t();
 	this->completeResponse = octets_t();
 	this->statusLocked = false;
@@ -397,7 +398,7 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 		// status code for CGI needs to be properly updated, I think?
 		std::cout << CLR6 << request.getLocation().getRelativeCgiPath() << RESET << std::endl;
 		// this if might deserve its own function later
-		if (request.getLocation().getRelativeCgiPath().size())
+		if (request.getLocation().getRelativeCgiPath().size() && false == true)
 		{
 			std::cout << CLR6 "Processing CGI stuff" RESET << std::endl;
 			int	pid;
@@ -495,8 +496,8 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 			this->codeDict[this->statusLine.statusCode] = "Undefined";
 		this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
 
-		if (!request.getLocation().getRelativeCgiPath().size())
-		{
+		//if (!request.getLocation().getRelativeCgiPath().size())
+		//{
 			if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
 				request.response.readDirectoryListing(request.getTargetResource());
 			else if (this->statusLine.statusCode == 200)
@@ -505,7 +506,7 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 				request.response.readReturnDirective(request.getLocation());
 			else
 				request.response.readErrorPage(request.getLocation());
-		}
+		//}
 		request.response.buildResponseHeaders(request);
 		request.response.buildCompleteResponse();
 		octets_t message = request.response.getCompleteResponse();
