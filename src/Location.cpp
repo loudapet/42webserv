@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/01 17:01:35 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/17 23:51:47 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,8 +20,7 @@ Location::Location(void)
 	this->_requestBodySizeLimit = REQUEST_BODY_SIZE_LIMIT;
 	this->_autoindex = 0;
 	this->_allowMethods.insert("GET");
-	this->_cgiPath = "";
-	this->_relativeCgiPath = "";
+	this->_isCgi = false;
 	this->_returnURLOrBody = "/";
 	this->_returnCode = 0;
 	this->_isRedirect = false;
@@ -36,8 +35,7 @@ Location::Location(unsigned short serverReturnCode, std::string serverReturnURLO
 	this->_requestBodySizeLimit = REQUEST_BODY_SIZE_LIMIT;
 	this->_autoindex = 0;
 	this->_allowMethods.insert("GET");
-	this->_cgiPath = "";
-	this->_relativeCgiPath = "";
+	this->_isCgi = false;
 	this->_returnURLOrBody = serverReturnURLOrBody;
 	this->_returnCode = serverReturnCode;
 	this->_isRedirect = true;
@@ -49,6 +47,7 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 	bool						rbslInConfig;
 	bool						autoindexInConfig;
 	bool						allowMethodsInConfig;
+	bool						isCgiInConfig;
 	std::vector<std::string>	allowMethodsLine;
 	std::string 				validMethodsArray[] = {"GET", "POST", "DELETE"};
 	std::set<std::string> 		validMethods(validMethodsArray, validMethodsArray + sizeof(validMethodsArray) / sizeof(validMethodsArray[0]));
@@ -59,6 +58,7 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 	rbslInConfig = false;
 	autoindexInConfig = false;
 	allowMethodsInConfig = false;
+	isCgiInConfig = false;
 	this->_path = locationPath;
 	//std::cout << "Location block: " << locationScope << std::endl;
 	for (size_t i = 0; i < locationBlockElements.size(); i++)
@@ -84,7 +84,7 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 		else if (locationBlockElements[i] == "autoindex" && (i + 1) < locationBlockElements.size()
 			&& validateElement(locationBlockElements[i + 1]))
 		{
-			this->_autoindex = validateAutoindex(autoindexInConfig, locationBlockElements[i + 1], "location");
+			this->_autoindex = validateOnOffDirective(autoindexInConfig, "autoindex", locationBlockElements[i + 1], "location");
 			autoindexInConfig = true;
 			i++;
 		}
@@ -104,10 +104,11 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 			i += allowMethodsLine.size(); // not -1 bcs there is the directive to skip too
 			allowMethodsLine.clear();
 		}
-		else if (locationBlockElements[i] == "cgi_path" && (i + 1) < locationBlockElements.size()
+		else if (locationBlockElements[i] == "cgi" && (i + 1) < locationBlockElements.size()
 			&& validateElement(locationBlockElements[i + 1]))
 		{
-			this->_cgiPath = locationBlockElements[i + 1];
+			this->_isCgi = validateOnOffDirective(isCgiInConfig, "cgi", locationBlockElements[i + 1], "location");
+			isCgiInConfig = true;
 			i++;
 		}
 		else if (locationBlockElements[i] == "return" && (i + 2) < locationBlockElements.size()
@@ -153,8 +154,7 @@ Location::Location(const Location& copy)
 	this->_requestBodySizeLimit = copy._requestBodySizeLimit;
 	this->_autoindex = copy._autoindex;
 	this->_allowMethods = copy._allowMethods;
-	this->_cgiPath = copy._cgiPath;
-	this->_relativeCgiPath = copy._relativeCgiPath;
+	this->_isCgi = copy._isCgi;
 	this->_returnURLOrBody = copy._returnURLOrBody;
 	this->_returnCode = copy._returnCode;
 	this->_isRedirect = copy._isRedirect;
@@ -171,8 +171,7 @@ Location &Location::operator = (const Location &src)
 		this->_requestBodySizeLimit = src._requestBodySizeLimit;
 		this->_autoindex = src._autoindex;
 		this->_allowMethods = src._allowMethods;
-		this->_cgiPath = src._cgiPath;
-		this->_relativeCgiPath = src._relativeCgiPath;
+		this->_isCgi = src._isCgi;
 		this->_returnURLOrBody = src._returnURLOrBody;
 		this->_returnCode = src._returnCode;
 		this->_isRedirect = src._isRedirect;
@@ -217,14 +216,9 @@ const std::set<std::string>	&Location::getAllowMethods(void) const
 	return (this->_allowMethods);
 }
 
-const std::string	&Location::getCgiPath(void) const
+bool	Location::getIsCgi(void) const
 {
-	return (this->_cgiPath);
-}
-
-const std::string	&Location::getRelativeCgiPath(void) const
-{
-	return (this->_relativeCgiPath);
+	return (this->_isCgi);
 }
 
 const std::string		&Location::getReturnURLOrBody(void) const
@@ -277,11 +271,6 @@ void	Location::setAllowMethods(const std::set<std::string> &allowMethods)
 	this->_allowMethods = allowMethods;
 }
 
-void	Location::setRelativeCgiPath(const std::string &relativeCgiPath)
-{
-	this->_relativeCgiPath = relativeCgiPath;
-}
-
 void	Location::setReturnURLOrBody(const std::string &returnURLOrBody)
 {
 	this->_returnURLOrBody = returnURLOrBody; 
@@ -310,8 +299,7 @@ void	Location::initLocation(void)
 	this->_requestBodySizeLimit = -1;
 	this->_autoindex = -1;
 	this->_allowMethods = std::set<std::string>();
-	this->_cgiPath = "";
-	this->_relativeCgiPath = "";
+	this->_isCgi = false;
 	this->_returnURLOrBody = "/";
 	this->_returnCode = 0;
 	this->_isRedirect = false;
@@ -360,8 +348,7 @@ std::ostream &operator << (std::ostream &o, Location const &instance)
 		<< "client_max_body_size (requestBodySizeLimit): " << instance.getRequestBodySizeLimit() << '\n'
 		<< "autoindex: " << instance.getAutoindex() << '\n'
 		<< "allow_methods: " << instance.getAllowMethods() << '\n'
-		<< "cgi_path: " << instance.getCgiPath() << '\n'
-		<< "relative cgi_path: " << instance.getRelativeCgiPath() << '\n'
+		<< "isCgi: " << instance.getIsCgi() << '\n'
 		<< "return: " << instance.getReturnCode() << " " << instance.getReturnURLOrBody() << '\n'
 		<< "error pages: ";
 	if (errorPages.size() > 0)
