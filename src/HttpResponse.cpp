@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/16 11:19:44 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/17 11:23:53 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -427,13 +427,13 @@ void	HttpResponse::readReturnDirective(const Location &location)
 						// running the gateway).  It SHOULD be the same as the server
 						// description reported to the client, if any.
 
-static std::string	to_string(size_t num)
-{
-	std::stringstream	ss;
+// static std::string	to_string(size_t num)
+// {
+// 	std::stringstream	ss;
 
-	ss << num;
-	return (ss.str());
-}
+// 	ss << num;
+// 	return (ss.str());
+// }
 
 static void	get_env(HttpRequest& request, char **env)
 {
@@ -449,16 +449,17 @@ static void	get_env(HttpRequest& request, char **env)
 	e++;
 	if (request.getRequestBody().size()) //message
 	{
-		str = "CONTENT_LENGTH=" + to_string(request.getRequestBody().size());
+		str = "CONTENT_LENGTH=" + itoa(request.getRequestBody().size());
 		env[e] = new char[str.size() + 1];
 		std::copy(str.begin(), str.end(), env[e]);
 		env[e][str.size()] = '\0';
 		str.clear();
 		e++;
 	}
-	if (1) //Content type
+	if (request.getHeaderFields().find("content-type") != request.getHeaderFields().end()) //Content type
 	{
-		str = "CONTENT_TYPE=" "multipart/form-data";
+		str = "CONTENT_TYPE=" + request.getHeaderFields().find("content-type")->second;
+		// str = "CONTENT_TYPE=" + request.getHeaderFields()["content-type"];
 		env[e] = new char[str.size() + 1];
 		std::copy(str.begin(), str.end(), env[e]);
 		env[e][str.size()] = '\0';
@@ -531,7 +532,7 @@ static void	get_env(HttpRequest& request, char **env)
 	env[e][str.size()] = '\0';
 	str.clear();
 	e++;
-	str = "SERVER_PORT=8081";
+	str = "SERVER_PORT=8002";
 	env[e] = new char[str.size() + 1];
 	std::copy(str.begin(), str.end(), env[e]);
 	env[e][str.size()] = '\0';
@@ -555,12 +556,15 @@ static void	get_env(HttpRequest& request, char **env)
 	env[e][str.size()] = '\0';
 	str.clear();
 	e++;
-	str = "HTTP_USER_AGENT=";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
+	if (request.getHeaderFields().find("user-agent") != request.getHeaderFields().end())
+	{
+		str = "HTTP_USER_AGENT=" + request.getHeaderFields().find("user-agent")->second;
+		env[e] = new char[str.size() + 1];
+		std::copy(str.begin(), str.end(), env[e]);
+		env[e][str.size()] = '\0';
+		str.clear();
+		e++;
+	}
 	str = "REMOTE_PORT=";
 	env[e] = new char[str.size() + 1];
 	std::copy(str.begin(), str.end(), env[e]);
@@ -580,7 +584,6 @@ static void	get_env(HttpRequest& request, char **env)
 	str.clear();
 	e++;
 	env[e] = NULL;
-	
 }
 
 // Optional?
@@ -646,11 +649,10 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 					char *env_vars[50];
 					char **env = &env_vars[0];
 					get_env(request, env);
-					char **av;
 					char *ex[2];
 					ex[0] = (char *)request.getLocation().getRelativeCgiPath().c_str();
 					ex[1] = NULL;
-					av = &ex[0];
+					char **av = &ex[0];
 					execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
 					//clean exit later, get pid is not legal, maybe a better way to do it?
 					for (int i = 0; env[i]; i++)
@@ -682,6 +684,8 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 					close(fd1[1]);
 					//close reading end of the second pipe
 					close(fd2[1]);
+
+					//reading in the second loop
 					int	status;
 					int	r;
 					// read needs to be in select somehow

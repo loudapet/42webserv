@@ -48,6 +48,7 @@ int main(void)
 							"Connection: keep-alive , \r\n"
 							"Keep-Alive: max=100,timeout=30\n"
 							"Content-Length: 11\n"
+							"Content-Type: text/html; charset=UTF-8\n"
 							// "Expect: 100-continue\n\n"
 							// "Transfer-Encoding: chunked\n"
 							"\n"

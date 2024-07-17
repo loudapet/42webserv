@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/08 16:52:41 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/16 16:14:45 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -858,6 +858,11 @@ const ConnectionStatus &HttpRequest::getConnectionStatus() const
 const std::set<std::string> &HttpRequest::getAllowedMethods() const
 {
 	return (this->allowedMethods);
+}
+
+const stringmap_t	&HttpRequest::getHeaderFields(void) const
+{
+	return (this->headerFields);
 }
 
 const octets_t &HttpRequest::getRequestBody(void) const

@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/08 18:22:09 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/16 16:14:27 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -140,6 +140,7 @@ class HttpRequest
 
 		void							setConnectionStatus(ConnectionStatus connectionStatus);
 		const Location&					getLocation() const;
+		const stringmap_t&				getHeaderFields() const;
 		const octets_t&					getRequestBody() const;
 		const std::string&				getAbsolutePath() const;
 		const ConnectionStatus&			getConnectionStatus() const;
