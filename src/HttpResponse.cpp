@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/18 10:28:09 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/18 11:51:10 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -676,7 +676,7 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 					//ex[0] = (char *)request.getLocation().getRelativeCgiPath().c_str();
 					ex[0] = (char *)"test_cgi-bin/test.cgi";
 					ex[1] = NULL;
-					av = &ex[0];
+					char **av = &ex[0];
 					//execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
 					execve("test_cgi-bin/test1.cgi", av, env);
 					//clean exit later, get pid is not legal, maybe a better way to do it?
