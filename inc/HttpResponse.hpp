@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/18 13:37:24 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/18 16:06:01 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,8 +23,8 @@
 
 # define NOCGI 0
 # define CGI_STARTED 1
-# define CGI_READING 2
-# define CGI_WRITING 4
+# define CGI_WRITING 2
+# define CGI_READING 4
 # define CGI_COMPLETE 8
 # define CGI_ERROR 256
 
@@ -51,6 +51,7 @@ class HttpResponse
 		int				cgiStatus; //started
 		int				wfd;	//cgi pipe fd for write
 		int				rfd;	//cgi pipe fd for read
+		int				cgi_pid;
 		stringmap_t		cgiHeaderFields;
 		octets_t		cgiBody;
 
@@ -83,11 +84,13 @@ class HttpResponse
 		bool					getMessageTooLongForOneSend() const;
 		void					setMessageTooLongForOneSend(bool value);
 		int						getCgiStatus(void);
+		int						getCgiPid(void);
 		int						getWfd(void);
 		int						getRfd(void);
 		stringmap_t				getCgiHeaderFields(void);
 		octets_t&				getCgiBody(void);
 		void					setCgiStatus(int status);
+		void					setCgiPid(int pid);
 		void					setWfd(int fd);
 		void					setRfd(int fd);
 		// void					setCgiHeaderFields;

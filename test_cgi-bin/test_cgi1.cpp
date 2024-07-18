@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 16:36:47 by okraus            #+#    #+#             */
-/*   Updated: 2024/07/18 13:47:03 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/18 15:20:12 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,8 +41,8 @@ int	main(int argc, char *argv[], char *envp[])
 	int		r;
 	std::string	str;
 	(void)argc;
-	// std::cerr << CYANBG_COLOUR "CGI Input" NO_COLOUR << std::endl;
-	// std::cerr << CYAN_COLOUR;
+	std::cerr << CYANBG_COLOUR "CGI Input" NO_COLOUR << std::endl;
+	std::cerr << CYAN_COLOUR;
 	sleep(1);
 	while ((r = read(STDIN_FILENO, buffer, 512)) > 0)
 	{
@@ -51,10 +51,10 @@ int	main(int argc, char *argv[], char *envp[])
 		std::cerr << std::endl;
 		std::cerr << "read is: " << r << std::endl;
 	}
-	// std::cerr << "read is: " << r << std::endl;
-	// std::cerr << NO_COLOUR << std::endl;
-	// std::cerr << MAGENTABG_COLOUR "CGI ARGS" NO_COLOUR << std::endl;
-	// std::cerr << MAGENTA_COLOUR;
+	std::cerr << "read is: " << r << std::endl;
+	std::cerr << NO_COLOUR << std::endl;
+	std::cerr << MAGENTABG_COLOUR "CGI ARGS" NO_COLOUR << std::endl;
+	std::cerr << MAGENTA_COLOUR;
 	
 	std::cout << "Content-type:text/html\r\n\r\n";
 	std::cout << "<html>\n";
@@ -68,25 +68,29 @@ int	main(int argc, char *argv[], char *envp[])
 	for (int i = 0; argv[i]; i++)
 	{
 		str = argv[i];
-		// std::cerr << "argv[" << i << "]:\t" << str << std::endl;
+		std::cerr << "argv[" << i << "]:\t" << str << std::endl;
 		std::cout << "<li>" << str << "</li>" << std::endl;
 	}
 	std::cout << "</ol>\n";
-	// std::cerr << NO_COLOUR << std::endl;
-	// std::cerr << YELLOWBG_COLOUR "CGI ENV" NO_COLOUR << std::endl;
-	// std::cerr << YELLOW_COLOUR;
+	std::cerr << NO_COLOUR << std::endl;
+	std::cerr << YELLOWBG_COLOUR "CGI ENV" NO_COLOUR << std::endl;
+	std::cerr << YELLOW_COLOUR;
 	std::cout << "<h2> Environment: </h2>\n";
 	std::cout << "<ol>\n";
 	for (int i = 0; envp[i]; i++)
 	{
 		str = envp[i];
-		// std::cerr << "envp[" << i << "]:\t" << str << std::endl; //breaks it somehow?
+		std::cerr << "envp[" << i << "]:\t" << str << std::endl; //breaks it somehow?
 		std::cout << "<li>" << str << "</li>" << std::endl;
 	}
 	std::cout << "</ol>\n";
-	// std::cerr << NO_COLOUR << std::endl;
+	std::cerr << NO_COLOUR << std::endl;
 
 	std::cout << "</body>\n";
 	std::cout << "</html>\n" << std::endl;
+	std::cout << std::flush;
+	std::cerr << REDBG_COLOUR "CGI PROGRAM END" NO_COLOUR << std::endl << std::endl;
+	std::cerr << std::flush;
+	//sleep(1);
 	return (0);
 } 

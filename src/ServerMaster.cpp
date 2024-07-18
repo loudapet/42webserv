@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/18 13:42:32 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/18 16:55:19 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -515,115 +515,164 @@ static void	get_env(HttpRequest& request, char **env)
 // ////SERVER_PORT		The port number your server is listening on
 // ////SERVER_SOFTWARE	The server software you're using (e.g. Apache 1.3)
 
-void	ft_cgi(HttpRequest& request)
+void	ft_cgi(Client	&client)
 {
+	HttpRequest&	request = client.request;
+	HttpResponse&	response = request.response;
+	int				wpid;
 	// status code for CGI needs to be properly updated, I think?
-		//std::cout << CLR6 << request.getLocation().getRelativeCgiPath() << RESET << std::endl;
-		// this if might deserve its own function later
-		//if (request.getLocation().getRelativeCgiPath().size())
-		std::cout << CLR6 "Processing CGI stuff0" RESET << std::endl;
-		if (request.getLocation().getIsCgi())
+	//std::cout << CLR6 << request.getLocation().getRelativeCgiPath() << RESET << std::endl;
+	// this if might deserve its own function later
+	//if (request.getLocation().getRelativeCgiPath().size())
+	std::cout << CLR6 "Processing CGI stuff0" RESET << std::endl;
+	if (response.getCgiStatus() == NOCGI && request.getLocation().getIsCgi())
+		response.setCgiStatus(CGI_STARTED);
+	if (response.getCgiStatus() == CGI_STARTED)
+	{
+		std::cout << CLR6 "Processing CGI stuff 1" RESET << std::endl;
+		int	pid;
+		int	fd1[2]; // writing to child
+		int	fd2[2]; // reading from child
+		if (pipe(fd1) == -1)
 		{
-			std::cout << CLR6 "Processing CGI stuff 1" RESET << std::endl;
-			int	pid;
-			int	fd1[2]; // writing to child
-			int	fd2[2]; // reading from child
-			uint8_t	buffer[65536];
-			if (pipe(fd1) == -1 || pipe(fd2) == -1 )
+			std::cerr << "Error: Pipe" << std::endl;
+			response.setCgiStatus(CGI_ERROR);
+			return ;
+		}
+		if (pipe(fd2) == -1 )
+		{
+			close(fd1[0]);
+			close(fd1[1]);
+			std::cerr << "Error: Pipe" << std::endl;
+			response.setCgiStatus(CGI_ERROR);
+			return ;
+		}
+		else
+		{
+			response.setWfd(fd1[1]);
+			response.setRfd(fd2[0]);
+			pid = fork();
+			if (pid == -1)
 			{
-				std::cerr << "Error: Pipe" << std::endl;
+				std::cerr << "Error: Fork" << std::endl;
+				response.setCgiStatus(CGI_ERROR);
+				return ;
+			}
+			else if (pid == 0)
+			{
+				//child
+				//some shenanigans to get execve working
+				dup2 (fd1[0], STDIN_FILENO);
+				close (fd1[0]);
+				close (fd1[1]);
+				dup2 (fd2[1], STDOUT_FILENO);
+				close (fd2[0]);
+				close (fd2[1]);
+				char *env_vars[250];
+				char **env = &env_vars[0];
+				get_env(request, env);
+				char *ex[2];
+				//ex[0] = (char *)request.getLocation().getRelativeCgiPath().c_str();
+				ex[0] = (char *)"test_cgi-bin/test.cgi";
+				ex[1] = NULL;
+				char **av = &ex[0];
+				//execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
+				execve("test_cgi-bin/test1.cgi", av, env);
+				//clean exit later, get pid is not legal, maybe a better way to do it?
+				for (int i = 0; env[i]; i++)
+				{
+					delete env[i];
+				}
+				std::cerr << "Failed to execute: " << ex[0] << std::endl;
+				kill(getpid(), SIGINT);
+				exit (1);
 			}
 			else
 			{
-				pid = fork();
-				if (pid == -1)
-				{
-					std::cerr << "Error: Fork" << std::endl;
-				}
-				else if (pid == 0)
-				{
-					//child
-					//some shenanigans to get execve working
-					dup2 (fd1[0], STDIN_FILENO);
-					close (fd1[0]);
-					close (fd1[1]);
-					dup2 (fd2[1], STDOUT_FILENO);
-					close (fd2[0]);
-					close (fd2[1]);
-					char *env_vars[250];
-					char **env = &env_vars[0];
-					get_env(request, env);
-					char *ex[2];
-					//ex[0] = (char *)request.getLocation().getRelativeCgiPath().c_str();
-					ex[0] = (char *)"test_cgi-bin/test.cgi";
-					ex[1] = NULL;
-					char **av = &ex[0];
-					//execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
-					execve("test_cgi-bin/test1.cgi", av, env);
-					//clean exit later, get pid is not legal, maybe a better way to do it?
-					for (int i = 0; env[i]; i++)
-					{
-						delete env[i];
-					}
-					std::cerr << "Failed to execute: " << ex[0] << std::endl;
-					kill(getpid(), SIGINT);
-					exit (1);
-				}
-				else
-				{
-					//parent
-					//close writing end of the first pipe
-					close(fd1[0]);
-					int	w;
-					std::string body(request.getRequestBody().begin(), request.getRequestBody().end());
-					w = write(fd1[1], body.c_str(), request.getRequestBody().size());
-					if (w > 0)
-					{
-						std::cout << CLR6 "Written to CGI" RESET << std::endl;
-						std::cout << CLR6 << body << RESET << std::endl;
-					}
-					else
-					{
-						std::cerr << CLRE "write fail or nothing was written" RESET << std::endl;
-					}
-					//close the first pipe
-					close(fd1[1]);
-					//close reading end of the second pipe
-					close(fd2[1]);
-
-					//reading in the second loop
-					int	status;
-					int	r;
-					// read needs to be in select somehow
-					//what is read is sent?
-					r = read(fd2[0], buffer, 65536);
-					// close when read finished (<= 0)
-					close(fd2[0]);
-					// fork and wait ? Make it non blocking
-					// waitpid WNOHANG? flag for waiting for a response?
-					waitpid(pid, &status, 0);
-					if (r > 0)
-					{
-						// octets_t message;
-						for (int i = 0; i < r; i++)
-						{
-							//there might be a better way
-							request.response.getCgiBody().push_back(buffer[i]);
-							// std::cout << CLR2 << "CGI MAIN STUFF" << request.response.getCgiBody().size() << RESET << std::endl;
-						}
-						std::cout << CLR2 << "CGI MAIN STUFF" << request.response.getCgiBody().size() << RESET << std::endl;
-						// std::string str(request.response.getCgiBody().begin(), request.response.getCgiBody().end());
-						// std::cout << str << std::endl;
-						std::cout << CLR6 "CGI Processed! " << r << RESET << std::endl;
-						
-					}
-					else
-					{
-						std::cerr << CLRE "read fail or nothing was read" RESET << std::endl;
-					}
-				}
+				response.setCgiStatus(CGI_WRITING);
+				response.setCgiPid(pid);
+				//parent
+				//close reading end of the first pipe
+				close(fd1[0]);
+				//close writing end of the second pipe
+				close(fd2[1]);
+				return ;
+				
+				// continue on 0 read
 			}
 		}
+	}
+	if (response.getCgiStatus() == CGI_WRITING)
+	{
+		size_t	w;
+		std::string body(request.getRequestBody().begin(), request.getRequestBody().end());
+		w = write(response.getWfd(), body.c_str(), request.getRequestBody().size());
+		if (w == request.getRequestBody().size())
+		{
+			std::cout << CLR6 "Written to CGI" RESET << std::endl;
+			std::cout << CLR6 << body << RESET << std::endl;
+			response.setCgiStatus(CGI_READING);
+			return ;
+		}
+		else
+		{
+			std::cerr << CLRE "write fail or nothing was written" RESET << std::endl;
+			response.setCgiStatus(CGI_ERROR);
+			close(response.getWfd());
+			close(response.getRfd());
+			return ;
+		}
+	}
+	if (response.getCgiStatus() == CGI_READING)
+	{
+		int	status;
+		int	r;
+		uint8_t	buffer[CGI_BUFFER_SIZE];
+		// read needs to be in select somehow
+		//what is read is sent?
+		// close when read finished (<= 0)
+		// fork and wait ? Make it non blocking
+		// waitpid WNOHANG? flag for waiting for a response?
+		wpid = waitpid(response.getCgiPid(), &status, WNOHANG);
+		r = read(response.getRfd(), buffer, CGI_BUFFER_SIZE);
+		if (r > 0)
+		{
+			// octets_t message;
+			for (int i = 0; i < r; i++)
+			{
+				//there might be a better way
+				response.getCgiBody().push_back(buffer[i]);
+				// std::cout << CLR2 << "CGI MAIN STUFF" << response.getCgiBody().size() << RESET << std::endl;
+			}
+			std::cout << CLR2 << "CGI MAIN STUFF" << response.getCgiBody().size() << RESET << std::endl;
+			std::cout << CLR2 << "if exited" << WIFEXITED(status) << RESET << std::endl;
+			std::cout << CLR2 << "status" << WEXITSTATUS(status) << RESET << std::endl;
+			std::cout << CLR2 << "if signalled" << WIFSIGNALED(status) << RESET << std::endl;
+			std::cout << CLR2 << "status" << WTERMSIG(status) << RESET << std::endl;
+			// std::string str(response.getCgiBody().begin(), response.getCgiBody().end());
+			// std::cout << str << std::endl;
+			std::cout << CLR6 "CGI Processed! " << r << RESET << std::endl;
+		}
+		else if (r < 0)
+		{
+			std::cerr << CLRE "read fail or nothing was read" RESET << std::endl;
+			response.setCgiStatus(CGI_ERROR);
+			return ;
+		}
+		if (response.getCgiBody().size() > MAX_FILE_SIZE)
+		{
+			response.setCgiStatus(CGI_ERROR);
+			return ;
+		}
+		if (wpid == response.getCgiPid())
+		{
+			if (WIFEXITED(status) && !WEXITSTATUS(status))
+				response.setCgiStatus(CGI_COMPLETE);
+			else
+				response.setCgiStatus(CGI_ERROR);
+			return ;
+		}
+	}
 }
 
 void	ServerMaster::listenForConnections(void)
@@ -729,7 +778,40 @@ void	ServerMaster::listenForConnections(void)
 				std::cout << CLR6 "Processing CGI stuff -1" RESET << std::endl;
 				if (client.request.getLocation().getIsCgi())
 				{
-					ft_cgi(client.request);
+					std::cout << CLR6 "Processing CGI stuff 0000" RESET << std::endl;
+					int old_cgi_status = client.request.response.getCgiStatus();
+					ft_cgi(client);
+					int cgi_status = client.request.response.getCgiStatus();
+					std::cout << CLRE << "CGI status: " << cgi_status << RESET << std::endl;
+					// # define CGI_STARTED 1
+					// # define CGI_WRITING 2
+					// # define CGI_READING 4
+					// # define CGI_COMPLETE 8
+					// # define CGI_ERROR 256
+					if (old_cgi_status == CGI_STARTED && cgi_status == CGI_WRITING)
+					{
+						addFdToSet(this->_readFds, client.request.response.getRfd());
+						addFdToSet(this->_writeFds, client.request.response.getWfd());
+					}
+					else if (old_cgi_status == CGI_WRITING && cgi_status == CGI_READING)
+					{
+						close(client.request.response.getWfd());
+						removeFdFromSet(this->_writeFds, client.request.response.getWfd());
+					}
+					else if (old_cgi_status == CGI_WRITING && cgi_status == CGI_ERROR)
+					{
+						removeFdFromSet(this->_writeFds, client.request.response.getWfd());
+						removeFdFromSet(this->_readFds, client.request.response.getRfd());
+					}
+					else if (old_cgi_status == CGI_READING && cgi_status != CGI_READING)
+					{
+						close(client.request.response.getRfd());
+						removeFdFromSet(this->_readFds, client.request.response.getRfd());
+					}
+					if (cgi_status < CGI_COMPLETE)
+					{
+						continue ;
+					}
 				}
 				if(!client.request.response.getMessageTooLongForOneSend())
 					client.request.response.setMessage(client.request.response.prepareResponse(client.request));

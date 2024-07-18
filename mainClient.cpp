@@ -97,7 +97,7 @@ int main(void)
 
 	// Receive response from the server
 	char buffer[8192] = {0};
-	sleep(3);
+	sleep(2);
 	if (recv(clientSocket, buffer, 8192, 0) == -1)
 	{
 		std::cerr << "Error: Failed to receive data\n";
