@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/28 16:50:03 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/17 23:50:29 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,13 +90,13 @@ int	validateRequestBodySizeLimit(bool rbslInConfig, const std::string &rbslFromC
 	return (static_cast<int>(rbslValue) * multiplier);
 }
 
-bool	validateAutoindex(bool autoindexInConfig, const std::string &autoindexFromConfig, const std::string &exceptionMessage)
+bool	validateOnOffDirective(bool isDirectiveInConfig, const std::string &directiveFromConfig, const std::string &directiveValueFromConfig, const std::string &exceptionMessage)
 {
-	if (autoindexInConfig)
-		throw (std::runtime_error("Config parser: Duplicate autoindex directive in a " + exceptionMessage + " scope."));
-	if (autoindexFromConfig != "on" && autoindexFromConfig != "off")
-		throw (std::runtime_error("Config parser: Wrong syntax of autoindex directive in a " + exceptionMessage + " scope."));
-	if (autoindexFromConfig == "on")
+	if (isDirectiveInConfig)
+		throw (std::runtime_error("Config parser: Duplicate " + directiveFromConfig + " directive in a " + exceptionMessage + " scope."));
+	if (directiveValueFromConfig != "on" && directiveValueFromConfig != "off")
+		throw (std::runtime_error("Config parser: Wrong syntax of " + directiveFromConfig + " directive in a " + exceptionMessage + " scope."));
+	if (directiveValueFromConfig == "on")
 		return (true);
 	return (false);
 }

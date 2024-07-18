@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.hpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:27 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/01 17:01:13 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/17 23:44:57 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,8 +31,7 @@ class Location
 		int											getRequestBodySizeLimit(void) const;
 		int											getAutoindex(void) const;
 		const std::set<std::string>					&getAllowMethods(void) const;
-		const std::string							&getCgiPath(void) const;
-		const std::string							&getRelativeCgiPath(void) const;
+		bool										getIsCgi(void) const;
 		const std::string							&getReturnURLOrBody(void) const;
 		unsigned short								getReturnCode(void) const;
 		bool										getIsRedirect(void) const;
@@ -44,7 +43,6 @@ class Location
 		void	setRequestBodySizeLimit(int requestBodySizeLimit);
 		void	setAutoindex(int autoindex);
 		void	setAllowMethods(const std::set<std::string> &allowMethods);
-		void	setRelativeCgiPath(const std::string &relativeCgiPath);
 		void	setReturnURLOrBody(const std::string &returnURLOrBody);
 		void	setReturnCode(unsigned short returnCode);
 		void	setIsRedirect(bool value);
@@ -61,8 +59,7 @@ class Location
 		int										_requestBodySizeLimit;
 		int										_autoindex;
 		std::set<std::string>					_allowMethods;
-		std::string								_cgiPath;
-		std::string								_relativeCgiPath;
+		bool									_isCgi;
 		std::string								_returnURLOrBody;
 		unsigned short							_returnCode;
 		bool									_isRedirect;

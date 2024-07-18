@@ -128,7 +128,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 			else if (serverBlockElements[i] == "autoindex" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
 			{
-				this->_autoindex = validateAutoindex(autoindexInConfig, serverBlockElements[i + 1], "server");
+				this->_autoindex = validateOnOffDirective(autoindexInConfig, "autoindex", serverBlockElements[i + 1], "server");
 				autoindexInConfig = true;
 				i++;
 			}
@@ -421,7 +421,7 @@ void	ServerConfig::completeLocations(void)
 	for (size_t i = 0; i < this->_locations.size(); i++)
 	{
 	// add server root if none defined
-		if (this->_locations[i].getCgiPath() == "") // not CGI
+		if (!this->_locations[i].getIsCgi()) // not CGI
 		{
 			if (this->_locations[i].getRoot().empty())
 				this->_locations[i].setRoot(this->_root);
@@ -433,8 +433,6 @@ void	ServerConfig::completeLocations(void)
 			if (this->_locations[i].getAutoindex() == -1)
 				this->_locations[i].setAutoindex(this->_autoindex);
 		}
-		else // is CGI
-			this->_locations[i].setRelativeCgiPath(resolveDotSegments(this->_locations[i].getRoot() + "/" + this->_locations[i].getCgiPath(), CONFIG));
 		for (std::map<unsigned short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
 		{
 			if (this->_locations[i].getErrorPages().find(it->first) == this->_locations[i].getErrorPages().end())
@@ -458,7 +456,7 @@ void	ServerConfig::validateLocations(void)
 		resolveDotSegments(this->_locations[i].getPath(), CONFIG);
 		resolveDotSegments(this->_locations[i].getRoot(), CONFIG);
 		// validate location
-		if (this->_locations[i].getCgiPath() == "") // not CGI
+		if (!this->_locations[i].getIsCgi()) // not CGI
 		{
 			// simple check for path validity, the rest of the path will be checked later with root and index file
 			if (this->_locations[i].getPath()[0] != '/')
@@ -471,17 +469,6 @@ void	ServerConfig::validateLocations(void)
 					//fileIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + "/" + this->_locations[i].getIndex()[j], CONFIG), "Index");
 					resolveDotSegments(this->_locations[i].getRoot() + "/" + this->_locations[i].getIndex()[j], CONFIG);
 			}
-		}
-		else // is CGI
-		{
-			// check if exists, accessible and executable
-			const std::string	&relativePath = this->_locations[i].getRelativeCgiPath();
-			if (access(relativePath.c_str(), F_OK) < 0)
-				throw(std::runtime_error("Config parser: CGI relative path '" + relativePath + "' is invalid."));
-			if (access(relativePath.c_str(), R_OK) < 0)
-				throw(std::runtime_error("Config parser: CGI at '" + relativePath + "' is not accessible."));
-			if (access(relativePath.c_str(), X_OK) < 0)
-				throw(std::runtime_error("Config parser: CGI at '" + relativePath + "' is not executable."));
 		}
 	}
 }

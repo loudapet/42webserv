@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/15 14:48:42 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/18 00:26:48 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,8 +87,7 @@ ServerMaster::~ServerMaster(void)
 		this->_servers.erase(it2);
 		it2 = this->_servers.begin();
 	}
-	if (DEBUG)
-		std::cout << "Warning: Received SIGINT. Closed all connections and exiting." << std::endl;
+	std::cout << "\nWarning: Received SIGINT. Closed all connections and exiting." << std::endl;
 }
 
 std::string	ServerMaster::getFileContent(void) const
@@ -374,8 +373,6 @@ void	ServerMaster::listenForConnections(void)
 				Client	&client = this->_clients.find(i)->second;
 				if(!client.request.response.getMessageTooLongForOneSend())
 					client.request.response.setMessage(client.request.response.prepareResponse(client.request));
-				if (client.request.response.getMessage().size() == 0)
-					continue;
 				octets_t message = client.request.response.getMessage();
 				size_t messageLen = message.size();
 				size_t buffLen;
@@ -621,4 +618,14 @@ void	ServerMaster::closeConnection(const int clientSocket)
 	close(clientSocket); // close the socket	
 	this->_clients.erase(clientSocket); // remove from clients map
 	std::cout << "Connection closed on socket " << clientSocket << "." << std::endl;
+}
+
+bool	ServerMaster::fdIsSetWrite(int fd) const
+{
+	return (FD_ISSET(fd, &this->_writeFds));
+}
+
+bool	ServerMaster::fdIsSetRead(int fd) const
+{
+	return (FD_ISSET(fd, &this->_readFds));
 }

@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/17 11:24:58 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/18 10:50:05 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -590,7 +590,7 @@ bool	isSupportedScript(std::string& path)
 
 void	HttpRequest::validateResourceAccess(const Location& location)
 {
-	bool		isCgi = true;
+	bool		isCgi = location.getIsCgi();
 	int			validFile;
 	struct stat	fileCheckBuff;
 	std::string	path = location.getPath();
