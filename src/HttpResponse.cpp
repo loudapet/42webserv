@@ -638,9 +638,10 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 	else
 	{
 		// status code for CGI needs to be properly updated, I think?
-		std::cout << CLR6 << request.getLocation().getRelativeCgiPath() << RESET << std::endl;
+		//std::cout << CLR6 << request.getLocation().getRelativeCgiPath() << RESET << std::endl;
 		// this if might deserve its own function later
-		if (request.getLocation().getRelativeCgiPath().size())
+		//if (request.getLocation().getRelativeCgiPath().size())
+		if (request.getLocation().getIsCgi())
 		{
 			std::cout << CLR6 "Processing CGI stuff" RESET << std::endl;
 			int	pid;
@@ -672,10 +673,12 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 					char **env = &env_vars[0];
 					get_env(request, env);
 					char *ex[2];
-					ex[0] = (char *)request.getLocation().getRelativeCgiPath().c_str();
+					//ex[0] = (char *)request.getLocation().getRelativeCgiPath().c_str();
+					ex[0] = (char *)"test_cgi-bin/test.cgi";
 					ex[1] = NULL;
-					char **av = &ex[0];
-					execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
+					av = &ex[0];
+					//execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
+					execve("test_cgi-bin/test1.cgi", av, env);
 					//clean exit later, get pid is not legal, maybe a better way to do it?
 					for (int i = 0; env[i]; i++)
 					{
@@ -727,8 +730,7 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 							message.push_back(buffer[i]);
 						}
 						std::cout << CLR6 "CGI Processed!" RESET << std::endl;
-						//return (message);
-						this->responseBody.insert(this->responseBody.end(), message.begin(), message.end());
+						return (message);
 					}
 					else
 					{
@@ -741,18 +743,14 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 		if (codeDict.find(this->statusLine.statusCode) == codeDict.end())
 			this->codeDict[this->statusLine.statusCode] = "Undefined";
 		this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
-
-		if (!request.getLocation().getRelativeCgiPath().size())
-		{
-			if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
-				request.response.readDirectoryListing(request.getTargetResource());
-			else if (this->statusLine.statusCode == 200)
-				request.response.readRequestedFile(request.getTargetResource());
-			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
-				request.response.readReturnDirective(request.getLocation());
-			else
-				request.response.readErrorPage(request.getLocation());
-		}
+		if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
+			request.response.readDirectoryListing(request.getTargetResource());
+		else if (this->statusLine.statusCode == 200)
+			request.response.readRequestedFile(request.getTargetResource());
+		else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
+			request.response.readReturnDirective(request.getLocation());
+		else
+			request.response.readErrorPage(request.getLocation());
 		request.response.buildResponseHeaders(request);
 		request.response.buildCompleteResponse();
 		octets_t message = request.response.getCompleteResponse();

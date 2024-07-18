@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/18 10:27:05 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/18 10:50:05 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,7 @@ HttpRequest::HttpRequest()
 	this->requestBody = octets_t();
 	this->requestBodySizeLimit = REQUEST_BODY_SIZE_LIMIT;
 	this->targetResource = "";
+	this->cgiPathInfo = "";
 	this->allowedMethods = std::set<std::string>();
 	this->connectionStatus = KEEP_ALIVE;
 	this->messageFraming = NO_CODING;
@@ -63,6 +64,7 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& refObj)
 		requestBody = refObj.requestBody;
 		requestBodySizeLimit = refObj.requestBodySizeLimit;
 		targetResource = refObj.targetResource;
+		cgiPathInfo = refObj.cgiPathInfo;
 		allowedMethods = refObj.allowedMethods;
 		connectionStatus = refObj.connectionStatus;
 		messageFraming = refObj.messageFraming;
@@ -512,20 +514,24 @@ stringpair_t	HttpRequest::parseHeader(octets_t header)
 // also checks for Keep-Alive header if close isn't specified
 void	HttpRequest::validateConnectionOption(void)
 {
-	std::string							allowedChars(std::string(DIGITS) + std::string(ALPHA) + std::string(TOKEN) + "=");
+	std::string							allowedChars(std::string(DIGITS) + std::string(ALPHA) + std::string(TOKEN) + "=;");
 	stringmap_t::iterator				connection = this->headerFields.find("connection");
 	stringmap_t::iterator				keepAlive = this->headerFields.find("keep-alive");
 	std::vector<std::string>			values;
 	std::vector<std::string>::iterator	option;
 	std::vector<std::string>::iterator	param;
+	size_t								invalidCharPos;
 	//std::vector<std::string>			paramValues;
 	if (connection != this->headerFields.end())
 	{
+		// if (std::count(connection->second.begin(), connection->second.end(), ';') > 1)
+		// 	throw (ResponseException(400, "Invalid semicolons in Connection header field"));
 		values = splitQuotedString(connection->second, ',');
 		for (option = values.begin(); option != values.end(); option++)
 		{
 			*option = trim(*option);
-			if (option->find_first_not_of(allowedChars) != std::string::npos)
+			invalidCharPos = option->find_first_not_of(allowedChars);
+			if (invalidCharPos != std::string::npos)
 				throw (ResponseException(400, "Invalid characters in Connection header field"));
 			std::transform(option->begin(), option->end(), option->begin(), tolower);
 		}
@@ -558,11 +564,6 @@ void	HttpRequest::validateConnectionOption(void)
 			if (param->find_first_not_of(allowedChars) != std::string::npos)
 				throw (ResponseException(400, "Invalid characters in Keep-Alive header field"));
 			std::transform(param->begin(), param->end(), param->begin(), tolower);
-			//paramValues = splitQuotedString(*param, '=');
-/* 			if (paramValues.size() == 2 && paramValues[0] == "max")
-				std::cout << "MAX REQUESTS/CLIENT PLACEHOLDER: " << paramValues[1] << std::endl;
-			else if (paramValues.size() == 2 && paramValues[0] == "timeout")
-				std::cout << "MAX TIMEOUT/CLIENT PLACEHOLDER: " << paramValues[1] << std::endl; */
 		}
 	}
 }
@@ -574,13 +575,29 @@ static void	removeDoubleSlash(std::string& str)
 		str.erase(pos, 1);
 }
 
+bool	isSupportedScript(std::string& path)
+{
+	std::string	ext;
+	size_t pos = path.rfind('.');
+	if (pos != std::string::npos)
+	{
+		ext = path.substr(pos + 1, path.length() - pos);
+		if (ext == "py" || ext == "php" || ext == "cgi")
+			return (true);
+	}
+	return (false);
+}
+
 void	HttpRequest::validateResourceAccess(const Location& location)
 {
+	bool		isCgi = location.getIsCgi();
+	int			validFile;
+	struct stat	fileCheckBuff;
 	std::string	path = location.getPath();
 	std::string	root = location.getRoot();
 	if (*this->requestLine.requestTarget.absolutePath.rbegin() == '/' && *path.rbegin() != '/')
 		path = path + "/";
-	if (DEBUG)
+	if (!DEBUG)
 	{
 		std::cout << CLR3 << "path:\t" << path << RESET << std::endl;
 		std::cout << CLR3 << "root:\t" << root << RESET << std::endl;
@@ -592,14 +609,12 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 	this->allowedDirListing = location.getAutoindex();
 	removeDoubleSlash(this->targetResource);
 	std::cout << CLR3 << "Final path:\t" << this->targetResource << RESET << std::endl;
-	std::cout << CLR3 << "CGI path:\t" << location.getRelativeCgiPath() << RESET << std::endl;
-	if (!this->isRedirect && this->requestLine.method == "GET")
+	//std::cout << CLR3 << "CGI path:\t" << location.getRelativeCgiPath() << RESET << std::endl;
+	if (!this->isRedirect && !isCgi) //&& this->requestLine.method == "GET"
 	{
-		int	validFile;
-		struct stat	fileCheckBuff;
 		validFile = stat(targetResource.c_str(), &fileCheckBuff);
 		if (validFile < 0)
-			this->response.updateStatus(404, "File does not exist");		
+			this->response.updateStatus(404, "File does not exist");
 		if (*targetResource.rbegin() != '/')
 		{
 			if (S_ISDIR(fileCheckBuff.st_mode)) // redirect to the existing folder
@@ -641,7 +656,55 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 			}
 		}
 	}
-	if (this->isRedirect)
+	else if (!this->isRedirect && isCgi)
+	{
+		std::string	pathToResource = "";
+		std::vector<std::string> segments = splitQuotedString(this->targetResource, '/');
+		for (std::vector<std::string>::iterator it = segments.begin(); it != segments.end(); it++)
+		{
+			pathToResource.append(*it);
+			validFile = stat(pathToResource.c_str(), &fileCheckBuff);
+			if (validFile < 0)
+			{
+				std::cout << CLR6 << pathToResource << std::endl;
+				this->response.updateStatus(404, "File does not exist");
+				break;
+			}
+			else if (S_ISDIR(fileCheckBuff.st_mode))
+			{
+				pathToResource.append("/");
+				continue;
+			}
+			else  // if it's a normal file, check extension validity and whether it can be executed
+			{
+				if (access(pathToResource.c_str(), X_OK) < 0)
+				{
+					this->response.updateStatus(403, "Not executable");
+					break;
+				}
+				else if (!isSupportedScript(pathToResource))
+				{
+					this->response.updateStatus(404, "CGI script type not supported");
+					break;
+				}
+				else
+				{
+					while (++it != segments.end())
+					{
+						this->cgiPathInfo.append("/");
+						this->cgiPathInfo.append(*it);
+					}
+					if (*targetResource.rbegin() == '/')
+						this->cgiPathInfo.append("/");
+					this->targetResource = pathToResource;
+					break;
+				}
+			}
+		}
+		std::cout << CLR3 << "Final path after CGI resolution: " << this->targetResource << RESET << std::endl;
+		std::cout << CLR3 << "CGI path info:\t" << this->cgiPathInfo << RESET << std::endl;
+	}
+	else if (this->isRedirect)
 	{
 		this->response.lockStatusCode();
 		this->response.setStatusCode(location.getReturnCode());
@@ -972,6 +1035,7 @@ void	HttpRequest::resetRequestObject(void)
 	this->requestBody.clear();
 	this->requestBodySizeLimit = newRequest.requestBodySizeLimit;
 	this->targetResource.clear();
+	this->cgiPathInfo.clear();
 	this->connectionStatus = newRequest.connectionStatus;
 	this->allowedDirListing = newRequest.allowedDirListing;
 	this->isRedirect = newRequest.isRedirect;
