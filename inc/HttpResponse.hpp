@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/16 10:30:42 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/18 13:37:24 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,13 @@
 #include <sys/wait.h>
 #include "Location.hpp"
 #include "webserv.hpp"
+
+# define NOCGI 0
+# define CGI_STARTED 1
+# define CGI_READING 2
+# define CGI_WRITING 4
+# define CGI_COMPLETE 8
+# define CGI_ERROR 256
 
 class HttpRequest;
 typedef struct StatusLine
@@ -41,6 +48,11 @@ class HttpResponse
 		std::map<unsigned short,std::string>	codeDict;
 		octets_t		message;
 		bool			messageTooLongForOneSend;
+		int				cgiStatus; //started
+		int				wfd;	//cgi pipe fd for write
+		int				rfd;	//cgi pipe fd for read
+		stringmap_t		cgiHeaderFields;
+		octets_t		cgiBody;
 
 		void				readRequestedFile(const std::string& targetResource);
 		void				readErrorPage(const Location &location);
@@ -70,6 +82,16 @@ class HttpResponse
 		void					eraseRangeMessage(size_t start, size_t end);
 		bool					getMessageTooLongForOneSend() const;
 		void					setMessageTooLongForOneSend(bool value);
+		int						getCgiStatus(void);
+		int						getWfd(void);
+		int						getRfd(void);
+		stringmap_t				getCgiHeaderFields(void);
+		octets_t&				getCgiBody(void);
+		void					setCgiStatus(int status);
+		void					setWfd(int fd);
+		void					setRfd(int fd);
+		// void					setCgiHeaderFields;
+		// void					setCgiBody;
 };
 
 #endif  // HTTPRESPONSE_HPP

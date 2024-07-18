@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/18 10:28:09 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/18 13:37:34 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,6 +69,11 @@ HttpResponse::HttpResponse()
 	this->statusLocked = false;
 	this->message = octets_t();
 	this->messageTooLongForOneSend = false;
+	this->cgiStatus = 0;
+	this->wfd = -1;
+	this->rfd = -1;
+	this->cgiHeaderFields = stringmap_t();
+	this->cgiBody = octets_t();
 	return ;
 }
 
@@ -103,6 +108,11 @@ HttpResponse& HttpResponse::operator=(const HttpResponse& refObj)
 		statusLocked = refObj.statusLocked;
 		message = refObj.message;
 		messageTooLongForOneSend = refObj.messageTooLongForOneSend;
+		cgiStatus = refObj.cgiStatus;
+		wfd = refObj.wfd;
+		rfd = refObj.rfd;
+		cgiHeaderFields = refObj.cgiHeaderFields;
+		cgiBody = refObj.cgiBody;
 	}
 	return (*this);
 }
@@ -387,357 +397,19 @@ void	HttpResponse::readReturnDirective(const Location &location)
 	this->responseBody = convertStringToOctets(location.getReturnURLOrBody());
 }
 
-// https://www.rfc-editor.org/rfc/rfc3875#section-4.1
-// "AUTH_TYPE"			//not needed? https://www.rfc-editor.org/rfc/rfc2617
-// "CONTENT_LENGTH"		//The server MUST set this meta-variable if and only if the request is
-						// accompanied by a message-body entity.  The CONTENT_LENGTH value must
-						// reflect the length of the message-body after the server has removed
-						// any transfer-codings or content-codings.
-// "CONTENT_TYPE"		The server MUST set this meta-variable if an HTTP Content-Type field
-						// is present in the client request header.  If the server receives a
-						// request with an attached entity but no Content-Type header field, it
-						// MAY attempt to determine the correct content type, otherwise it
-						// should omit this meta-variable.
-// "GATEWAY_INTERFACE"	//GATEWAY_INTERFACE = "CGI" "/" 1*digit "." 1*digit (1.1)
-// "PATH_INFO"			The PATH_INFO variable specifies a path to be interpreted by the CGI
-						// script.  It identifies the resource or sub-resource to be returned by
-						// the CGI script, and is derived from the portion of the URI path
-						// hierarchy following the part that identifies the script itself.
-// "PATH_TRANSLATED"	http://somehost.com/cgi-bin/somescript/this%2eis%2epath%3binfo
-// 							/this.is.the.path;info
-// 						http://somehost.com/this.is.the.path%3binfo
-// 							/usr/local/www/htdocs/this.is.the.path;info
-// "QUERY_STRING"		The server MUST set this variable; if the Script-URI does not include
-						// a query component, the QUERY_STRING MUST be defined as an empty
-						// string ("").
-// "REMOTE_ADDR"		//IPv.4
-// "REMOTE_HOST"		The server SHOULD set this variable.  If the hostname is not
-						// available for performance reasons or otherwise, the server MAY
-						// substitute the REMOTE_ADDR value.
-// "REMOTE_IDENT"		// not needed?
-// "REMOTE_USER"		// not needed?
-// "REQUEST_METHOD"		// GET POST HEAD + PUT DELETE token
-// "SCRIPT_NAME"		The SCRIPT_NAME variable MUST be set to a URI path (not URL-encoded)
-						// which could identify the CGI script
-// "SERVER_NAME"		// localhost?
-// "SERVER_PORT"		//8081
-// "SERVER_PROTOCOL"	"HTTP" "/" 1*digit "." 1*digit (1.1)
-// "SERVER_SOFTWARE"	The SERVER_SOFTWARE meta-variable MUST be set to the name and version
-						// of the information server software making the CGI request (and
-						// running the gateway).  It SHOULD be the same as the server
-						// description reported to the client, if any.
-
-// static std::string	to_string(size_t num)
-// {
-// 	std::stringstream	ss;
-
-// 	ss << num;
-// 	return (ss.str());
-// }
-
-// 7.2 META VARIABLES??? Go through getHeaderFields map? // except existing vatiables
-
-static std::string	upper(std::string str)
-{
-	for (std::string::iterator p = str.begin(); str.end() != p; ++p)
-		*p = toupper(*p);
-	return (str);
-}
-
-static void	get_env(HttpRequest& request, char **env)
-{
-	std::string			str;
-	//stringmap_t			envstrings;
-	int					e = 0;
-
-	for (std::map<std::string, std::string>::const_iterator it = request.getHeaderFields().begin(); it != request.getHeaderFields().end(); it++)
-	{
-		str = upper(it->first) + "=" + it->second;
-		env[e] = new char[str.size() + 1];
-		std::copy(str.begin(), str.end(), env[e]);
-		env[e][str.size()] = '\0';
-		str.clear();
-		e++;
-	}
-	str = "AUTH_TYPE=" "";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	if (request.getRequestBody().size()) //message
-	{
-		str = "CONTENT_LENGTH=" + itoa(request.getRequestBody().size());
-		env[e] = new char[str.size() + 1];
-		std::copy(str.begin(), str.end(), env[e]);
-		env[e][str.size()] = '\0';
-		str.clear();
-		e++;
-	}
-	if (request.getHeaderFields().find("content-type") != request.getHeaderFields().end()) //Content type
-	{
-		str = "CONTENT_TYPE=" + request.getHeaderFields().find("content-type")->second;
-		// str = "CONTENT_TYPE=" + request.getHeaderFields()["content-type"];
-		env[e] = new char[str.size() + 1];
-		std::copy(str.begin(), str.end(), env[e]);
-		env[e][str.size()] = '\0';
-		str.clear();
-		e++;
-	}
-	str = "GATEWAY_INTERFACE=CGI/1.1";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "PATH_INFO=";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "PATH_TRANSLATED=";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "QUERY_STRING=";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "REMOTE_ADDR=??? IPv4";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "REMOTE_HOST=ADDR?";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "REMOTE_IDENT=???";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "REMOTE_USER=???";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	// std::cerr << CLR1 << request.getRequestLine() << RESET << std::endl;
-	str = "REQUEST_METHOD=" + request.getRequestLine().method;
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "SCRIPT_NAME=";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-		//ServerConfig value?? primary?
-	str = "SERVER_NAME=localhost";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	//ServerConfig value??
-	str = "SERVER_PORT=8002";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "SERVER_PROTOCOL=HTTP/1.1";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "SERVER_SOFTWARE=ft_webserv";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "BONUS ENV BELOW";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	if (request.getHeaderFields().find("user-agent") != request.getHeaderFields().end())
-	{
-		str = "HTTP_USER_AGENT=" + request.getHeaderFields().find("user-agent")->second;
-		env[e] = new char[str.size() + 1];
-		std::copy(str.begin(), str.end(), env[e]);
-		env[e][str.size()] = '\0';
-		str.clear();
-		e++;
-	}
-	str = "REMOTE_PORT=";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "HTTPS=off";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "More?";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	std::cerr << "e is: " << e << std::endl;
-	env[e] = NULL;
-}
-
-// Optional?
-// https://www.cgi101.com/book/ch3/text.html
-// DOCUMENT_ROOT	The root directory of your server
-// HTTP_COOKIE		The visitor's cookie, if one is set
-// HTTP_HOST		The hostname of the page being attempted
-// HTTP_REFERER		The URL of the page that called your program
-// HTTP_USER_AGENT	The browser type of the visitor
-// HTTPS			"on" if the program is being called through a secure server
-// PATH				The system path your server is running under
-// ////QUERY_STRING	The query string (see GET, below)
-// ////REMOTE_ADDR		The IP address of the visitor
-// ////REMOTE_HOST		The hostname of the visitor (if your server has reverse-name-lookups on; otherwise this is the IP address again)
-// REMOTE_PORT		The port the visitor is connected to on the web server
-// ////REMOTE_USER		The visitor's username (for .htaccess-protected pages)
-// ////REQUEST_METHOD	GET or POST
-// REQUEST_URI		The interpreted pathname of the requested document or CGI (relative to the document root)
-// SCRIPT_FILENAME	The full pathname of the current CGI
-// ////SCRIPT_NAME		The interpreted pathname of the current CGI (relative to the document root)
-// SERVER_ADMIN		The email address for your server's webmaster
-// ////SERVER_NAME		Your server's fully qualified domain name (e.g. www.cgi101.com)
-// ////SERVER_PORT		The port number your server is listening on
-// ////SERVER_SOFTWARE	The server software you're using (e.g. Apache 1.3)
-
 const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 {
 	if (request.getHasExpect())
 		return (convertStringToOctets("HTTP/1.1 100 Continue"));
 	else
 	{
-		// status code for CGI needs to be properly updated, I think?
-		//std::cout << CLR6 << request.getLocation().getRelativeCgiPath() << RESET << std::endl;
-		// this if might deserve its own function later
-		//if (request.getLocation().getRelativeCgiPath().size())
 		if (request.getLocation().getIsCgi())
 		{
-			std::cout << CLR6 "Processing CGI stuff" RESET << std::endl;
-			int	pid;
-			int	fd1[2]; // writing to child
-			int	fd2[2]; // reading from child
-			uint8_t	buffer[65536];
-			if (pipe(fd1) == -1 || pipe(fd2) == -1 )
-			{
-				std::cerr << "Error: Pipe" << std::endl;
-			}
-			else
-			{
-				pid = fork();
-				if (pid == -1)
-				{
-					std::cerr << "Error: Fork" << std::endl;
-				}
-				else if (pid == 0)
-				{
-					//child
-					//some shenanigans to get execve working
-					dup2 (fd1[0], STDIN_FILENO);
-					close (fd1[0]);
-					close (fd1[1]);
-					dup2 (fd2[1], STDOUT_FILENO);
-					close (fd2[0]);
-					close (fd2[1]);
-					char *env_vars[250];
-					char **env = &env_vars[0];
-					get_env(request, env);
-					char *ex[2];
-					//ex[0] = (char *)request.getLocation().getRelativeCgiPath().c_str();
-					ex[0] = (char *)"test_cgi-bin/test.cgi";
-					ex[1] = NULL;
-					av = &ex[0];
-					//execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
-					execve("test_cgi-bin/test1.cgi", av, env);
-					//clean exit later, get pid is not legal, maybe a better way to do it?
-					for (int i = 0; env[i]; i++)
-					{
-						delete env[i];
-					}
-					std::cerr << "Failed to execute: " << ex[0] << std::endl;
-					kill(getpid(), SIGINT);
-					exit (1);
-				}
-				else
-				{
-					//parent
-					//close writing end of the first pipe
-					close(fd1[0]);
-					int	w;
-					std::string body(request.getRequestBody().begin(), request.getRequestBody().end());
-					w = write(fd1[1], body.c_str(), request.getRequestBody().size());
-					if (w > 0)
-					{
-						std::cout << CLR6 "Written to CGI" RESET << std::endl;
-						std::cout << CLR6 << body << RESET << std::endl;
-					}
-					else
-					{
-						std::cerr << CLRE "write fail or nothing was written" RESET << std::endl;
-					}
-					//close the first pipe
-					close(fd1[1]);
-					//close reading end of the second pipe
-					close(fd2[1]);
-
-					//reading in the second loop
-					int	status;
-					int	r;
-					// read needs to be in select somehow
-					//what is read is sent?
-					r = read(fd2[0], buffer, 65536);
-					// close when read finished (<= 0)
-					close(fd2[0]);
-					// fork and wait ? Make it non blocking
-					// waitpid WNOHANG? flag for waiting for a response?
-					waitpid(pid, &status, 0);
-					if (r > 0)
-					{
-						octets_t message;
-						for (int i = 0; i < r; i++)
-						{
-							//there might be a better way
-							message.push_back(buffer[i]);
-						}
-						std::cout << CLR6 "CGI Processed!" RESET << std::endl;
-						return (message);
-					}
-					else
-					{
-						std::cerr << CLRE "read fail or nothing was read" RESET << std::endl;
-					}
-				}
-			}
+			//cgi stuff
+			std::cout << CLR2 << "CGI STUFF"<< RESET << std::endl;
+			std::string str(this->cgiBody.begin(), this->cgiBody.end());
+			std::cout << str << std::endl;
+			return (this->cgiBody);
 		}
 		std::cout << CLR1 << this->statusLine.statusCode << RESET << std::endl;
 		if (codeDict.find(this->statusLine.statusCode) == codeDict.end())
@@ -788,4 +460,44 @@ bool	HttpResponse::getMessageTooLongForOneSend() const
 void	HttpResponse::setMessageTooLongForOneSend(bool value)
 {
 	this->messageTooLongForOneSend = value;
+}
+
+int	HttpResponse::getCgiStatus(void)
+{
+	return(this->cgiStatus);
+}
+
+int	HttpResponse::getWfd(void)
+{
+	return(this->wfd);
+}
+
+int	HttpResponse::getRfd(void)
+{
+	return(this->rfd);
+}
+
+stringmap_t	HttpResponse::getCgiHeaderFields(void)
+{
+	return(this->cgiHeaderFields);
+}
+
+octets_t&	HttpResponse::getCgiBody(void)
+{
+	return(this->cgiBody);
+}
+
+void	HttpResponse::setCgiStatus(int status)
+{
+	this->cgiStatus = status;
+}
+
+void	HttpResponse::setWfd(int fd)
+{
+	this->wfd = fd;
+}
+
+void	HttpResponse::setRfd(int fd)
+{
+	this->rfd = fd;
 }
