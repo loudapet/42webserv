@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 16:36:47 by okraus            #+#    #+#             */
-/*   Updated: 2024/07/15 12:07:10 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/17 12:18:31 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,28 +55,38 @@ int	main(int argc, char *argv[], char *envp[])
 	std::cerr << NO_COLOUR << std::endl;
 	std::cerr << MAGENTABG_COLOUR "CGI ARGS" NO_COLOUR << std::endl;
 	std::cerr << MAGENTA_COLOUR;
-	for (int i = 0; argv[i]; i++)
-	{
-		str = argv[i];
-		std::cerr << "argv[" << i << "]: " << str << std::endl;
-	}
-	std::cerr << NO_COLOUR << std::endl;
-	std::cerr << YELLOWBG_COLOUR "CGI ENV" NO_COLOUR << std::endl;
-	std::cerr << YELLOW_COLOUR;
-	for (int i = 0; envp[i]; i++)
-	{
-		str = envp[i];
-		std::cerr << "envp[" << i << "]: " << str << std::endl;
-	}
-	std::cerr << NO_COLOUR << std::endl;
+	
 	std::cout << "Content-type:text/html\r\n\r\n";
 	std::cout << "<html>\n";
 	std::cout << "<head>\n";
 	std::cout << "<title>Some title</title>\n";
 	std::cout << "</head>\n";
 	std::cout << "<body>\n";
-	std::cout << "<h2> First CGI program </h2>\n";
+	std::cout << "<h1> First CGI program </h1>\n";
+	std::cout << "<h2> Args: </h2>\n";
+	std::cout << "<ol>\n";
+	for (int i = 0; argv[i]; i++)
+	{
+		str = argv[i];
+		std::cerr << "argv[" << i << "]:\t" << str << std::endl;
+		std::cout << "<li>" << str << "</li>" << std::endl;
+	}
+	std::cout << "</ol>\n";
+	std::cerr << NO_COLOUR << std::endl;
+	std::cerr << YELLOWBG_COLOUR "CGI ENV" NO_COLOUR << std::endl;
+	std::cerr << YELLOW_COLOUR;
+	std::cout << "<h2> Environment: </h2>\n";
+	std::cout << "<ol>\n";
+	for (int i = 0; envp[i]; i++)
+	{
+		str = envp[i];
+		// std::cerr << "envp[" << i << "]:\t" << str << std::endl; //breaks it somehow?
+		std::cout << "<li>" << str << "</li>" << std::endl;
+	}
+	std::cout << "</ol>\n";
+	std::cerr << NO_COLOUR << std::endl;
+
 	std::cout << "</body>\n";
-	std::cout << "</html>\n";
+	std::cout << "</html>\n" << std::endl;
 	return (0);
 } 

@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/16 15:21:22 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/18 10:26:49 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -141,6 +141,8 @@ class HttpRequest
 
 		void							setConnectionStatus(ConnectionStatus connectionStatus);
 		const Location&					getLocation() const;
+		const requestLine_t&			getRequestLine() const;
+		const stringmap_t&				getHeaderFields() const;
 		const octets_t&					getRequestBody() const;
 		const std::string&				getAbsolutePath() const;
 		const ConnectionStatus&			getConnectionStatus() const;
@@ -157,6 +159,7 @@ std::ostream &operator<<(std::ostream &os, octets_t &vec);
 std::ostream &operator<<(std::ostream &os, std::vector<octets_t> &vec);
 std::ostream &operator<<(std::ostream &os, std::vector<std::string> &vec);
 std::ostream &operator<<(std::ostream &os, requestLine_t &requestLine);
+std::ostream &operator<<(std::ostream &os, const requestLine_t &requestLine);
 std::ostream &operator<<(std::ostream &os, std::map<std::string, std::string> &fieldSection);
 
 typedef void(HttpRequest::*ParseToken)(std::string&);
