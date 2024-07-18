@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/17 23:50:29 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/18 14:22:25 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -245,4 +245,15 @@ void	logSockets(int socket, std::string action)
 		std::cerr << "Error opening file." << std::endl;
 	else
 		file  << action << " socket " << socket << std::endl;
+}
+
+std::string	trim(const std::string& str)
+{
+	const std::string	whitespace(" \t\r\n");
+	const size_t		strBegin = str.find_first_not_of(whitespace);
+	if (strBegin == std::string::npos)
+		return (""); // no content
+	const size_t strEnd = str.find_last_not_of(whitespace);
+	const size_t strRange = strEnd - strBegin + 1;
+	return (str.substr(strBegin, strRange));
 }

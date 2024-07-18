@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/18 10:50:05 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/18 14:22:48 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,16 +87,6 @@ HttpRequest::~HttpRequest()
 	return ;
 }
 
-std::string	trim(const std::string& str)
-{
-	const std::string	whitespace(" \t\r\n");
-	const size_t		strBegin = str.find_first_not_of(whitespace);
-	if (strBegin == std::string::npos)
-		return (""); // no content
-	const size_t strEnd = str.find_last_not_of(whitespace);
-	const size_t strRange = strEnd - strBegin + 1;
-	return (str.substr(strBegin, strRange));
-}
 
 // upgrade to handle backslashes and quotes as literals
 std::vector<std::string>	splitQuotedString(const std::string& str, char sep)
