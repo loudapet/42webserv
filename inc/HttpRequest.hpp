@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/08 18:22:09 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/16 15:21:22 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -101,6 +101,7 @@ class HttpRequest
 		octets_t				requestBody;
 		int						requestBodySizeLimit;
 		std::string				targetResource; // used to access the resource after URI with location's root
+		std::string				cgiPathInfo; // path after the script
 		bool					targetIsDirectory;
 		std::set<std::string>	allowedMethods;
 		ConnectionStatus		connectionStatus;
