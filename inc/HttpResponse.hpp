@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/18 16:06:01 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/18 17:09:10 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,7 +51,7 @@ class HttpResponse
 		int				cgiStatus; //started
 		int				wfd;	//cgi pipe fd for write
 		int				rfd;	//cgi pipe fd for read
-		int				cgi_pid;
+		int				cgi_pid; //pid of cgi process
 		stringmap_t		cgiHeaderFields;
 		octets_t		cgiBody;
 

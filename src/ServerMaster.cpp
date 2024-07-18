@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/18 16:55:19 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/18 17:35:50 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -667,7 +667,10 @@ void	ft_cgi(Client	&client)
 		if (wpid == response.getCgiPid())
 		{
 			if (WIFEXITED(status) && !WEXITSTATUS(status))
+			{
+				//process response to header fields and body
 				response.setCgiStatus(CGI_COMPLETE);
+			}
 			else
 				response.setCgiStatus(CGI_ERROR);
 			return ;
