@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:17:04 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/11 11:19:17 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/18 00:13:52 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,15 +38,18 @@ class ServerMaster
 
 		void	prepareServersToListen(void);
 		void	listenForConnections(void);
-		void	handleDataFromClient(const int clientSocket);
 		void	acceptConnection(int serverSocket);
+		void	handleDataFromClient(const int clientSocket);
 		
 		void	checkForTimeout(void);
-		void	addFdToSet(fd_set &set, int fd);
-		void	removeFdFromSet(fd_set &set, int fd);
+		void	selectServerRules(stringpair_t parserPair, int clientSocket);
 		void	closeConnection(const int clientSocket);
 
-		void	selectServerRules(stringpair_t parserPair, int clientSocket);
+		void	addFdToSet(fd_set &set, int fd);
+		void	removeFdFromSet(fd_set &set, int fd);
+		bool	fdIsSetWrite(int fd) const;
+		bool	fdIsSetRead(int fd) const;
+
 
 		std::string					_configContent;
 		std::vector<std::string>	_serverBlocks;

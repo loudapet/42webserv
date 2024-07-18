@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webserv.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/27 16:13:21 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/17 23:50:54 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,7 @@ octets_t	convertStringToOctets(std::string str);
 bool						validateElement(std::string &element);
 std::string					validateRoot(const std::string &root, const std::string &locationScopeElement, const std::string &exceptionMessage);
 int							validateRequestBodySizeLimit(bool rbslInConfig, const std::string &rbslFromConfig, const std::string &exceptionMessage);
-bool						validateAutoindex(bool autoindexInConfig, const std::string &autoindexFromConfig, const std::string &exceptionMessage);
+bool						validateOnOffDirective(bool isDirectiveInConfig, const std::string &directiveFromConfig, const std::string &directiveValueFromConfig, const std::string &exceptionMessage);
 unsigned short				validateListen(unsigned short port, const std::string &portFromConfig);
 std::vector<std::string>	validateIndex(const std::vector<std::string> &indexes, const std::vector<std::string> &scopeElements, size_t pos, const std::string &exceptionMessage);
 unsigned short				validateReturnCode(std::string &scopeElement);

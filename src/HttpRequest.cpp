@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/08 16:52:41 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/17 23:56:10 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -592,7 +592,6 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 	this->allowedDirListing = location.getAutoindex();
 	removeDoubleSlash(this->targetResource);
 	std::cout << CLR3 << "Final path:\t" << this->targetResource << RESET << std::endl;
-	std::cout << CLR3 << "CGI path:\t" << location.getRelativeCgiPath() << RESET << std::endl;
 	if (!this->isRedirect && this->requestLine.method == "GET")
 	{
 		int	validFile;

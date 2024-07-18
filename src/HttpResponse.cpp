@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/15 12:03:21 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/18 00:25:27 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -395,9 +395,10 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 	else
 	{
 		// status code for CGI needs to be properly updated, I think?
-		std::cout << CLR6 << request.getLocation().getRelativeCgiPath() << RESET << std::endl;
+		//std::cout << CLR6 << request.getLocation().getRelativeCgiPath() << RESET << std::endl;
 		// this if might deserve its own function later
-		if (request.getLocation().getRelativeCgiPath().size())
+		//if (request.getLocation().getRelativeCgiPath().size())
+		if (request.getLocation().getIsCgi())
 		{
 			std::cout << CLR6 "Processing CGI stuff" RESET << std::endl;
 			int	pid;
@@ -431,10 +432,12 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 					env = &end;
 					char **av;
 					char *ex[2];
-					ex[0] = (char *)request.getLocation().getRelativeCgiPath().c_str();
+					//ex[0] = (char *)request.getLocation().getRelativeCgiPath().c_str();
+					ex[0] = (char *)"test_cgi-bin/test.cgi";
 					ex[1] = NULL;
 					av = &ex[0];
-					execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
+					//execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
+					execve("test_cgi-bin/test1.cgi", av, env);
 					//clean exit later, get pid is not legal, maybe a better way to do it?
 					//free env?
 					kill(getpid(), SIGINT);
