@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:17:04 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/18 00:13:52 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/18 12:48:48 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,16 +22,12 @@
 class ServerMaster
 {
 	public:
-		ServerMaster(std::string configFile);
+		ServerMaster(void);
 		~ServerMaster(void);
 
-		std::string	getFileContent(void) const;
+		void	runWebserv(const std::string &configFile);
 
 	private:
-		ServerMaster(void);
-
-		void	initServerMaster(void);
-
 		void	removeCommentsAndEmptyLines(void);
 		void	detectServerBlocks(void);
 		void	printServerBlocks(void) const;

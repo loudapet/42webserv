@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 10:01:22 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/20 17:47:31 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/18 12:42:12 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,8 @@ static void	handleSigint(int sigNum)
 
 int	main(int argc, char **argv)
 {
-	std::string	configFile;
+	std::string		configFile;
+	ServerMaster	serverMaster;
 
 	(void) argv;
 	
@@ -36,7 +37,7 @@ int	main(int argc, char **argv)
 				configFile = "config_files/default.conf";
 			else
 				configFile = argv[1];
-			ServerMaster serverMaster(configFile);
+			serverMaster.runWebserv(configFile);
 		}
 		catch(const std::exception& e)
 		{

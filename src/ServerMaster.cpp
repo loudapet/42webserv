@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/18 00:26:48 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/18 12:51:33 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,10 +15,12 @@
 
 ServerMaster::ServerMaster(void)
 {
-	return ;
+	this->_fdMax = -1;
+	FD_ZERO(&this->_readFds);
+	FD_ZERO(&this->_writeFds);
 }
 
-ServerMaster::ServerMaster(std::string configFile)
+void	ServerMaster::runWebserv(const std::string &configFile)
 {
 	std::ifstream		file;
 	char				c;
@@ -26,7 +28,6 @@ ServerMaster::ServerMaster(std::string configFile)
 	std::set<int> 		ports;
 	int					port;
 
-	initServerMaster();
 	if (configFile.size() < 5 || configFile.substr(configFile.size() - 5) != ".conf")
 		throw(std::runtime_error("Provided config file '" + configFile + "' doesn't have a .conf extension."));
 	fileIsValidAndAccessible(configFile, "Config file");
@@ -43,7 +44,6 @@ ServerMaster::ServerMaster(std::string configFile)
 //	if (DEBUG)
 	//std::cout << this->_configContent << std::endl;
 	removeCommentsAndEmptyLines();
-	
 	detectServerBlocks();
 //	if (DEBUG)
 	//std::cout << "DETECTED SERVER BLOCKS" << std::endl;
@@ -87,19 +87,8 @@ ServerMaster::~ServerMaster(void)
 		this->_servers.erase(it2);
 		it2 = this->_servers.begin();
 	}
-	std::cout << "\nWarning: Received SIGINT. Closed all connections and exiting." << std::endl;
-}
-
-std::string	ServerMaster::getFileContent(void) const
-{
-	return (this->_configContent);
-}
-
-void	ServerMaster::initServerMaster(void)
-{
-	this->_fdMax = -1;
-	FD_ZERO(&this->_readFds);
-	FD_ZERO(&this->_writeFds);
+	if (!g_runWebserv)
+		std::cout << "\nWarning: Received SIGINT. Closed all connections and exiting." << std::endl;
 }
 
 void	ServerMaster::removeCommentsAndEmptyLines(void)
