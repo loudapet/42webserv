@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/17 11:23:53 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/18 10:28:09 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -435,12 +435,30 @@ void	HttpResponse::readReturnDirective(const Location &location)
 // 	return (ss.str());
 // }
 
+// 7.2 META VARIABLES??? Go through getHeaderFields map? // except existing vatiables
+
+static std::string	upper(std::string str)
+{
+	for (std::string::iterator p = str.begin(); str.end() != p; ++p)
+		*p = toupper(*p);
+	return (str);
+}
+
 static void	get_env(HttpRequest& request, char **env)
 {
 	std::string			str;
-	
+	//stringmap_t			envstrings;
 	int					e = 0;
 
+	for (std::map<std::string, std::string>::const_iterator it = request.getHeaderFields().begin(); it != request.getHeaderFields().end(); it++)
+	{
+		str = upper(it->first) + "=" + it->second;
+		env[e] = new char[str.size() + 1];
+		std::copy(str.begin(), str.end(), env[e]);
+		env[e][str.size()] = '\0';
+		str.clear();
+		e++;
+	}
 	str = "AUTH_TYPE=" "";
 	env[e] = new char[str.size() + 1];
 	std::copy(str.begin(), str.end(), env[e]);
@@ -514,7 +532,8 @@ static void	get_env(HttpRequest& request, char **env)
 	env[e][str.size()] = '\0';
 	str.clear();
 	e++;
-	str = "REQUEST_METHOD= PUT GET DELETE";
+	// std::cerr << CLR1 << request.getRequestLine() << RESET << std::endl;
+	str = "REQUEST_METHOD=" + request.getRequestLine().method;
 	env[e] = new char[str.size() + 1];
 	std::copy(str.begin(), str.end(), env[e]);
 	env[e][str.size()] = '\0';
@@ -526,12 +545,14 @@ static void	get_env(HttpRequest& request, char **env)
 	env[e][str.size()] = '\0';
 	str.clear();
 	e++;
+		//ServerConfig value?? primary?
 	str = "SERVER_NAME=localhost";
 	env[e] = new char[str.size() + 1];
 	std::copy(str.begin(), str.end(), env[e]);
 	env[e][str.size()] = '\0';
 	str.clear();
 	e++;
+	//ServerConfig value??
 	str = "SERVER_PORT=8002";
 	env[e] = new char[str.size() + 1];
 	std::copy(str.begin(), str.end(), env[e]);
@@ -583,6 +604,7 @@ static void	get_env(HttpRequest& request, char **env)
 	env[e][str.size()] = '\0';
 	str.clear();
 	e++;
+	std::cerr << "e is: " << e << std::endl;
 	env[e] = NULL;
 }
 
@@ -646,7 +668,7 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 					dup2 (fd2[1], STDOUT_FILENO);
 					close (fd2[0]);
 					close (fd2[1]);
-					char *env_vars[50];
+					char *env_vars[250];
 					char **env = &env_vars[0];
 					get_env(request, env);
 					char *ex[2];

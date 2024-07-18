@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/16 16:14:45 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/18 10:27:05 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -860,6 +860,11 @@ const std::set<std::string> &HttpRequest::getAllowedMethods() const
 	return (this->allowedMethods);
 }
 
+const requestLine_t	&HttpRequest::getRequestLine(void) const
+{
+	return (this->requestLine);
+}
+
 const stringmap_t	&HttpRequest::getHeaderFields(void) const
 {
 	return (this->headerFields);
@@ -924,6 +929,19 @@ std::ostream &operator<<(std::ostream &os, std::vector<std::string> &vec)
 }
 
 std::ostream &operator<<(std::ostream &os, requestLine_t& requestLine)
+{
+	os << UNDERLINE << "Start line" << RESET << std::endl;
+	os << "method: " << requestLine.method << std::endl;
+	os << "request-target host: " << requestLine.requestTarget.authority.first << std::endl;
+	os << "request-target port: " << requestLine.requestTarget.authority.second << std::endl;
+	os << "request-target path: " << requestLine.requestTarget.absolutePath << std::endl;
+	os << "request-target query: " << requestLine.requestTarget.query << std::endl;
+	os << "request-target fragment: " << requestLine.requestTarget.fragment << std::endl;
+	os << "http-version: " << requestLine.httpVersion << std::endl;
+	return os;
+}
+
+std::ostream &operator<<(std::ostream &os, const requestLine_t& requestLine)
 {
 	os << UNDERLINE << "Start line" << RESET << std::endl;
 	os << "method: " << requestLine.method << std::endl;
