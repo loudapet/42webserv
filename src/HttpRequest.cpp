@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/18 10:50:05 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/19 18:02:12 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -508,6 +508,32 @@ stringpair_t	HttpRequest::parseHeader(octets_t header)
 	return (authority);
 }
 
+void	HttpRequest::validateContentType(const Location &location)
+{
+	stringmap_t::iterator											contentType;
+	std::string														contentTypeValue;
+	std::map< std::string, std::set<std::string> >					mimeTypesDict;
+	struct stat														statBuff;
+
+	contentType = this->headerFields.find("content-type");
+	mimeTypesDict = location.getMimeTypes().getMimeTypesDict();
+	if (stat(this->targetResource.c_str(), &statBuff) != 0)
+		throw (ResponseException(500, "Internal Server Error"));
+	if (contentType != this->headerFields.end()) // content-type found in headerFields
+	{
+	// validate content-type header field
+		contentTypeValue = splitQuotedString(contentType->second, ';')[0];
+		contentTypeValue = trim(contentTypeValue);
+		std::transform(contentTypeValue.begin(), contentTypeValue.end(), contentTypeValue.begin(), tolower); // case-insensitive
+		std::cout << "CONTENT TYPE: " << contentTypeValue << std::endl;
+	    if (mimeTypesDict.find(contentTypeValue) == mimeTypesDict.end()) // content-type not found in mimeTypesDict
+		{
+			this->response.updateStatus(415, "Unsupported media type");
+			return ;
+		}
+	}
+}
+
 // has to be present before anything that can keep a persistent connection,
 // e.g. Expect, 3xx responses
 // handling contradicting values is implementation-specific; we just search for "close", otherwise the connection is kept alive - should be done the other way around for 1.0
@@ -784,6 +810,7 @@ void	HttpRequest::validateHeader(const Location& location)
 		this->response.updateStatus(405, "Method Not Allowed");
 	this->validateConnectionOption();
 	this->validateResourceAccess(location);
+	this->validateContentType(location);
 	this->validateMessageFraming();
 	if (this->requestLine.httpVersion == "1.1")
 		this->manageExpectations();

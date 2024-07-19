@@ -474,6 +474,7 @@ void	ServerConfig::completeLocations(void)
 			this->_locations[i].setReturnCode(this->getReturnCode());
 			this->_locations[i].setIsRedirect(true);
 		}
+		this->_locations[i].setMimeTypes(this->_mimeTypes);
 	}
 }
 

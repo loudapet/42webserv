@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/18 10:26:49 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/19 15:06:58 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -125,6 +125,7 @@ class HttpRequest
 		void					validateMessageFraming();
 		void					manageExpectations();
 		void					validateConnectionOption();
+		void					validateContentType(const Location& location);
 
 	public:
 		HttpRequest();
