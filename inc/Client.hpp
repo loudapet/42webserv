@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/14 19:17:59 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/28 17:11:36 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/19 11:09:18 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,15 +32,17 @@ class Client
 		void	updateReceivedData(uint8_t *recvBuf, ssize_t &bytesReceived);
 		void	setPortConnectedOn(unsigned short portConnectedOn);
 		void	setServerConfig(const ServerConfig &serverConfig);
+		void	setClientAddr(struct sockaddr_in clientAddr);
 
-		int					getClientSocket(void) const;
-		time_t				getTimeLastMessage(void) const;
-		time_t				getTimeLastValidHeaderEnd(void) const;
-		const octets_t		&getReceivedData(void) const;
-		octets_t			getReceivedHeader(void) const;
-		unsigned short		getPortConnectedOn(void) const;
-		const ServerConfig	&getServerConfig(void) const;
-		const HttpRequest	&getRequest(void) const;
+		int							getClientSocket(void) const;
+		time_t						getTimeLastMessage(void) const;
+		time_t						getTimeLastValidHeaderEnd(void) const;
+		const octets_t				&getReceivedData(void) const;
+		octets_t					getReceivedHeader(void) const;
+		unsigned short				getPortConnectedOn(void) const;
+		const ServerConfig			&getServerConfig(void) const;
+		const HttpRequest			&getRequest(void) const;
+		const struct sockaddr_in	&getClientAddr(void) const;
 
 		void		printReceivedData(void) const;
 		void		printReceivedHeader(void) const;
@@ -62,7 +64,7 @@ class Client
 		octets_t			_receivedHeader;
 		unsigned short		_portConnectedOn;
 		ServerConfig		_serverConfig;
-
+		struct sockaddr_in	_clientAddr;
 };
 
 #endif

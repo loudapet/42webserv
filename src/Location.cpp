@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/17 23:51:47 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/19 11:43:40 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,7 @@ Location::Location(void)
 	this->_returnCode = 0;
 	this->_isRedirect = false;
 	this->_errorPages = std::map<unsigned short, std::string>();
+	this->_serverName = "";
 }
 
 Location::Location(unsigned short serverReturnCode, std::string serverReturnURLOrBody)
@@ -40,6 +41,7 @@ Location::Location(unsigned short serverReturnCode, std::string serverReturnURLO
 	this->_returnCode = serverReturnCode;
 	this->_isRedirect = true;
 	this->_errorPages = std::map<unsigned short, std::string>();
+	this->_serverName = "";
 }
 
 Location::Location(std::string locationPath, std::vector<std::string> locationBlockElements)
@@ -291,6 +293,11 @@ void	Location::addErrorPage(short errorCode, const std::string &errorPageFile)
 	this->_errorPages[errorCode] = errorPageFile;
 }
 
+void	Location::setServerName(const std::string &serverName)
+{
+	this->_serverName = serverName;
+}
+
 void	Location::initLocation(void)
 {
 	this->_path = "";
@@ -304,6 +311,7 @@ void	Location::initLocation(void)
 	this->_returnCode = 0;
 	this->_isRedirect = false;
 	this->_errorPages = std::map<unsigned short, std::string>();
+	this->_serverName = "";
 }
 		
 void	Location::validateErrorPagesLine(std::vector<std::string> &errorPageLine)

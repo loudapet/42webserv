@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/18 12:51:33 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/19 11:40:15 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -220,18 +220,19 @@ void	ServerMaster::prepareServersToListen(void)
 	this->_fdMax = this->_serverConfigs.back().getServerSocket();
 }
 
-const Location matchLocation(const std::string &absolutePath, const std::vector<Location> &locations,
-	bool serverIsRedirect, unsigned short serverReturnCode, const std::string &serverReturnURLOrBody)
+const Location matchLocation(const std::string &absolutePath, const ServerConfig &serverConfig, const std::string &serverName)
 {
-	std::string locationPath;
-	size_t		bestMatchLength;
-	size_t		bestMatchIndex;
-	bool		match;
-	std::set<std::string> method;
+	std::vector<Location>	locations;
+	std::string				locationPath;
+	size_t					bestMatchLength;
+	size_t					bestMatchIndex;
+	bool					match;
+	std::set<std::string>	method;
 
-	if (serverIsRedirect)
+	locations = serverConfig.getLocations();
+	if (serverConfig.getIsRedirect())
 	{
-		Location generic(serverReturnCode, serverReturnURLOrBody);
+		Location generic(serverConfig.getReturnCode(), serverConfig.getReturnURLOrBody());
 		return (generic);
 	}
 	bestMatchLength = 0;
@@ -256,10 +257,9 @@ const Location matchLocation(const std::string &absolutePath, const std::vector<
 		Location generic;
 		return (generic);
 	}
+	locations[bestMatchIndex].setServerName(serverName);
 	return (locations[bestMatchIndex]);
 }
-
-
 
 void	ServerMaster::listenForConnections(void)
 {
@@ -316,8 +316,7 @@ void	ServerMaster::listenForConnections(void)
 
 								// match location
 								const ServerConfig &serverConfig = client.getServerConfig();
-								client.request.validateHeader(matchLocation( client.request.getAbsolutePath(), serverConfig.getLocations(),
-									serverConfig.getIsRedirect(), serverConfig.getReturnCode(), serverConfig.getReturnURLOrBody()));
+								client.request.validateHeader(matchLocation(client.request.getAbsolutePath(), serverConfig, parserPair.first));
 								client.request.readingBodyInProgress = true;
 								/* if (client.request.getHasExpect()) 
 									throw (ResponseException(100, "Continue")); - moved to HttpRequest */
@@ -521,6 +520,7 @@ void	ServerMaster::acceptConnection(int serverSocket)
 		throw(std::runtime_error("Fcntl failed."));
 	}
 	newClient.setClientSocket(clientSocket);
+	newClient.setClientAddr(clientAddr);
 	this->_clients.insert(std::make_pair(clientSocket, newClient));
 	std::cout << "New connection accepted from "
 		<< inet_ntop(AF_INET, &clientAddr, buff, INET_ADDRSTRLEN)

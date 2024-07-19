@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:27 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/17 23:44:57 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/19 11:29:39 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,6 +36,7 @@ class Location
 		unsigned short								getReturnCode(void) const;
 		bool										getIsRedirect(void) const;
 		const std::map<unsigned short, std::string>	&getErrorPages(void) const;
+		const std::string							&getServerName(void) const;
 
 		void	setPath(const std::string &path);
 		void	setRoot(const std::string &root);
@@ -47,6 +48,7 @@ class Location
 		void	setReturnCode(unsigned short returnCode);
 		void	setIsRedirect(bool value);
 		void	addErrorPage(short errorCode, const std::string &errorPageFile);
+		void	setServerName(const std::string &serverName);
 	
 	private:
 		
@@ -64,6 +66,7 @@ class Location
 		unsigned short							_returnCode;
 		bool									_isRedirect;
 		std::map<unsigned short, std::string>	_errorPages;
+		std::string								_serverName; // hostname or IP address for CGI
 };
 
 std::ostream &operator << (std::ostream &o, Location const &instance);
