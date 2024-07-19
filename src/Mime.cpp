@@ -40,43 +40,29 @@ const std::map< std::string, std::set<std::string> > &Mime::getMimeTypesDict() c
 	return (this->_mimeTypesDict);
 }
 
+bool checkSemicolons(const std::string& str)
+{
+	size_t	start;
+	size_t	end;
 
-
-bool checkSemicolons(const std::string& str) {
-	size_t start = 0; // Start of the current chunk
-	size_t end; // End of the current chunk
-
+	start = 0;
 	while (start < str.size())
 	{
-		// Find the end of the current chunk
 		end = str.find('\n', start);
-		if (end == std::string::npos) {
-			end = str.size(); // If no newline is found, the end is the end of the string
-		}
-
-		// Check if the chunk is empty or contains only whitespaces
-		if (str.find_first_not_of(WHITESPACES, start) >= end) {
-			// Move to the next chunk if the current chunk is empty or contains only whitespaces
+		if (end == std::string::npos)
+			end = str.size();
+		if (str.find_first_not_of(WHITESPACES, start) >= end)
+		{
 			start = end + 1;
 			continue;
 		}
-
-		// Find the last non-whitespace character in the current chunk
 		size_t lastNonWhitespace = str.find_last_not_of(WHITESPACES, end - 1);
-		if (lastNonWhitespace == std::string::npos || str[lastNonWhitespace] != ';') {
-			// If no non-whitespace character is found or it's not a semicolon, return false
-			return false;
-		}
-
-		// Move to the next chunk
+		if (lastNonWhitespace == std::string::npos || str[lastNonWhitespace] != ';')
+			return (false);
 		start = end + 1;
 	}
-
-	// If all non-empty chunks end with a semicolon (ignoring whitespaces), return true
-	return true;
+	return (true);
 }
-
-
 
 void Mime::parseMimeTypes(const std::string &mimeTypesFilePath)
 {
