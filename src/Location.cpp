@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/19 11:43:40 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/19 16:04:37 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -161,6 +161,7 @@ Location::Location(const Location& copy)
 	this->_returnCode = copy._returnCode;
 	this->_isRedirect = copy._isRedirect;
 	this->_errorPages = copy._errorPages;
+	this->_serverName = copy._serverName;
 }
 
 Location &Location::operator = (const Location &src)
@@ -178,6 +179,7 @@ Location &Location::operator = (const Location &src)
 		this->_returnCode = src._returnCode;
 		this->_isRedirect = src._isRedirect;
 		this->_errorPages = src._errorPages;
+		this->_serverName = src._serverName;
 	}
 	return (*this);
 }
@@ -342,6 +344,11 @@ void	Location::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
 			this->_errorPages[tmpErrorCode] = errorPageFileName;
 		}
 	}
+}
+
+const std::string   &Location::getServerName(void) const
+{
+	return (this->_serverName);
 }
 
 std::ostream &operator << (std::ostream &o, Location const &instance)

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/18 10:50:05 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/19 16:19:03 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -933,7 +933,7 @@ const stringmap_t	&HttpRequest::getHeaderFields(void) const
 	return (this->headerFields);
 }
 
-const octets_t &HttpRequest::getRequestBody(void) const
+octets_t &HttpRequest::getRequestBody(void)
 {
 	return (this->requestBody);
 }
@@ -946,6 +946,11 @@ const Location	&HttpRequest::getLocation(void) const
 const std::string&	HttpRequest::getTargetResource() const
 {
 	return (this->targetResource);
+}
+
+const std::string&	HttpRequest::getCgiPathInfo() const
+{
+	return (this->cgiPathInfo);
 }
 
 const bool&	HttpRequest::getTargetIsDirectory() const

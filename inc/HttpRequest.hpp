@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/18 10:26:49 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/19 16:19:15 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -143,11 +143,12 @@ class HttpRequest
 		const Location&					getLocation() const;
 		const requestLine_t&			getRequestLine() const;
 		const stringmap_t&				getHeaderFields() const;
-		const octets_t&					getRequestBody() const;
+		octets_t&						getRequestBody();
 		const std::string&				getAbsolutePath() const;
 		const ConnectionStatus&			getConnectionStatus() const;
 		const std::set<std::string>&	getAllowedMethods() const;
 		const std::string&				getTargetResource() const;
+		const std::string&				getCgiPathInfo() const;
 		const bool&						getTargetIsDirectory() const;
 		void							resetRequestObject(void);
 		bool							getHasExpect() const;

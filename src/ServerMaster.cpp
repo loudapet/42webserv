@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/19 11:40:15 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/19 16:31:42 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -318,6 +318,13 @@ static std::string	upper(std::string str)
 	return (str);
 }
 
+static std::string	lower(std::string str)
+{
+	for (std::string::iterator c = str.begin(); str.end() != c; ++c)
+		*c = tolower(*c);
+	return (str);
+}
+
 static void	get_env(Client	&client, char **env)
 {
 	HttpRequest&	request = client.request;
@@ -335,24 +342,24 @@ static void	get_env(Client	&client, char **env)
 	if (request.getHeaderFields().find("content-type") != request.getHeaderFields().end()) //Content type
 		envstrings["CONTENT_TYPE"] = request.getHeaderFields().find("content-type")->second;
 	envstrings["GATEWAY_INTERFACE"] = "CGI/1.1";
-	envstrings["PATH_INFO"] = "";
+	envstrings["PATH_INFO"] = request.getCgiPathInfo();
 	envstrings["PATH_TRANSLATED"] = "";
-	envstrings["QUERY_STRING"] = "";
-	envstrings["REMOTE_ADDR=??? IPv4"] = "";
-	envstrings["REMOTE_HOST=ADDR?"] = "";
+	envstrings["QUERY_STRING"] = request.getRequestLine().requestTarget.query.size() > 1 ? request.getRequestLine().requestTarget.query.substr(1, request.getRequestLine().requestTarget.query.size() - 1) : std::string("");
+	envstrings["REMOTE_ADDR"] = inet_ntoa(client.getClientAddr().sin_addr);
+	envstrings["REMOTE_HOST"] = inet_ntoa(client.getClientAddr().sin_addr);;
 	// envstrings["REMOTE_IDENT=???"] = "";	// NOT SUPPORTED
 	// envstrings["REMOTE_USER=???"] = "";	// NOT SUPPORTED
 	envstrings["REQUEST_METHOD"] = request.getRequestLine().method;
-	envstrings["SCRIPT_NAME"] = "";
-	envstrings["SERVER_NAME"] = "";
+	envstrings["SCRIPT_NAME"] = request.getTargetResource(); //from path
+	envstrings["SERVER_NAME"] = request.getLocation().getServerName();
 	//ServerConfig value??
 	envstrings["SERVER_PORT"] = itoa(client.getServerConfig().getPort());
 	envstrings["SERVER_PROTOCOL"] = "HTTP/" + request.getRequestLine().httpVersion;
 	envstrings["SERVER_SOFTWARE"] = "webserv/nginx-but-better";
 	if (request.getHeaderFields().find("user-agent") != request.getHeaderFields().end())
 		envstrings["HTTP_USER_AGENT"] = request.getHeaderFields().find("user-agent")->second;
-	envstrings["REMOTE_PORT"] = itoa(client.getPortConnectedOn());
-	envstrings["HTTPS"] = "off";
+	envstrings["REMOTE_PORT"] = itoa(client.getClientAddr().sin_port);
+	envstrings["HTTPS"] = "off"; // maybe not needed
 	for (stringmap_t::iterator it = envstrings.begin(); it != envstrings.end(); it++)
 	{
 		str = it->first + "=" + it->second;
@@ -389,7 +396,7 @@ static void	get_env(Client	&client, char **env)
 // ////SERVER_PORT		The port number your server is listening on
 // ////SERVER_SOFTWARE	The server software you're using (e.g. Apache 1.3)
 
-void	ft_cgi(Client	&client)
+void	ft_cgi(ServerMaster &sm, Client	&client)
 {
 	HttpRequest&	request = client.request;
 	HttpResponse&	response = request.response;
@@ -398,15 +405,20 @@ void	ft_cgi(Client	&client)
 	//std::cout << CLR6 << request.getLocation().getRelativeCgiPath() << RESET << std::endl;
 	// this if might deserve its own function later
 	//if (request.getLocation().getRelativeCgiPath().size())
-	std::cout << CLR6 "Processing CGI stuff0" RESET << std::endl;
+	// std::cout << CLR6 "Processing CGI stuff0" RESET << std::endl;
 	if (response.getCgiStatus() == NOCGI && request.getLocation().getIsCgi())
 		response.setCgiStatus(CGI_STARTED);
-	if (response.getCgiStatus() == CGI_STARTED)
+	else if (response.getCgiStatus() == CGI_STARTED)
 	{
-		std::cout << CLR6 "Processing CGI stuff 1" RESET << std::endl;
 		int	pid;
 		int	fd1[2]; // writing to child
 		int	fd2[2]; // reading from child
+		if (access(request.getTargetResource().c_str(), X_OK) != 0)
+		{
+			std::cerr << "Error: access CGI" << std::endl;
+			response.setCgiStatus(CGI_ERROR);
+			return ;
+		}
 		if (pipe(fd1) == -1)
 		{
 			std::cerr << "Error: Pipe" << std::endl;
@@ -453,7 +465,7 @@ void	ft_cgi(Client	&client)
 				ex[1] = NULL;
 				char **av = &ex[0];
 				//execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
-				execve("test_cgi-bin/test1.cgi", av, env);
+				execve(request.getTargetResource().c_str(), av, env);
 				//clean exit later, get pid is not legal, maybe a better way to do it?
 				for (int i = 0; env[i]; i++)
 				{
@@ -480,15 +492,30 @@ void	ft_cgi(Client	&client)
 			}
 		}
 	}
-	if (response.getCgiStatus() == CGI_WRITING)
+	else if (response.getCgiStatus() == CGI_WRITING)
 	{
-		size_t	w;
-		std::string body(request.getRequestBody().begin(), request.getRequestBody().end());
-		w = write(response.getWfd(), body.c_str(), request.getRequestBody().size());
-		if (w == request.getRequestBody().size())
+		size_t			w = 0;
+		size_t			wsize;
+		//std::string body(request.getRequestBody().begin(), request.getRequestBody().end());
+		unsigned char	wbuffer[CGI_BUFFER_SIZE];
+		if (!sm.fdIsSetWrite(response.getWfd()))
+			return ;
+		wsize = request.getRequestBody().size();
+		if (wsize > CGI_BUFFER_SIZE)
+			wsize = CGI_BUFFER_SIZE;
+		if (wsize)
+		{
+			std::copy(request.getRequestBody().begin(), request.getRequestBody().begin() + wsize, wbuffer);
+			w = write(response.getWfd(), wbuffer, wsize);
+		}
+		if (w > 0)
+		{
+			request.getRequestBody().erase(request.getRequestBody().begin(), request.getRequestBody().begin() + w);
+			return ;
+		}
+		else if (!wsize)
 		{
 			std::cout << CLR6 "Written to CGI" RESET << std::endl;
-			std::cout << CLR6 << body << RESET << std::endl;
 			response.setCgiStatus(CGI_READING);
 			return ;
 		}
@@ -499,7 +526,7 @@ void	ft_cgi(Client	&client)
 			return ;
 		}
 	}
-	if (response.getCgiStatus() == CGI_READING)
+	else if (response.getCgiStatus() == CGI_READING)
 	{
 		int	status;
 		int	r;
@@ -509,6 +536,8 @@ void	ft_cgi(Client	&client)
 		// close when read finished (<= 0)
 		// fork and wait ? Make it non blocking
 		// waitpid WNOHANG? flag for waiting for a response?
+		if (!sm.fdIsSetRead(response.getRfd()))
+			return ;
 		wpid = waitpid(response.getCgiPid(), &status, WNOHANG);
 		r = read(response.getRfd(), buffer, CGI_BUFFER_SIZE);
 		if (r > 0)
@@ -544,8 +573,60 @@ void	ft_cgi(Client	&client)
 		{
 			if (WIFEXITED(status) && !WEXITSTATUS(status))
 			{
-				//process response to header fields and body
+				std::string			line;
+				std::string			key;
+				std::string			value;
+				octets_t::iterator	it[4];
 				response.setCgiStatus(CGI_COMPLETE);
+				if (response.getCgiBody().size() < 4)
+					return ;
+				it[0] = response.getCgiBody().begin();
+				it[1] = it[0];
+				it[1]++;
+				it[2] = it[1];
+				it[2]++;
+				while (it[2] != response.getCgiBody().end())
+				{
+					if ((*it[0] == '\n' && *it[1] == '\n') || (*it[0] == '\n' && *it[1] == '\r' && *it[2] == '\n'))
+					{
+						// std::string 
+						std::istringstream header(std::string(response.getCgiBody().begin(), it[0]));
+						// std::cout << "Header:" << header << std::endl;
+						while (std::getline(header, line))
+						{
+							// std::cout << line << std::endl;
+							line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
+							if (line.find(':') != std::string::npos)
+							{
+								key = line.substr(0, line.find(':'));
+								value = line.substr(line.find(':') + 1, line.size());
+								while (value[0] == ' ')
+									value.erase(0, 1);
+							}
+							if (key.size() && value.size())
+							{
+								response.getCgiHeaderFields()[lower(key)] = value;
+							}
+							// std::cout << "key:" << key << std::endl;
+							// std::cout << "value:" << value << std::endl;
+							key.clear();
+							value.clear();
+						}
+						if (*it[1] == '\n')
+							response.getCgiBody().erase(response.getCgiBody().begin(), it[1] + 1);
+						else
+							response.getCgiBody().erase(response.getCgiBody().begin(), it[2] + 1);
+						return ;
+					}
+					it[0]++;
+					it[1]++;
+					it[2]++;
+				}
+				//process response to header fields and body
+				//find NLNL
+				//Remove header from body
+				//process header
+				return ;
 			}
 			else
 				response.setCgiStatus(CGI_ERROR);
@@ -652,12 +733,11 @@ void	ServerMaster::listenForConnections(void)
 			{
 				// CGI TBA - add conditions for it, othwerwise send normal response
 				Client	&client = this->_clients.find(i)->second;
-				std::cout << CLR6 "Processing CGI stuff -1" RESET << std::endl;
 				if (client.request.getLocation().getIsCgi() && true)
 				{
 					int old_cgi_status = client.request.response.getCgiStatus();
 					std::cout << CLR6 << "Old CGI status: " << old_cgi_status << RESET << std::endl;
-					ft_cgi(client);
+					ft_cgi(*this, client);
 					int cgi_status = client.request.response.getCgiStatus();
 					std::cout << CLR6 << "CGI status: " << cgi_status << RESET << std::endl;
 					// # define CGI_STARTED 1
@@ -667,7 +747,9 @@ void	ServerMaster::listenForConnections(void)
 					// # define CGI_ERROR 256
 					if (old_cgi_status == CGI_STARTED && cgi_status == CGI_WRITING)
 					{
+						std::cout << "Adding to read: " << client.request.response.getRfd() << std::endl;
 						addFdToSet(this->_readFds, client.request.response.getRfd());
+						std::cout << "Adding to write: " << client.request.response.getWfd() << std::endl;
 						addFdToSet(this->_writeFds, client.request.response.getWfd());
 					}
 					else if (old_cgi_status == CGI_WRITING && cgi_status == CGI_READING)

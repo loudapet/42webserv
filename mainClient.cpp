@@ -31,7 +31,7 @@ int main(void)
 		return (1);
 	}
 	// Send data to the server
-	const char	*message = "\n\r\n\nGET http://localhost/cgitest/test.py/test.cgi HTTP/1.1\r\n"
+	const char	*message = "\n\r\n\nGET http://localhost/cgitest/test1.cgi/additional/pa%2eth/and HTTP/1.1\r\n"
 							"Host: s\r\n"
 							"User-Agent: Mozilla/5.0\n"
 							"Accept: text/html, */*\r\n"
