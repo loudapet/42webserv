@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 16:36:47 by okraus            #+#    #+#             */
-/*   Updated: 2024/07/17 12:18:31 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/18 15:20:12 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,7 +80,7 @@ int	main(int argc, char *argv[], char *envp[])
 	for (int i = 0; envp[i]; i++)
 	{
 		str = envp[i];
-		// std::cerr << "envp[" << i << "]:\t" << str << std::endl; //breaks it somehow?
+		std::cerr << "envp[" << i << "]:\t" << str << std::endl; //breaks it somehow?
 		std::cout << "<li>" << str << "</li>" << std::endl;
 	}
 	std::cout << "</ol>\n";
@@ -88,5 +88,9 @@ int	main(int argc, char *argv[], char *envp[])
 
 	std::cout << "</body>\n";
 	std::cout << "</html>\n" << std::endl;
+	std::cout << std::flush;
+	std::cerr << REDBG_COLOUR "CGI PROGRAM END" NO_COLOUR << std::endl << std::endl;
+	std::cerr << std::flush;
+	//sleep(1);
 	return (0);
 } 
