@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/18 16:20:14 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/19 09:21:36 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,8 +71,8 @@ HttpResponse::HttpResponse()
 	this->messageTooLongForOneSend = false;
 	this->cgiStatus = 0;
 	this->cgi_pid = 0;
-	this->wfd = -1;
-	this->rfd = -1;
+	this->wfd = 0;
+	this->rfd = 0;
 	this->cgiHeaderFields = stringmap_t();
 	this->cgiBody = octets_t();
 	return ;

@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/18 17:35:50 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/19 11:26:46 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -323,171 +323,55 @@ const Location matchLocation(const std::string &absolutePath, const std::vector<
 
 static std::string	upper(std::string str)
 {
-	for (std::string::iterator p = str.begin(); str.end() != p; ++p)
-		*p = toupper(*p);
+	for (std::string::iterator c = str.begin(); str.end() != c; ++c)
+		*c = *c == '-' ?  '_' : toupper(*c);
 	return (str);
 }
 
-static void	get_env(HttpRequest& request, char **env)
+static void	get_env(Client	&client, char **env)
 {
-	std::string			str;
-	//stringmap_t			envstrings;
-	int					e = 0;
+	HttpRequest&	request = client.request;
+	// HttpResponse&	response = request.response;
+	std::string		str;
+	stringmap_t		envstrings;
+	int				e = 0;
 
-	for (std::map<std::string, std::string>::const_iterator it = request.getHeaderFields().begin(); it != request.getHeaderFields().end(); it++)
-	{
-		str = upper(it->first) + "=" + it->second;
-		env[e] = new char[str.size() + 1];
-		std::copy(str.begin(), str.end(), env[e]);
-		env[e][str.size()] = '\0';
-		str.clear();
-		e++;
-	}
-	str = "AUTH_TYPE=" "";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
+	for (stringmap_t::const_iterator it = request.getHeaderFields().begin(); it != request.getHeaderFields().end(); it++)
+		envstrings[upper(it->first)] = it->second;
+	// if (envstrings.find("AUTH_SCHEME") != envstrings.end())	//NOT SUPPORTED
+	// 	envstrings["AUTH_TYPE"] = envstrings.find("AUTH_SCHEME");
 	if (request.getRequestBody().size()) //message
-	{
-		str = "CONTENT_LENGTH=" + itoa(request.getRequestBody().size());
-		env[e] = new char[str.size() + 1];
-		std::copy(str.begin(), str.end(), env[e]);
-		env[e][str.size()] = '\0';
-		str.clear();
-		e++;
-	}
+		envstrings["CONTENT_LENGTH"] = itoa(request.getRequestBody().size());
 	if (request.getHeaderFields().find("content-type") != request.getHeaderFields().end()) //Content type
-	{
-		str = "CONTENT_TYPE=" + request.getHeaderFields().find("content-type")->second;
-		// str = "CONTENT_TYPE=" + request.getHeaderFields()["content-type"];
-		env[e] = new char[str.size() + 1];
-		std::copy(str.begin(), str.end(), env[e]);
-		env[e][str.size()] = '\0';
-		str.clear();
-		e++;
-	}
-	str = "GATEWAY_INTERFACE=CGI/1.1";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "PATH_INFO=";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "PATH_TRANSLATED=";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "QUERY_STRING=";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "REMOTE_ADDR=??? IPv4";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "REMOTE_HOST=ADDR?";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "REMOTE_IDENT=???";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "REMOTE_USER=???";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	// std::cerr << CLR1 << request.getRequestLine() << RESET << std::endl;
-	str = "REQUEST_METHOD=" + request.getRequestLine().method;
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "SCRIPT_NAME=";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-		//ServerConfig value?? primary?
-	str = "SERVER_NAME=localhost";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
+		envstrings["CONTENT_TYPE"] = request.getHeaderFields().find("content-type")->second;
+	envstrings["GATEWAY_INTERFACE"] = "CGI/1.1";
+	envstrings["PATH_INFO"] = "";
+	envstrings["PATH_TRANSLATED"] = "";
+	envstrings["QUERY_STRING"] = "";
+	envstrings["REMOTE_ADDR=??? IPv4"] = "";
+	envstrings["REMOTE_HOST=ADDR?"] = "";
+	// envstrings["REMOTE_IDENT=???"] = "";	// NOT SUPPORTED
+	// envstrings["REMOTE_USER=???"] = "";	// NOT SUPPORTED
+	envstrings["REQUEST_METHOD"] = request.getRequestLine().method;
+	envstrings["SCRIPT_NAME"] = "";
+	envstrings["SERVER_NAME"] = "";
 	//ServerConfig value??
-	str = "SERVER_PORT=8002";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "SERVER_PROTOCOL=HTTP/1.1";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "SERVER_SOFTWARE=ft_webserv";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "BONUS ENV BELOW";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
+	envstrings["SERVER_PORT"] = itoa(client.getServerConfig().getPort());
+	envstrings["SERVER_PROTOCOL"] = "HTTP/" + request.getRequestLine().httpVersion;
+	envstrings["SERVER_SOFTWARE"] = "webserv/nginx-but-better";
 	if (request.getHeaderFields().find("user-agent") != request.getHeaderFields().end())
+		envstrings["HTTP_USER_AGENT"] = request.getHeaderFields().find("user-agent")->second;
+	envstrings["REMOTE_PORT"] = itoa(client.getPortConnectedOn());
+	envstrings["HTTPS"] = "off";
+	for (stringmap_t::iterator it = envstrings.begin(); it != envstrings.end(); it++)
 	{
-		str = "HTTP_USER_AGENT=" + request.getHeaderFields().find("user-agent")->second;
+		str = it->first + "=" + it->second;
 		env[e] = new char[str.size() + 1];
 		std::copy(str.begin(), str.end(), env[e]);
 		env[e][str.size()] = '\0';
 		str.clear();
 		e++;
 	}
-	str = "REMOTE_PORT=";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "HTTPS=off";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
-	str = "More?";
-	env[e] = new char[str.size() + 1];
-	std::copy(str.begin(), str.end(), env[e]);
-	env[e][str.size()] = '\0';
-	str.clear();
-	e++;
 	std::cerr << "e is: " << e << std::endl;
 	env[e] = NULL;
 }
@@ -549,11 +433,13 @@ void	ft_cgi(Client	&client)
 		}
 		else
 		{
-			response.setWfd(fd1[1]);
-			response.setRfd(fd2[0]);
 			pid = fork();
 			if (pid == -1)
 			{
+				close(fd1[0]);
+				close(fd1[1]);
+				close(fd2[0]);
+				close(fd2[1]);
 				std::cerr << "Error: Fork" << std::endl;
 				response.setCgiStatus(CGI_ERROR);
 				return ;
@@ -570,7 +456,7 @@ void	ft_cgi(Client	&client)
 				close (fd2[1]);
 				char *env_vars[250];
 				char **env = &env_vars[0];
-				get_env(request, env);
+				get_env(client, env);
 				char *ex[2];
 				//ex[0] = (char *)request.getLocation().getRelativeCgiPath().c_str();
 				ex[0] = (char *)"test_cgi-bin/test.cgi";
@@ -591,6 +477,8 @@ void	ft_cgi(Client	&client)
 			{
 				response.setCgiStatus(CGI_WRITING);
 				response.setCgiPid(pid);
+				response.setWfd(fd1[1]);
+				response.setRfd(fd2[0]);
 				//parent
 				//close reading end of the first pipe
 				close(fd1[0]);
@@ -618,8 +506,6 @@ void	ft_cgi(Client	&client)
 		{
 			std::cerr << CLRE "write fail or nothing was written" RESET << std::endl;
 			response.setCgiStatus(CGI_ERROR);
-			close(response.getWfd());
-			close(response.getRfd());
 			return ;
 		}
 	}
@@ -690,7 +576,6 @@ void	ServerMaster::listenForConnections(void)
 	// main listening loop
 	while(g_runWebserv)
 	{
-		std::cout << CLR6 "server runs" RESET << std::endl;
 		selectTimer.tv_sec = 1;
 		selectTimer.tv_usec = 0; // could be causing select to fail (with errno of invalid argument) if not set
 		readFds = this->_readFds; // copy whole fds master list in the fds list for select (only listener socket in the first run)
@@ -779,13 +664,13 @@ void	ServerMaster::listenForConnections(void)
 				// CGI TBA - add conditions for it, othwerwise send normal response
 				Client	&client = this->_clients.find(i)->second;
 				std::cout << CLR6 "Processing CGI stuff -1" RESET << std::endl;
-				if (client.request.getLocation().getIsCgi())
+				if (client.request.getLocation().getIsCgi() && true)
 				{
-					std::cout << CLR6 "Processing CGI stuff 0000" RESET << std::endl;
 					int old_cgi_status = client.request.response.getCgiStatus();
+					std::cout << CLR6 << "Old CGI status: " << old_cgi_status << RESET << std::endl;
 					ft_cgi(client);
 					int cgi_status = client.request.response.getCgiStatus();
-					std::cout << CLRE << "CGI status: " << cgi_status << RESET << std::endl;
+					std::cout << CLR6 << "CGI status: " << cgi_status << RESET << std::endl;
 					// # define CGI_STARTED 1
 					// # define CGI_WRITING 2
 					// # define CGI_READING 4
@@ -800,16 +685,22 @@ void	ServerMaster::listenForConnections(void)
 					{
 						close(client.request.response.getWfd());
 						removeFdFromSet(this->_writeFds, client.request.response.getWfd());
+						client.request.response.setWfd(0);
 					}
 					else if (old_cgi_status == CGI_WRITING && cgi_status == CGI_ERROR)
 					{
+						close(client.request.response.getWfd());
+						close(client.request.response.getRfd());
 						removeFdFromSet(this->_writeFds, client.request.response.getWfd());
 						removeFdFromSet(this->_readFds, client.request.response.getRfd());
+						client.request.response.setWfd(0);
+						client.request.response.setRfd(0);
 					}
 					else if (old_cgi_status == CGI_READING && cgi_status != CGI_READING)
 					{
 						close(client.request.response.getRfd());
 						removeFdFromSet(this->_readFds, client.request.response.getRfd());
+						client.request.response.setRfd(0);
 					}
 					if (cgi_status < CGI_COMPLETE)
 					{
