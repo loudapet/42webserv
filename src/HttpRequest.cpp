@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/19 16:19:03 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/19 17:20:06 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -603,9 +603,9 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 		std::cout << CLR3 << "root:\t" << root << RESET << std::endl;
 		std::cout << CLR3 << "URL:\t" << this->requestLine.requestTarget.absolutePath << RESET << std::endl;
 	}
-    std::size_t pos = this->requestLine.requestTarget.absolutePath.find(path);
+	std::size_t pos = this->requestLine.requestTarget.absolutePath.find(path);
 	this->targetResource = this->requestLine.requestTarget.absolutePath;
-   	this->targetResource.replace(pos, path.length(), root);
+	this->targetResource.replace(pos, path.length(), root);
 	this->allowedDirListing = location.getAutoindex();
 	removeDoubleSlash(this->targetResource);
 	std::cout << CLR3 << "Final path:\t" << this->targetResource << RESET << std::endl;

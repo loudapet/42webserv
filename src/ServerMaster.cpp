@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/19 16:31:42 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/19 18:02:22 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -325,6 +325,36 @@ static std::string	lower(std::string str)
 	return (str);
 }
 
+static std::string	getPathTranslated(Client &client)
+{
+	HttpRequest&	request = client.request;
+	Location cgi_location = matchLocation(request.getCgiPathInfo(), client.getServerConfig(), request.getLocation().getServerName());
+
+	
+	std::string path_translated;
+	// removeDoubleSlash(path_translated);
+	// 	bool		isCgi = location.getIsCgi();
+	// int			validFile;
+	// struct stat	fileCheckBuff;
+	std::string	path = cgi_location.getPath();
+	std::string	root = cgi_location.getRoot();
+	std::string	url = request.getCgiPathInfo();
+	// if (*this->requestLine.requestTarget.absolutePath.rbegin() == '/' && *path.rbegin() != '/')
+	// 	path = path + "/";
+	std::cerr << CLR4 << "PATH:\t" << path << RESET << std::endl;
+	std::cerr << CLR4 << "ROOT:\t" << root << RESET << std::endl;
+	std::cerr << CLR4 << "URL:\t" << url << RESET << std::endl;
+	path_translated = url;
+	url.erase(0, path.length());
+	if (root.size() && *root.rbegin() == '/')
+		root.erase(--(root.rbegin().base())); //WTH??? https://stackoverflow.com/questions/1830158/how-to-call-erase-with-a-reverse-iterator
+	if (url.size() && *url.begin() == '/')
+		url.erase((url.begin()));
+	path_translated = root + "/" + url;
+	std::cerr << CLR4 << "FINAL:\t" << path_translated << RESET << std::endl;
+	return (path_translated);
+}
+
 static void	get_env(Client	&client, char **env)
 {
 	HttpRequest&	request = client.request;
@@ -333,6 +363,8 @@ static void	get_env(Client	&client, char **env)
 	stringmap_t		envstrings;
 	int				e = 0;
 
+	if (request.getCgiPathInfo().size())
+		
 	for (stringmap_t::const_iterator it = request.getHeaderFields().begin(); it != request.getHeaderFields().end(); it++)
 		envstrings[upper(it->first)] = it->second;
 	// if (envstrings.find("AUTH_SCHEME") != envstrings.end())	//NOT SUPPORTED
@@ -342,8 +374,11 @@ static void	get_env(Client	&client, char **env)
 	if (request.getHeaderFields().find("content-type") != request.getHeaderFields().end()) //Content type
 		envstrings["CONTENT_TYPE"] = request.getHeaderFields().find("content-type")->second;
 	envstrings["GATEWAY_INTERFACE"] = "CGI/1.1";
-	envstrings["PATH_INFO"] = request.getCgiPathInfo();
-	envstrings["PATH_TRANSLATED"] = "";
+	if (request.getCgiPathInfo().size())
+	{
+		envstrings["PATH_INFO"] = request.getCgiPathInfo();
+		envstrings["PATH_TRANSLATED"] = getPathTranslated(client);
+	}
 	envstrings["QUERY_STRING"] = request.getRequestLine().requestTarget.query.size() > 1 ? request.getRequestLine().requestTarget.query.substr(1, request.getRequestLine().requestTarget.query.size() - 1) : std::string("");
 	envstrings["REMOTE_ADDR"] = inet_ntoa(client.getClientAddr().sin_addr);
 	envstrings["REMOTE_HOST"] = inet_ntoa(client.getClientAddr().sin_addr);;
