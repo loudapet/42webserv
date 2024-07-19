@@ -23,16 +23,12 @@
 class ServerMaster
 {
 	public:
-		ServerMaster(std::string configFile);
+		ServerMaster(void);
 		~ServerMaster(void);
 
-		std::string	getFileContent(void) const;
+		void	runWebserv(const std::string &configFile);
 
 	private:
-		ServerMaster(void);
-
-		void	initServerMaster(void);
-
 		void	removeCommentsAndEmptyLines(void);
 		void	detectServerBlocks(void);
 		void	printServerBlocks(void) const;

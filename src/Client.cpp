@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/06/28 17:13:57 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/19 11:20:54 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@ Client::Client(void): bufferUnchecked(false), _clientSocket(-1),
 	_timeLastMessage(time(NULL)), _timeLastValidHeaderEnd(time(NULL)),
 	_receivedData(), _receivedHeader(), _portConnectedOn(0)
 {
+	memset(&this->_clientAddr, 0, sizeof(this->_clientAddr));
 	return ;
 }
 
@@ -30,6 +31,7 @@ Client::Client(const Client& copy)
 	this->_serverConfig = copy._serverConfig;
 	this->request = copy.request;
 	this->bufferUnchecked = copy.bufferUnchecked;
+	this->_clientAddr = copy._clientAddr;
 }
 
 Client	&Client::operator = (const Client &src)
@@ -45,6 +47,7 @@ Client	&Client::operator = (const Client &src)
 		this->_serverConfig = src._serverConfig;
 		this->request = src.request;
 		this->bufferUnchecked = src.bufferUnchecked;
+		this->_clientAddr = src._clientAddr;
 	}
 	return (*this);
 }
@@ -82,6 +85,11 @@ void	Client::setPortConnectedOn(unsigned short portConnectedOn)
 void	Client::setServerConfig(const ServerConfig &serverConfig)
 {
 	this->_serverConfig = serverConfig;
+}
+
+void	Client::setClientAddr(struct sockaddr_in clientAddr)
+{
+	this->_clientAddr = clientAddr;
 }
 
 int	Client::getClientSocket(void) const
@@ -122,6 +130,11 @@ const ServerConfig	&Client::getServerConfig(void) const
 const HttpRequest	&Client::getRequest(void) const
 {
 	return (this->request);
+}
+
+const struct sockaddr_in	&Client::getClientAddr(void) const
+{
+	return (this->_clientAddr);
 }
 
 void		Client::printReceivedData(void) const

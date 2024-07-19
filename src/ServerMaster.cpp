@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/19 11:26:46 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/19 11:40:15 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,10 +15,12 @@
 
 ServerMaster::ServerMaster(void)
 {
-	return ;
+	this->_fdMax = -1;
+	FD_ZERO(&this->_readFds);
+	FD_ZERO(&this->_writeFds);
 }
 
-ServerMaster::ServerMaster(std::string configFile)
+void	ServerMaster::runWebserv(const std::string &configFile)
 {
 	std::ifstream		file;
 	char				c;
@@ -26,7 +28,6 @@ ServerMaster::ServerMaster(std::string configFile)
 	std::set<int> 		ports;
 	int					port;
 
-	initServerMaster();
 	if (configFile.size() < 5 || configFile.substr(configFile.size() - 5) != ".conf")
 		throw(std::runtime_error("Provided config file '" + configFile + "' doesn't have a .conf extension."));
 	fileIsValidAndAccessible(configFile, "Config file");
@@ -43,7 +44,6 @@ ServerMaster::ServerMaster(std::string configFile)
 //	if (DEBUG)
 	//std::cout << this->_configContent << std::endl;
 	removeCommentsAndEmptyLines();
-	
 	detectServerBlocks();
 //	if (DEBUG)
 	//std::cout << "DETECTED SERVER BLOCKS" << std::endl;
@@ -87,19 +87,8 @@ ServerMaster::~ServerMaster(void)
 		this->_servers.erase(it2);
 		it2 = this->_servers.begin();
 	}
-	std::cout << "\nWarning: Received SIGINT. Closed all connections and exiting." << std::endl;
-}
-
-std::string	ServerMaster::getFileContent(void) const
-{
-	return (this->_configContent);
-}
-
-void	ServerMaster::initServerMaster(void)
-{
-	this->_fdMax = -1;
-	FD_ZERO(&this->_readFds);
-	FD_ZERO(&this->_writeFds);
+	if (!g_runWebserv)
+		std::cout << "\nWarning: Received SIGINT. Closed all connections and exiting." << std::endl;
 }
 
 void	ServerMaster::removeCommentsAndEmptyLines(void)
@@ -231,18 +220,19 @@ void	ServerMaster::prepareServersToListen(void)
 	this->_fdMax = this->_serverConfigs.back().getServerSocket();
 }
 
-const Location matchLocation(const std::string &absolutePath, const std::vector<Location> &locations,
-	bool serverIsRedirect, unsigned short serverReturnCode, const std::string &serverReturnURLOrBody)
+const Location matchLocation(const std::string &absolutePath, const ServerConfig &serverConfig, const std::string &serverName)
 {
-	std::string locationPath;
-	size_t		bestMatchLength;
-	size_t		bestMatchIndex;
-	bool		match;
-	std::set<std::string> method;
+	std::vector<Location>	locations;
+	std::string				locationPath;
+	size_t					bestMatchLength;
+	size_t					bestMatchIndex;
+	bool					match;
+	std::set<std::string>	method;
 
-	if (serverIsRedirect)
+	locations = serverConfig.getLocations();
+	if (serverConfig.getIsRedirect())
 	{
-		Location generic(serverReturnCode, serverReturnURLOrBody);
+		Location generic(serverConfig.getReturnCode(), serverConfig.getReturnURLOrBody());
 		return (generic);
 	}
 	bestMatchLength = 0;
@@ -267,9 +257,9 @@ const Location matchLocation(const std::string &absolutePath, const std::vector<
 		Location generic;
 		return (generic);
 	}
+	locations[bestMatchIndex].setServerName(serverName);
 	return (locations[bestMatchIndex]);
 }
-
 
 // https://www.rfc-editor.org/rfc/rfc3875#section-4.1
 // "AUTH_TYPE"			//not needed? https://www.rfc-editor.org/rfc/rfc2617
@@ -619,8 +609,7 @@ void	ServerMaster::listenForConnections(void)
 
 								// match location
 								const ServerConfig &serverConfig = client.getServerConfig();
-								client.request.validateHeader(matchLocation( client.request.getAbsolutePath(), serverConfig.getLocations(),
-									serverConfig.getIsRedirect(), serverConfig.getReturnCode(), serverConfig.getReturnURLOrBody()));
+								client.request.validateHeader(matchLocation(client.request.getAbsolutePath(), serverConfig, parserPair.first));
 								client.request.readingBodyInProgress = true;
 								/* if (client.request.getHasExpect()) 
 									throw (ResponseException(100, "Continue")); - moved to HttpRequest */
@@ -868,6 +857,7 @@ void	ServerMaster::acceptConnection(int serverSocket)
 		throw(std::runtime_error("Fcntl failed."));
 	}
 	newClient.setClientSocket(clientSocket);
+	newClient.setClientAddr(clientAddr);
 	this->_clients.insert(std::make_pair(clientSocket, newClient));
 	std::cout << "New connection accepted from "
 		<< inet_ntop(AF_INET, &clientAddr, buff, INET_ADDRSTRLEN)
