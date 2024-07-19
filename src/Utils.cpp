@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/17 23:50:29 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/18 16:29:10 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -147,12 +147,12 @@ std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::stri
 	return (extractedVector);
 }
 
-void	fileIsValidAndAccessible(const std::string &path, const std::string &exceptionScope)
+void	fileIsValidAndAccessible(const std::string &path, const std::string &fileName)
 {
 	if (access(path.c_str(), F_OK) < 0)
-		throw(std::runtime_error("Config parser: " + exceptionScope + " file at '" + path + "' is an invalid file."));
+		throw(std::runtime_error("Config parser: " + fileName + " file at '" + path + "' is an invalid file."));
 	if (access(path.c_str(), R_OK) < 0)
-		throw(std::runtime_error("Config parser: " + exceptionScope + " file at '" + path + "' is not accessible."));
+		throw(std::runtime_error("Config parser: " + fileName + " file at '" + path + "' is not accessible."));
 //	struct stat buffer;
 //
 //	// Check if file exists
