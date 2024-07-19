@@ -12,6 +12,8 @@
 
 #include "../inc/webserv.hpp"
 #include "../inc/ServerConfig.hpp"
+//#include "../inc/Logger.hpp"
+
 
 ServerConfig::ServerConfig(void)
 {
@@ -498,12 +500,18 @@ void ServerConfig::bindSocket(void)
 
 void ServerConfig::startServer(void)
 {
+	std::string	infoMessage;
 	this->_serverSocket = createSocket();
 	bindSocket();
-	std::cout << "Server '" << this->_primaryServerName << "' started on "
-		<< this->_host % 256 << "." << this->_host / 256 % 256 << "."
-		<< this->_host / 65536 % 256 << "." << this->_host / 16777216 << ":"
-		<< this->_port << std::endl;
+	infoMessage = std::string("Server '") + this->_primaryServerName + "' started on " 
+				+ itoa(this->_host % 256) + "." + itoa(this->_host / 256 % 256) + "."
+				+ itoa(this->_host / 65536 % 256) + "." + itoa(this->_host / 16777216) + ":"
+				+ itoa(this->_port);
+	Logger::log(INFO, infoMessage, "");
+	// std::cout << "Server '" << this->_primaryServerName << "' started on "
+	// 	<< this->_host % 256 << "." << this->_host / 256 % 256 << "."
+	// 	<< this->_host / 65536 % 256 << "." << this->_host / 16777216 << ":"
+	// 	<< this->_port << std::endl;
 }
 
 std::ostream &operator << (std::ostream &o, ServerConfig const &instance)
