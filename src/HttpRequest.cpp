@@ -87,16 +87,6 @@ HttpRequest::~HttpRequest()
 	return ;
 }
 
-std::string	trim(const std::string& str)
-{
-	const std::string	whitespace(" \t\r\n");
-	const size_t		strBegin = str.find_first_not_of(whitespace);
-	if (strBegin == std::string::npos)
-		return (""); // no content
-	const size_t strEnd = str.find_last_not_of(whitespace);
-	const size_t strRange = strEnd - strBegin + 1;
-	return (str.substr(strBegin, strRange));
-}
 
 // upgrade to handle backslashes and quotes as literals
 std::vector<std::string>	splitQuotedString(const std::string& str, char sep)

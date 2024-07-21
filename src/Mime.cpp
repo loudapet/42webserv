@@ -15,7 +15,6 @@
 Mime::Mime()
 {
 	this->_mimeTypesDict = std::map< std::string, std::set<std::string> >();
-	return ;
 }
 
 Mime::Mime(const Mime& refObj)

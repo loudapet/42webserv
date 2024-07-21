@@ -3,10 +3,9 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/19 09:21:36 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -229,8 +228,8 @@ void	HttpResponse::readErrorPage(const Location &location)
 		{
 			buff << errorPageFile.rdbuf();
 			this->responseBody = convertStringToOctets(buff.str());
-			//std::cout << CLR2 << "Response body: " << this->responseBody << RESET << std::endl;
 		}
+		errorPageFile.close();
 	}
 	ss << "<html>\r\n"
 	   << "<head><title>" << this->statusLine.statusCode << " " << this->statusLine.reasonPhrase << "</title></head>\r\n"
@@ -239,15 +238,14 @@ void	HttpResponse::readErrorPage(const Location &location)
 	   << "<center><h2>" << this->statusDetails << "</h2></center>\r\n"
 	   << "</html>\r\n";
 	this->responseBody = convertStringToOctets(ss.str());
-	//std::cout << CLR2 << "Response body: " << this->responseBody << RESET << std::endl;
 }
 
 void HttpResponse::readRequestedFile(const std::string &targetResource)
 {
-	//std::cout << CLR3 << targetResource << RESET << std::endl;
 	std::ifstream	stream(targetResource.c_str(), std::ios::binary);
 	octets_t		contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
 	this->responseBody.insert(this->responseBody.end(), contents.begin(), contents.end());
+	stream.close();
 }
 
 void	HttpResponse::buildCompleteResponse(void)

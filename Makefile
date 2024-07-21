@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+         #
+#    By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/16 10:28:25 by plouda            #+#    #+#              #
-#    Updated: 2024/07/19 11:41:36 by aulicna          ###   ########.fr        #
+#    Updated: 2024/07/19 16:53:22 by plouda           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -20,7 +20,8 @@ SRCS =	HttpRequest.cpp \
 		Utils.cpp \
 		HttpResponse.cpp \
 		ResponseException.cpp \
-		Mime.cpp
+		Mime.cpp \
+		Logger.cpp
 
 BUILD_DIR = ./obj
 OBJS = $(addprefix $(BUILD_DIR)/, $(SRCS))

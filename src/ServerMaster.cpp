@@ -3,15 +3,16 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/19 11:40:15 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/19 18:00:24 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/ServerMaster.hpp"
 #include "../inc/ResponseException.hpp"
+#include "../inc/webserv.hpp"
 
 ServerMaster::ServerMaster(void)
 {
@@ -72,8 +73,6 @@ void	ServerMaster::runWebserv(const std::string &configFile)
 
 ServerMaster::~ServerMaster(void)
 {
-	if (DEBUG)
-		std::cout << std::endl;
 	std::map<int, Client>::iterator it = this->_clients.begin();
 	while (it != this->_clients.end())
 	{
@@ -88,7 +87,10 @@ ServerMaster::~ServerMaster(void)
 		it2 = this->_servers.begin();
 	}
 	if (!g_runWebserv)
-		std::cout << "\nWarning: Received SIGINT. Closed all connections and exiting." << std::endl;
+  {
+	  std::cout << std::endl;
+	  Logger::log(WARNING, "Received SIGINT. Closed all connections and exiting.", "");
+  }
 }
 
 void	ServerMaster::removeCommentsAndEmptyLines(void)
@@ -197,10 +199,9 @@ void	ServerMaster::printServerBlocks(void) const
 {
 	for (size_t i = 0; i < this->_serverBlocks.size(); i++)
 	{
-		if (DEBUG)
-			std::cout << "Server block " << i << ": " << std::endl;
-		if (DEBUG)
-			std::cout << this->_serverBlocks[i] << std::endl;
+		Logger::log(L_DEBUG, std::string("Server block ") + itoa(i) + this->_serverBlocks[i], "");
+		//	std::cout << "Server block " << i << ": " << std::endl;
+		//	std::cout << this->_serverBlocks[i] << std::endl;
 	}
 }
 
@@ -214,8 +215,9 @@ void	ServerMaster::prepareServersToListen(void)
 			throw(std::runtime_error("Fcntl failed."));
 		FD_SET(this->_serverConfigs[i].getServerSocket(), &this->_readFds);
 		this->_servers.insert(std::make_pair(this->_serverConfigs[i].getServerSocket(), this->_serverConfigs[i]));
-		if (DEBUG)
-			std::cout << "Server '" << this->_serverConfigs[i].getPrimaryServerName() << "' listening on port " << this->_serverConfigs[i].getPort() << "..." << std::endl;
+		Logger::log(L_DEBUG, std::string("Server '") + this->_serverConfigs[i].getPrimaryServerName() + "' listening on port " + itoa(this->_serverConfigs[i].getPort()) + "...", "");
+		//if (DEBUG)
+		//	std::cout << "Server '" << this->_serverConfigs[i].getPrimaryServerName() << "' listening on port " << this->_serverConfigs[i].getPort() << "..." << std::endl;
 	}
 	this->_fdMax = this->_serverConfigs.back().getServerSocket();
 }
@@ -561,8 +563,8 @@ void	ServerMaster::listenForConnections(void)
 	struct timeval	selectTimer;
 	stringpair_t	parserPair;
 	int				sendResult;
-	
-	
+
+	addFdToSet(this->_writeFds, STDOUT_FILENO);	
 	// main listening loop
 	while(g_runWebserv)
 	{
@@ -592,8 +594,8 @@ void	ServerMaster::listenForConnections(void)
 					if (this->_clients.find(i) == this->_clients.end()) // temp fix for a closed client
 						continue;
 					Client	&client = this->_clients.find(i)->second;
-					if (DEBUG)
-						std::cout << client.getReceivedData().size() << std::endl;
+					// if (DEBUG)
+					// 	std::cout << client.getReceivedData().size() << std::endl;
 					while (client.getReceivedData().size() > 0 && this->_clients.find(i) != this->_clients.end()) // won't go back to select until it processes all the data in the buffer
 					{
 						try
@@ -614,8 +616,9 @@ void	ServerMaster::listenForConnections(void)
 								/* if (client.request.getHasExpect()) 
 									throw (ResponseException(100, "Continue")); - moved to HttpRequest */
 							}
-							if (DEBUG)
-								std::cout << "Body:\n" << client.getReceivedData() << RESET << std::endl;
+							//Logger::log(L_DEBUG, std::string("\nBody:\n") + std::string(client.getReceivedData().begin(), client.getReceivedData().end()), "");
+							//if (DEBUG)
+							//	std::cout << "Body:\n" << client.getReceivedData() << RESET << std::endl;
 							if (client.request.readingBodyInProgress) // processing request body
 							{
 								bytesToDelete = client.request.readRequestBody(client.getReceivedData());									
@@ -625,8 +628,9 @@ void	ServerMaster::listenForConnections(void)
 							}
 							if (client.request.requestComplete)
 							{
-								if (DEBUG)
-									std::cout << "Changing to send() " << i << std::endl;
+								Logger::safeLog(L_DEBUG, "Changing to send() mode on socket ", itoa(i));
+								//if (DEBUG)
+								//std::cout << "Changing to send() " << i << std::endl;
 								removeFdFromSet(this->_readFds, i);
 								addFdToSet(this->_writeFds, i);
 								break ;
@@ -639,8 +643,9 @@ void	ServerMaster::listenForConnections(void)
 								client.request.response.setStatusLineAndDetails(e.getStatusLine(), e.getStatusDetails());
 								client.request.setConnectionStatus(CLOSE);
 							}
-							if (DEBUG)
-								std::cout << "Changing to send() " << i << std::endl;
+							Logger::safeLog(L_DEBUG, "Changing to send() mode on socket ", itoa(i));
+							//if (DEBUG)
+							//	std::cout << "Changing to send() " << i << std::endl;
 							removeFdFromSet(this->_readFds, i);
 							addFdToSet(this->_writeFds, i);
 							break ;
@@ -736,6 +741,7 @@ void	ServerMaster::listenForConnections(void)
 				}
 				else
 				{
+
 					std::cout << "Changing to recv() " << i << std::endl;
 					if (client.getReceivedData().size() > 0) // ensures we get back to reading the buffer without needing to go through select()
 						this->_clients.find(i)->second.bufferUnchecked = true;
@@ -752,6 +758,20 @@ void	ServerMaster::listenForConnections(void)
 						client.request.disableHasExpect();
 				}
 				delete[] buff;
+			}
+			else if (FD_ISSET(i, &writeFds) && Logger::readyToWrite)
+			{
+				size_t	logSize = Logger::getLogBuffer().size();
+				if (logSize > LOG_BUF)
+				{
+					write(Logger::getOutputFd(), Logger::getLogBuffer().c_str(), LOG_BUF);
+					Logger::eraseLogRange(LOG_BUF);
+				}
+				else
+				{
+					write(Logger::getOutputFd(), Logger::getLogBuffer().c_str(), logSize);
+					Logger::readyToWrite = false;
+				}
 			}
 		}
 		checkForTimeout();
@@ -847,7 +867,8 @@ void	ServerMaster::acceptConnection(int serverSocket)
 	if (getsockname(clientSocket, (struct sockaddr *)&serverAddr, &lenClientAddr) == -1)
 		throw(std::runtime_error("Getsockname failed."));
 	newClient.setPortConnectedOn(ntohs(serverAddr.sin_port));
-	std::cout << "Client connected to server port: " << newClient.getPortConnectedOn() << std::endl;
+	//std::cout << "Client connected to server port: " << newClient.getPortConnectedOn() << std::endl;
+	Logger::log(INFO, "Client connected to server port: ", itoa(newClient.getPortConnectedOn()));
 	newClient.updateTimeLastMessage();
 	newClient.updateTimeLastValidHeaderEnd();
 	addFdToSet(this->_readFds, clientSocket);
@@ -859,9 +880,11 @@ void	ServerMaster::acceptConnection(int serverSocket)
 	newClient.setClientSocket(clientSocket);
 	newClient.setClientAddr(clientAddr);
 	this->_clients.insert(std::make_pair(clientSocket, newClient));
-	std::cout << "New connection accepted from "
-		<< inet_ntop(AF_INET, &clientAddr, buff, INET_ADDRSTRLEN)
-		<< ". Assigned socket " << clientSocket << '.' << std::endl;
+	Logger::log(INFO, std::string("New connection accepted from ") + inet_ntop(AF_INET, &clientAddr, buff, INET_ADDRSTRLEN),
+		 std::string(". Assigned socket ") + itoa(clientSocket) + ".");
+	//std::cout << "New connection accepted from "
+	//	<< inet_ntop(AF_INET, &clientAddr, buff, INET_ADDRSTRLEN)
+	//	<< ". Assigned socket " << clientSocket << '.' << std::endl;
 }
 
 void	ServerMaster::handleDataFromClient(const int clientSocket)
@@ -898,7 +921,6 @@ void	ServerMaster::handleDataFromClient(const int clientSocket)
 		// 	std::cerr << "Error sending acknowledgement to client." << std::endl;
 	}
 }
-
 
 void	ServerMaster::checkForTimeout(void)
 {

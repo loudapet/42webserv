@@ -15,6 +15,7 @@
 
 # include "Location.hpp"
 # include "Mime.hpp"
+# include "webserv.hpp"
 
 class ServerConfig
 {
