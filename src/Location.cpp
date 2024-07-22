@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/19 16:47:41 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/22 09:48:57 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -364,11 +364,6 @@ void	Location::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
 			this->_errorPages[tmpErrorCode] = errorPageFileName;
 		}
 	}
-}
-
-const std::string   &Location::getServerName(void) const
-{
-	return (this->_serverName);
 }
 
 std::ostream &operator << (std::ostream &o, Location const &instance)
