@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 10:44:26 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/22 10:52:04 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -172,22 +172,22 @@ void	HttpResponse::lockStatusCode()
 // needs proper allowed methods handling
 void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 {
-	this->headerFields["Content-Length: "] = itoa(this->responseBody.size());
-	this->headerFields["Date: "] = getIMFFixdate();
-	this->headerFields["Content-Type: "] = "application/octet-stream";
+	this->headerFields["content-length: "] = itoa(this->responseBody.size());
+	this->headerFields["date: "] = getIMFFixdate();
+	this->headerFields["content-type: "] = "application/octet-stream";
 	if (request.getConnectionStatus() == CLOSE)
-		this->headerFields["Connection: "] = "close";
+		this->headerFields["connection: "] = "close";
 	else
 	{
-		this->headerFields["Connection: "] = "keep-alive";
-		this->headerFields["Keep-Alive: "] = std::string("timeout=" + itoa(CONNECTION_TIMEOUT));
+		this->headerFields["connection: "] = "keep-alive";
+		this->headerFields["keep-Alive: "] = std::string("timeout=" + itoa(CONNECTION_TIMEOUT));
 	}
 	if (this->statusLine.statusCode >= 300 && this->statusLine.statusCode <= 308)
 	{
 		if (this->statusDetails == "Trying to access a directory")
-			this->headerFields["Location: "] = request.getAbsolutePath() + "/";
+			this->headerFields["location: "] = request.getAbsolutePath() + "/";
 		else
-			this->headerFields["Location: "] = request.getLocation().getReturnURLOrBody();
+			this->headerFields["location: "] = request.getLocation().getReturnURLOrBody();
 	}
 	if (this->statusLine.statusCode == 405)
 	{
@@ -199,16 +199,16 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 			if (++it != request.getAllowedMethods().end())
 				methods.append(", ");
 		}
-		this->headerFields["Allow: "] = methods;
+		this->headerFields["allow: "] = methods;
 	}
 	if (this->statusLine.statusCode == 426)
 	{
-		this->headerFields["Connection: "].append(", Upgrade");
-		this->headerFields["Upgrade: "] = "HTTP/1.1";
+		this->headerFields["connection: "].append(", Upgrade");
+		this->headerFields["upgrade: "] = "HTTP/1.1";
 	}
 	for (stringmap_t::iterator it = this->headerFields.begin() ; it != this->headerFields.end() ; it++)
 	{
-		std::transform(it->first.begin(), it->first.end(), it->first.begin(), tolower); // case-insensitive
+		//std::transform(it->first.begin(), it->first.end(), it->first.begin(), tolower); // case-insensitive
 		it->second.append(CRLF);
 	}
 	if (this->cgiStatus)
