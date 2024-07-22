@@ -20,6 +20,7 @@ SRCS =	HttpRequest.cpp \
 		Utils.cpp \
 		HttpResponse.cpp \
 		ResponseException.cpp \
+		Mime.cpp \
 		Logger.cpp
 
 BUILD_DIR = ./obj

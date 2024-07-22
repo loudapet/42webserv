@@ -43,12 +43,9 @@ application/vnd.oasis.opendocument.graphics      odg;
 application/vnd.oasis.opendocument.presentation  odp;
 application/vnd.oasis.opendocument.spreadsheet   ods;
 application/vnd.oasis.opendocument.text          odt;
-application/vnd.openxmlformats-officedocument.presentationml.presentation
-													pptx;
-application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
-													xlsx;
-application/vnd.openxmlformats-officedocument.wordprocessingml.document
-													docx;
+application/vnd.openxmlformats-officedocument.presentationml.presentation	pptx;
+application/vnd.openxmlformats-officedocument.spreadsheetml.sheet	xlsx;
+application/vnd.openxmlformats-officedocument.wordprocessingml.document	docx;
 application/vnd.wap.wmlc                         wmlc;
 application/wasm                                 wasm;
 application/x-7z-compressed                      7z;

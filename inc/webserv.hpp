@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/19 13:16:19 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/18 16:29:18 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,7 +83,7 @@ std::vector<std::string>	validateIndex(const std::vector<std::string> &indexes, 
 unsigned short				validateReturnCode(std::string &scopeElement);
 std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::string> &mainVector, size_t pos);
 
-void						fileIsValidAndAccessible(const std::string &path, const std::string &exceptionMessage);
+void						fileIsValidAndAccessible(const std::string &path, const std::string &fileName);
 std::string					dirIsValidAndAccessible(const std::string &path, const std::string &accessMessage, const std::string &dirOrFileMessage);
 std::string					resolveDotSegments(std::string path, DotSegmentsResolution flag);
 void						logSockets(int socket, std::string action);

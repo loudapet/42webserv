@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerConfig.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:21:17 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/19 10:40:33 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/19 15:01:24 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,8 +14,8 @@
 # define SERVERCONFIG_HPP
 
 # include "Location.hpp"
+# include "Mime.hpp"
 # include "webserv.hpp"
-# include <iostream>
 
 class ServerConfig
 {
@@ -42,6 +42,7 @@ class ServerConfig
 		bool								getIsRedirect(void) const;
 		const std::vector<Location>			&getLocations(void) const;
 		int									getServerSocket(void) const;
+		const std::string					&getMimeTypeFile(void) const;
 
 		void startServer(void);
 
@@ -71,6 +72,8 @@ class ServerConfig
 		bool							_isRedirect;
 		int								_serverSocket;
 		struct sockaddr_in				_serverAddr;
+		std::string						_mimeTypesFile;
+		Mime 							_mimeTypes;
 };
 
 std::ostream &operator << (std::ostream &o, ServerConfig const &instance);

@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/17 23:51:47 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/19 16:06:24 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,8 @@ Location::Location(void)
 	this->_returnCode = 0;
 	this->_isRedirect = false;
 	this->_errorPages = std::map<unsigned short, std::string>();
+	this->_serverName = "";
+	this->_mimeTypes = Mime();
 }
 
 Location::Location(unsigned short serverReturnCode, std::string serverReturnURLOrBody)
@@ -40,6 +42,8 @@ Location::Location(unsigned short serverReturnCode, std::string serverReturnURLO
 	this->_returnCode = serverReturnCode;
 	this->_isRedirect = true;
 	this->_errorPages = std::map<unsigned short, std::string>();
+	this->_serverName = "";
+	this->_mimeTypes = Mime();
 }
 
 Location::Location(std::string locationPath, std::vector<std::string> locationBlockElements)
@@ -159,6 +163,8 @@ Location::Location(const Location& copy)
 	this->_returnCode = copy._returnCode;
 	this->_isRedirect = copy._isRedirect;
 	this->_errorPages = copy._errorPages;
+	this->_serverName = copy._serverName;
+	this->_mimeTypes = copy._mimeTypes;
 }
 
 Location &Location::operator = (const Location &src)
@@ -176,6 +182,8 @@ Location &Location::operator = (const Location &src)
 		this->_returnCode = src._returnCode;
 		this->_isRedirect = src._isRedirect;
 		this->_errorPages = src._errorPages;
+		this->_serverName = src._serverName;
+		this->_mimeTypes = src._mimeTypes;
 	}
 	return (*this);
 }
@@ -241,6 +249,16 @@ const std::map<unsigned short, std::string>	&Location::getErrorPages(void) const
 	return (this->_errorPages);
 }
 
+const std::string   &Location::getServerName(void) const
+{
+    return (this->_serverName);
+}
+
+const Mime	&Location::getMimeTypes(void) const
+{
+	return (this->_mimeTypes);
+}
+
 void	Location::setPath(const std::string &path)
 {
 	this->_path = path;
@@ -291,6 +309,16 @@ void	Location::addErrorPage(short errorCode, const std::string &errorPageFile)
 	this->_errorPages[errorCode] = errorPageFile;
 }
 
+void	Location::setServerName(const std::string &serverName)
+{
+	this->_serverName = serverName;
+}
+
+void	Location::setMimeTypes(const Mime &mimeTypes)
+{
+	this->_mimeTypes = mimeTypes;
+}
+
 void	Location::initLocation(void)
 {
 	this->_path = "";
@@ -304,6 +332,8 @@ void	Location::initLocation(void)
 	this->_returnCode = 0;
 	this->_isRedirect = false;
 	this->_errorPages = std::map<unsigned short, std::string>();
+	this->_serverName = "";
+	this->_mimeTypes = Mime();
 }
 		
 void	Location::validateErrorPagesLine(std::vector<std::string> &errorPageLine)

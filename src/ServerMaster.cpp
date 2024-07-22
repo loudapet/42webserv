@@ -16,10 +16,12 @@
 
 ServerMaster::ServerMaster(void)
 {
-	return ;
+	this->_fdMax = -1;
+	FD_ZERO(&this->_readFds);
+	FD_ZERO(&this->_writeFds);
 }
 
-ServerMaster::ServerMaster(std::string configFile)
+void	ServerMaster::runWebserv(const std::string &configFile)
 {
 	std::ifstream		file;
 	char				c;
@@ -27,7 +29,6 @@ ServerMaster::ServerMaster(std::string configFile)
 	std::set<int> 		ports;
 	int					port;
 
-	initServerMaster();
 	if (configFile.size() < 5 || configFile.substr(configFile.size() - 5) != ".conf")
 		throw(std::runtime_error("Provided config file '" + configFile + "' doesn't have a .conf extension."));
 	fileIsValidAndAccessible(configFile, "Config file");
@@ -44,7 +45,6 @@ ServerMaster::ServerMaster(std::string configFile)
 //	if (DEBUG)
 	//std::cout << this->_configContent << std::endl;
 	removeCommentsAndEmptyLines();
-	
 	detectServerBlocks();
 //	if (DEBUG)
 	//std::cout << "DETECTED SERVER BLOCKS" << std::endl;
@@ -86,21 +86,11 @@ ServerMaster::~ServerMaster(void)
 		this->_servers.erase(it2);
 		it2 = this->_servers.begin();
 	}
-	std::cout << std::endl;
-	Logger::log(WARNING, "Received SIGINT. Closed all connections and exiting.", ""); 
-	//std::cout << "\nWarning: Received SIGINT. Closed all connections and exiting." << std::endl;
-}
-
-std::string	ServerMaster::getFileContent(void) const
-{
-	return (this->_configContent);
-}
-
-void	ServerMaster::initServerMaster(void)
-{
-	this->_fdMax = -1;
-	FD_ZERO(&this->_readFds);
-	FD_ZERO(&this->_writeFds);
+	if (!g_runWebserv)
+  {
+	  std::cout << std::endl;
+	  Logger::log(WARNING, "Received SIGINT. Closed all connections and exiting.", "");
+  }
 }
 
 void	ServerMaster::removeCommentsAndEmptyLines(void)
@@ -232,18 +222,19 @@ void	ServerMaster::prepareServersToListen(void)
 	this->_fdMax = this->_serverConfigs.back().getServerSocket();
 }
 
-const Location matchLocation(const std::string &absolutePath, const std::vector<Location> &locations,
-	bool serverIsRedirect, unsigned short serverReturnCode, const std::string &serverReturnURLOrBody)
+const Location matchLocation(const std::string &absolutePath, const ServerConfig &serverConfig, const std::string &serverName)
 {
-	std::string locationPath;
-	size_t		bestMatchLength;
-	size_t		bestMatchIndex;
-	bool		match;
-	std::set<std::string> method;
+	std::vector<Location>	locations;
+	std::string				locationPath;
+	size_t					bestMatchLength;
+	size_t					bestMatchIndex;
+	bool					match;
+	std::set<std::string>	method;
 
-	if (serverIsRedirect)
+	locations = serverConfig.getLocations();
+	if (serverConfig.getIsRedirect())
 	{
-		Location generic(serverReturnCode, serverReturnURLOrBody);
+		Location generic(serverConfig.getReturnCode(), serverConfig.getReturnURLOrBody());
 		return (generic);
 	}
 	bestMatchLength = 0;
@@ -268,10 +259,302 @@ const Location matchLocation(const std::string &absolutePath, const std::vector<
 		Location generic;
 		return (generic);
 	}
+	locations[bestMatchIndex].setServerName(serverName);
 	return (locations[bestMatchIndex]);
 }
 
+// https://www.rfc-editor.org/rfc/rfc3875#section-4.1
+// "AUTH_TYPE"			//not needed? https://www.rfc-editor.org/rfc/rfc2617
+// "CONTENT_LENGTH"		//The server MUST set this meta-variable if and only if the request is
+						// accompanied by a message-body entity.  The CONTENT_LENGTH value must
+						// reflect the length of the message-body after the server has removed
+						// any transfer-codings or content-codings.
+// "CONTENT_TYPE"		The server MUST set this meta-variable if an HTTP Content-Type field
+						// is present in the client request header.  If the server receives a
+						// request with an attached entity but no Content-Type header field, it
+						// MAY attempt to determine the correct content type, otherwise it
+						// should omit this meta-variable.
+// "GATEWAY_INTERFACE"	//GATEWAY_INTERFACE = "CGI" "/" 1*digit "." 1*digit (1.1)
+// "PATH_INFO"			The PATH_INFO variable specifies a path to be interpreted by the CGI
+						// script.  It identifies the resource or sub-resource to be returned by
+						// the CGI script, and is derived from the portion of the URI path
+						// hierarchy following the part that identifies the script itself.
+// "PATH_TRANSLATED"	http://somehost.com/cgi-bin/somescript/this%2eis%2epath%3binfo
+// 							/this.is.the.path;info
+// 						http://somehost.com/this.is.the.path%3binfo
+// 							/usr/local/www/htdocs/this.is.the.path;info
+// "QUERY_STRING"		The server MUST set this variable; if the Script-URI does not include
+						// a query component, the QUERY_STRING MUST be defined as an empty
+						// string ("").
+// "REMOTE_ADDR"		//IPv.4
+// "REMOTE_HOST"		The server SHOULD set this variable.  If the hostname is not
+						// available for performance reasons or otherwise, the server MAY
+						// substitute the REMOTE_ADDR value.
+// "REMOTE_IDENT"		// not needed?
+// "REMOTE_USER"		// not needed?
+// "REQUEST_METHOD"		// GET POST HEAD + PUT DELETE token
+// "SCRIPT_NAME"		The SCRIPT_NAME variable MUST be set to a URI path (not URL-encoded)
+						// which could identify the CGI script
+// "SERVER_NAME"		// localhost?
+// "SERVER_PORT"		//8081
+// "SERVER_PROTOCOL"	"HTTP" "/" 1*digit "." 1*digit (1.1)
+// "SERVER_SOFTWARE"	The SERVER_SOFTWARE meta-variable MUST be set to the name and version
+						// of the information server software making the CGI request (and
+						// running the gateway).  It SHOULD be the same as the server
+						// description reported to the client, if any.
 
+// static std::string	to_string(size_t num)
+// {
+// 	std::stringstream	ss;
+
+// 	ss << num;
+// 	return (ss.str());
+// }
+
+// 7.2 META VARIABLES??? Go through getHeaderFields map? // except existing vatiables
+
+static std::string	upper(std::string str)
+{
+	for (std::string::iterator c = str.begin(); str.end() != c; ++c)
+		*c = *c == '-' ?  '_' : toupper(*c);
+	return (str);
+}
+
+static void	get_env(Client	&client, char **env)
+{
+	HttpRequest&	request = client.request;
+	// HttpResponse&	response = request.response;
+	std::string		str;
+	stringmap_t		envstrings;
+	int				e = 0;
+
+	for (stringmap_t::const_iterator it = request.getHeaderFields().begin(); it != request.getHeaderFields().end(); it++)
+		envstrings[upper(it->first)] = it->second;
+	// if (envstrings.find("AUTH_SCHEME") != envstrings.end())	//NOT SUPPORTED
+	// 	envstrings["AUTH_TYPE"] = envstrings.find("AUTH_SCHEME");
+	if (request.getRequestBody().size()) //message
+		envstrings["CONTENT_LENGTH"] = itoa(request.getRequestBody().size());
+	if (request.getHeaderFields().find("content-type") != request.getHeaderFields().end()) //Content type
+		envstrings["CONTENT_TYPE"] = request.getHeaderFields().find("content-type")->second;
+	envstrings["GATEWAY_INTERFACE"] = "CGI/1.1";
+	envstrings["PATH_INFO"] = "";
+	envstrings["PATH_TRANSLATED"] = "";
+	envstrings["QUERY_STRING"] = "";
+	envstrings["REMOTE_ADDR=??? IPv4"] = "";
+	envstrings["REMOTE_HOST=ADDR?"] = "";
+	// envstrings["REMOTE_IDENT=???"] = "";	// NOT SUPPORTED
+	// envstrings["REMOTE_USER=???"] = "";	// NOT SUPPORTED
+	envstrings["REQUEST_METHOD"] = request.getRequestLine().method;
+	envstrings["SCRIPT_NAME"] = "";
+	envstrings["SERVER_NAME"] = "";
+	//ServerConfig value??
+	envstrings["SERVER_PORT"] = itoa(client.getServerConfig().getPort());
+	envstrings["SERVER_PROTOCOL"] = "HTTP/" + request.getRequestLine().httpVersion;
+	envstrings["SERVER_SOFTWARE"] = "webserv/nginx-but-better";
+	if (request.getHeaderFields().find("user-agent") != request.getHeaderFields().end())
+		envstrings["HTTP_USER_AGENT"] = request.getHeaderFields().find("user-agent")->second;
+	envstrings["REMOTE_PORT"] = itoa(client.getPortConnectedOn());
+	envstrings["HTTPS"] = "off";
+	for (stringmap_t::iterator it = envstrings.begin(); it != envstrings.end(); it++)
+	{
+		str = it->first + "=" + it->second;
+		env[e] = new char[str.size() + 1];
+		std::copy(str.begin(), str.end(), env[e]);
+		env[e][str.size()] = '\0';
+		str.clear();
+		e++;
+	}
+	std::cerr << "e is: " << e << std::endl;
+	env[e] = NULL;
+}
+
+// Optional?
+// https://www.cgi101.com/book/ch3/text.html
+// DOCUMENT_ROOT	The root directory of your server
+// HTTP_COOKIE		The visitor's cookie, if one is set
+// HTTP_HOST		The hostname of the page being attempted
+// HTTP_REFERER		The URL of the page that called your program
+// HTTP_USER_AGENT	The browser type of the visitor
+// HTTPS			"on" if the program is being called through a secure server
+// PATH				The system path your server is running under
+// ////QUERY_STRING	The query string (see GET, below)
+// ////REMOTE_ADDR		The IP address of the visitor
+// ////REMOTE_HOST		The hostname of the visitor (if your server has reverse-name-lookups on; otherwise this is the IP address again)
+// REMOTE_PORT		The port the visitor is connected to on the web server
+// ////REMOTE_USER		The visitor's username (for .htaccess-protected pages)
+// ////REQUEST_METHOD	GET or POST
+// REQUEST_URI		The interpreted pathname of the requested document or CGI (relative to the document root)
+// SCRIPT_FILENAME	The full pathname of the current CGI
+// ////SCRIPT_NAME		The interpreted pathname of the current CGI (relative to the document root)
+// SERVER_ADMIN		The email address for your server's webmaster
+// ////SERVER_NAME		Your server's fully qualified domain name (e.g. www.cgi101.com)
+// ////SERVER_PORT		The port number your server is listening on
+// ////SERVER_SOFTWARE	The server software you're using (e.g. Apache 1.3)
+
+void	ft_cgi(Client	&client)
+{
+	HttpRequest&	request = client.request;
+	HttpResponse&	response = request.response;
+	int				wpid;
+	// status code for CGI needs to be properly updated, I think?
+	//std::cout << CLR6 << request.getLocation().getRelativeCgiPath() << RESET << std::endl;
+	// this if might deserve its own function later
+	//if (request.getLocation().getRelativeCgiPath().size())
+	std::cout << CLR6 "Processing CGI stuff0" RESET << std::endl;
+	if (response.getCgiStatus() == NOCGI && request.getLocation().getIsCgi())
+		response.setCgiStatus(CGI_STARTED);
+	if (response.getCgiStatus() == CGI_STARTED)
+	{
+		std::cout << CLR6 "Processing CGI stuff 1" RESET << std::endl;
+		int	pid;
+		int	fd1[2]; // writing to child
+		int	fd2[2]; // reading from child
+		if (pipe(fd1) == -1)
+		{
+			std::cerr << "Error: Pipe" << std::endl;
+			response.setCgiStatus(CGI_ERROR);
+			return ;
+		}
+		if (pipe(fd2) == -1 )
+		{
+			close(fd1[0]);
+			close(fd1[1]);
+			std::cerr << "Error: Pipe" << std::endl;
+			response.setCgiStatus(CGI_ERROR);
+			return ;
+		}
+		else
+		{
+			pid = fork();
+			if (pid == -1)
+			{
+				close(fd1[0]);
+				close(fd1[1]);
+				close(fd2[0]);
+				close(fd2[1]);
+				std::cerr << "Error: Fork" << std::endl;
+				response.setCgiStatus(CGI_ERROR);
+				return ;
+			}
+			else if (pid == 0)
+			{
+				//child
+				//some shenanigans to get execve working
+				dup2 (fd1[0], STDIN_FILENO);
+				close (fd1[0]);
+				close (fd1[1]);
+				dup2 (fd2[1], STDOUT_FILENO);
+				close (fd2[0]);
+				close (fd2[1]);
+				char *env_vars[250];
+				char **env = &env_vars[0];
+				get_env(client, env);
+				char *ex[2];
+				//ex[0] = (char *)request.getLocation().getRelativeCgiPath().c_str();
+				ex[0] = (char *)"test_cgi-bin/test.cgi";
+				ex[1] = NULL;
+				char **av = &ex[0];
+				//execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
+				execve("test_cgi-bin/test1.cgi", av, env);
+				//clean exit later, get pid is not legal, maybe a better way to do it?
+				for (int i = 0; env[i]; i++)
+				{
+					delete env[i];
+				}
+				std::cerr << "Failed to execute: " << ex[0] << std::endl;
+				kill(getpid(), SIGINT);
+				exit (1);
+			}
+			else
+			{
+				response.setCgiStatus(CGI_WRITING);
+				response.setCgiPid(pid);
+				response.setWfd(fd1[1]);
+				response.setRfd(fd2[0]);
+				//parent
+				//close reading end of the first pipe
+				close(fd1[0]);
+				//close writing end of the second pipe
+				close(fd2[1]);
+				return ;
+				
+				// continue on 0 read
+			}
+		}
+	}
+	if (response.getCgiStatus() == CGI_WRITING)
+	{
+		size_t	w;
+		std::string body(request.getRequestBody().begin(), request.getRequestBody().end());
+		w = write(response.getWfd(), body.c_str(), request.getRequestBody().size());
+		if (w == request.getRequestBody().size())
+		{
+			std::cout << CLR6 "Written to CGI" RESET << std::endl;
+			std::cout << CLR6 << body << RESET << std::endl;
+			response.setCgiStatus(CGI_READING);
+			return ;
+		}
+		else
+		{
+			std::cerr << CLRE "write fail or nothing was written" RESET << std::endl;
+			response.setCgiStatus(CGI_ERROR);
+			return ;
+		}
+	}
+	if (response.getCgiStatus() == CGI_READING)
+	{
+		int	status;
+		int	r;
+		uint8_t	buffer[CGI_BUFFER_SIZE];
+		// read needs to be in select somehow
+		//what is read is sent?
+		// close when read finished (<= 0)
+		// fork and wait ? Make it non blocking
+		// waitpid WNOHANG? flag for waiting for a response?
+		wpid = waitpid(response.getCgiPid(), &status, WNOHANG);
+		r = read(response.getRfd(), buffer, CGI_BUFFER_SIZE);
+		if (r > 0)
+		{
+			// octets_t message;
+			for (int i = 0; i < r; i++)
+			{
+				//there might be a better way
+				response.getCgiBody().push_back(buffer[i]);
+				// std::cout << CLR2 << "CGI MAIN STUFF" << response.getCgiBody().size() << RESET << std::endl;
+			}
+			std::cout << CLR2 << "CGI MAIN STUFF" << response.getCgiBody().size() << RESET << std::endl;
+			std::cout << CLR2 << "if exited" << WIFEXITED(status) << RESET << std::endl;
+			std::cout << CLR2 << "status" << WEXITSTATUS(status) << RESET << std::endl;
+			std::cout << CLR2 << "if signalled" << WIFSIGNALED(status) << RESET << std::endl;
+			std::cout << CLR2 << "status" << WTERMSIG(status) << RESET << std::endl;
+			// std::string str(response.getCgiBody().begin(), response.getCgiBody().end());
+			// std::cout << str << std::endl;
+			std::cout << CLR6 "CGI Processed! " << r << RESET << std::endl;
+		}
+		else if (r < 0)
+		{
+			std::cerr << CLRE "read fail or nothing was read" RESET << std::endl;
+			response.setCgiStatus(CGI_ERROR);
+			return ;
+		}
+		if (response.getCgiBody().size() > MAX_FILE_SIZE)
+		{
+			response.setCgiStatus(CGI_ERROR);
+			return ;
+		}
+		if (wpid == response.getCgiPid())
+		{
+			if (WIFEXITED(status) && !WEXITSTATUS(status))
+			{
+				//process response to header fields and body
+				response.setCgiStatus(CGI_COMPLETE);
+			}
+			else
+				response.setCgiStatus(CGI_ERROR);
+			return ;
+		}
+	}
+}
 
 void	ServerMaster::listenForConnections(void)
 {
@@ -328,8 +611,7 @@ void	ServerMaster::listenForConnections(void)
 
 								// match location
 								const ServerConfig &serverConfig = client.getServerConfig();
-								client.request.validateHeader(matchLocation( client.request.getAbsolutePath(), serverConfig.getLocations(),
-									serverConfig.getIsRedirect(), serverConfig.getReturnCode(), serverConfig.getReturnURLOrBody()));
+								client.request.validateHeader(matchLocation(client.request.getAbsolutePath(), serverConfig, parserPair.first));
 								client.request.readingBodyInProgress = true;
 								/* if (client.request.getHasExpect()) 
 									throw (ResponseException(100, "Continue")); - moved to HttpRequest */
@@ -375,6 +657,50 @@ void	ServerMaster::listenForConnections(void)
 			{
 				// CGI TBA - add conditions for it, othwerwise send normal response
 				Client	&client = this->_clients.find(i)->second;
+				std::cout << CLR6 "Processing CGI stuff -1" RESET << std::endl;
+				if (client.request.getLocation().getIsCgi() && true)
+				{
+					int old_cgi_status = client.request.response.getCgiStatus();
+					std::cout << CLR6 << "Old CGI status: " << old_cgi_status << RESET << std::endl;
+					ft_cgi(client);
+					int cgi_status = client.request.response.getCgiStatus();
+					std::cout << CLR6 << "CGI status: " << cgi_status << RESET << std::endl;
+					// # define CGI_STARTED 1
+					// # define CGI_WRITING 2
+					// # define CGI_READING 4
+					// # define CGI_COMPLETE 8
+					// # define CGI_ERROR 256
+					if (old_cgi_status == CGI_STARTED && cgi_status == CGI_WRITING)
+					{
+						addFdToSet(this->_readFds, client.request.response.getRfd());
+						addFdToSet(this->_writeFds, client.request.response.getWfd());
+					}
+					else if (old_cgi_status == CGI_WRITING && cgi_status == CGI_READING)
+					{
+						close(client.request.response.getWfd());
+						removeFdFromSet(this->_writeFds, client.request.response.getWfd());
+						client.request.response.setWfd(0);
+					}
+					else if (old_cgi_status == CGI_WRITING && cgi_status == CGI_ERROR)
+					{
+						close(client.request.response.getWfd());
+						close(client.request.response.getRfd());
+						removeFdFromSet(this->_writeFds, client.request.response.getWfd());
+						removeFdFromSet(this->_readFds, client.request.response.getRfd());
+						client.request.response.setWfd(0);
+						client.request.response.setRfd(0);
+					}
+					else if (old_cgi_status == CGI_READING && cgi_status != CGI_READING)
+					{
+						close(client.request.response.getRfd());
+						removeFdFromSet(this->_readFds, client.request.response.getRfd());
+						client.request.response.setRfd(0);
+					}
+					if (cgi_status < CGI_COMPLETE)
+					{
+						continue ;
+					}
+				}
 				if(!client.request.response.getMessageTooLongForOneSend())
 					client.request.response.setMessage(client.request.response.prepareResponse(client.request));
 				octets_t message = client.request.response.getMessage();
@@ -552,6 +878,7 @@ void	ServerMaster::acceptConnection(int serverSocket)
 		throw(std::runtime_error("Fcntl failed."));
 	}
 	newClient.setClientSocket(clientSocket);
+	newClient.setClientAddr(clientAddr);
 	this->_clients.insert(std::make_pair(clientSocket, newClient));
 	Logger::log(INFO, std::string("New connection accepted from ") + inet_ntop(AF_INET, &clientAddr, buff, INET_ADDRSTRLEN),
 		 std::string(". Assigned socket ") + itoa(clientSocket) + ".");

@@ -12,8 +12,7 @@
 
 #include "../inc/webserv.hpp"
 #include "../inc/ServerConfig.hpp"
-//#include "../inc/Logger.hpp"
-
+#include "../inc/Mime.hpp"
 
 ServerConfig::ServerConfig(void)
 {
@@ -162,9 +161,9 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 			}
 			else if (serverBlockElements[i] == "location" && (i + 1) < serverBlockElements.size()) // validate start and end of the block different to the above
 			{
-				size_t	posBracket;
-				std::string	locationPath;
-				std::vector<std::string> locationScope;
+				size_t						posBracket;
+				std::string					locationPath;
+				std::vector<std::string>	locationScope;
 
 				for (posBracket = i; posBracket < serverBlockElements.size(); posBracket++)
 				{
@@ -180,10 +179,8 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 					locationScope.push_back(serverBlockElements[i + j]);
 				locationScope.push_back("}");
 				//std::cout << "location path: " << locationPath << '\n' << "location scope: " << locationScope << std::endl;
-				
 				Location newLocation(locationPath, locationScope);
 				this->_locations.push_back(newLocation);
-				
 				i += locationScope.size() + 1; // if 'location' and location path from the config would be included, it'd be -1, but those 2 aren't in the vector
 				locationScope.clear();
 			//	inLocationBlock = true;
@@ -203,6 +200,15 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				}
 				i += allowMethodsLine.size(); // not -1 bcs there is the directive to skip too
 				allowMethodsLine.clear();
+			}
+			else if (serverBlockElements[i] == "mime_types" && (i + 1) < serverBlockElements.size()
+				&& validateElement(serverBlockElements[i + 1]))
+			{
+				if (access(serverBlockElements[i + 1].c_str(), F_OK) < 0)
+					throw(std::runtime_error("Config parser: Mime types file at '" + serverBlockElements[i + 1] + "' is an invalid file."));
+				this->_mimeTypesFile = serverBlockElements[i + 1];
+				this->_mimeTypes.parseMimeTypes(this->_mimeTypesFile);
+				i++;
 			}
 			else if (serverBlockElements[i] != "{" && serverBlockElements[i] != "}")
 			{
@@ -229,12 +235,21 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	for (size_t i = 0; i < this->_index.size(); i++)
 		fileIsValidAndAccessible(this->getRoot() + this->_index[i], "Index");
 	for (std::map<unsigned short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
-		fileIsValidAndAccessible(this->getRoot() + it->second, "Error page file");
+		fileIsValidAndAccessible(this->getRoot() + it->second, "Error page");
 	// the location is completed only here as access to the server values is needed
 	completeLocations();
 	validateLocations();
 	// QUESTION: validate mandatory directives
 	//std::cout << *this << std::endl;
+}
+
+std::map<std::string, std::vector<std::string> > readMimeTypesFile(const std::string &mimeTypesFile)
+{
+	std::map< std::string, std::vector<std::string> >	mimeTypesDict;
+
+	(void) mimeTypesFile;
+	mimeTypesDict = std::map< std::string, std::vector<std::string> >();
+	return (mimeTypesDict);	
 }
 
 ServerConfig::ServerConfig(const ServerConfig& copy)
@@ -256,6 +271,8 @@ ServerConfig::ServerConfig(const ServerConfig& copy)
 	this->_locations = copy._locations;
 	this->_serverSocket = copy._serverSocket;
 	this->_serverAddr = copy._serverAddr;
+	this->_mimeTypesFile = copy._mimeTypesFile;
+	this->_mimeTypes = copy._mimeTypes;
 }
 
 ServerConfig& ServerConfig::operator = (const ServerConfig& src)
@@ -279,6 +296,8 @@ ServerConfig& ServerConfig::operator = (const ServerConfig& src)
 		this->_locations = src._locations;
 		this->_serverSocket = src._serverSocket;
 		this->_serverAddr = src._serverAddr;
+		this->_mimeTypesFile = src._mimeTypesFile;
+		this->_mimeTypes = src._mimeTypes;
 	}
 	return (*this);
 }
@@ -368,6 +387,11 @@ int	ServerConfig::getServerSocket(void) const
 	return (this->_serverSocket);
 }
 
+const std::string	&ServerConfig::getMimeTypeFile(void) const
+{
+	return (this->_mimeTypesFile);
+}
+
 void	ServerConfig::initServerConfig(void)
 {
 	this->_port = 0;
@@ -384,6 +408,8 @@ void	ServerConfig::initServerConfig(void)
 	this->_returnCode = 0;
 	this->_isRedirect = false;
 	this->_locations = std::vector<Location>();
+	this->_mimeTypesFile = "";
+	this->_mimeTypes = Mime();
 }
 
 void	ServerConfig::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
@@ -448,6 +474,7 @@ void	ServerConfig::completeLocations(void)
 			this->_locations[i].setReturnCode(this->getReturnCode());
 			this->_locations[i].setIsRedirect(true);
 		}
+		this->_locations[i].setMimeTypes(this->_mimeTypes);
 	}
 }
 
@@ -538,7 +565,8 @@ std::ostream &operator << (std::ostream &o, ServerConfig const &instance)
 	o << "client_max_body_size (requestBodySizeLimit): " << instance.getRequestBodySizeLimit() << '\n'
 		<< "autoindex: " << instance.getAutoindex() << '\n'
 		<< "allow_methods: " << instance.getAllowMethods() << '\n'
-		<< "return: " << instance.getReturnCode() << " " << instance.getReturnURLOrBody() << '\n';
+		<< "return: " << instance.getReturnCode() << " " << instance.getReturnURLOrBody() << '\n'
+		<< "mime_types: " << instance.getMimeTypeFile() << '\n';
 	for (size_t i = 0; i < locations.size(); i++)
 		o << locations[i] << '\n';
 	return (o);
