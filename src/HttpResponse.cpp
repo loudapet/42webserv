@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 10:52:04 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/22 10:53:21 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@ HttpResponse::HttpResponse()
 	this->statusLine.httpVersion = "HTTP/1.1";
 	this->statusLine.statusCode = 200;
 	this->statusLine.reasonPhrase = "OK";
-	this->headerFields["Server: "] = "webserv/nginx-but-better";
+	this->headerFields["server: "] = "webserv/nginx-but-better";
 	this->codeDict[100] = "Continue";
 	this->codeDict[200] = "OK";
 	this->codeDict[201] = "Created";
