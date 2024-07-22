@@ -1,0 +1,44 @@
+@import url('https://fonts.googleapis.com/css?family=Press Start 2P');
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+* {
+  font-family: 'JetBrains mono';
+  box-sizing: border-box;
+}
+
+h1 {
+	font-size: 20rem;
+	color: darkred;
+	text-shadow: 0px 0px 20px;
+	margin: 0;
+}
+
+h2 {
+	font-size: 8rem;
+	text-shadow: 0px 0px 15px;
+	color: red;
+	margin: 0;
+}
+
+p {
+	font-size: 4rem;
+	color: orange;
+}
+
+#error {
+  padding: 1rem;
+  background: #111;
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+  color: crimson;
+  text-shadow: 0px 0px 10px;
+  font-size: 6rem;
+  flex-direction: column;
+}

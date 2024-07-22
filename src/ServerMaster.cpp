@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/19 18:02:22 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/22 11:41:23 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -635,7 +635,7 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 							line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 							if (line.find(':') != std::string::npos)
 							{
-								key = line.substr(0, line.find(':'));
+								key = line.substr(0, line.find(':')) + ": ";
 								value = line.substr(line.find(':') + 1, line.size());
 								while (value[0] == ' ')
 									value.erase(0, 1);
@@ -773,7 +773,8 @@ void	ServerMaster::listenForConnections(void)
 			{
 				// CGI TBA - add conditions for it, othwerwise send normal response
 				Client	&client = this->_clients.find(i)->second;
-				if (client.request.getLocation().getIsCgi() && true)
+				if (client.request.getLocation().getIsCgi() && !client.request.getHasExpect() 
+					&& (client.request.response.getStatusLine().statusCode >= 200 && client.request.response.getStatusLine().statusCode <= 299))
 				{
 					int old_cgi_status = client.request.response.getCgiStatus();
 					std::cout << CLR6 << "Old CGI status: " << old_cgi_status << RESET << std::endl;
@@ -887,6 +888,7 @@ void	ServerMaster::listenForConnections(void)
 				else
 				{
 					write(Logger::getOutputFd(), Logger::getLogBuffer().c_str(), logSize);
+					Logger::eraseLogRange(logSize);
 					Logger::readyToWrite = false;
 				}
 			}
