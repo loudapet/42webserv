@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 10:17:54 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/22 12:01:32 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -503,12 +503,13 @@ void	HttpRequest::validateContentType(const Location &location)
 	stringmap_t::iterator											contentType;
 	std::string														contentTypeValue;
 	std::map< std::string, std::set<std::string> >					mimeTypesDict;
-	struct stat														statBuff;
+	// struct stat														statBuff;
 
 	contentType = this->headerFields.find("content-type");
 	mimeTypesDict = location.getMimeTypes().getMimeTypesDict();
-	if (stat(this->targetResource.c_str(), &statBuff) != 0)
-		throw (ResponseException(500, "Internal Server Error"));
+	Logger::safeLog(L_DEBUG, this->targetResource, "");
+	// if (stat((this->targetResource).c_str(), &statBuff) != 0)
+	// 	throw (ResponseException(500, "Internal Server Error"));
 	if (contentType != this->headerFields.end()) // content-type found in headerFields
 	{
 	// validate content-type header field
@@ -647,10 +648,12 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 			bool						validIndexPage = false;
 			for (size_t i = 0; i < pages.size(); i++)
 			{
-				if (access((this->targetResource + pages[i]).c_str(), R_OK | F_OK) > 0)
+				if (access((this->targetResource + pages[i]).c_str(), R_OK | F_OK) == 0)
 				{
 					this->targetResource += pages[i];
 					this->targetResource = resolveDotSegments(this->targetResource, REQUEST);
+					if (this->targetResource.size() && this->targetResource[0] == '/')
+						this->targetResource.erase(0, 1);
 					validIndexPage = true;
 					break ;
 				}

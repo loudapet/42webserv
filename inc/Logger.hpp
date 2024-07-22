@@ -3,16 +3,17 @@
 /*                                                        :::      ::::::::   */
 /*   Logger.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/18 15:03:51 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/19 16:58:23 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/22 10:57:38 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef LOGGER_HPP
 #define LOGGER_HPP
 #include "webserv.hpp"
+#include <ctime>
 # define RED "\e[38;5;160m"
 # define ORANGE "\e[38;5;214m"
 # define YELLOW "\e[38;5;226m"

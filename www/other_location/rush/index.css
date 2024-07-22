@@ -1,0 +1,61 @@
+html {
+	height: 100vh;
+	overflow: hidden;
+}
+
+body {
+	width: 100vw;
+	height: 100vh;
+	margin: 0;
+	background: #222;
+	perspective: 1px;
+	transform-style: preserve-3d;
+	overflow-x: hidden;
+	overflow-y: scroll;
+}
+.section1, .section2 {
+	width: 100%;
+	min-height: 100vh;
+	position: relative;
+	transform-style: preserve-3d;
+}
+.section1::before {
+	content:"";
+	width: 100%;
+	height: 100%;
+	position: absolute;
+	background: url("1.jpg") top center;
+	background-size: cover;
+	transform: translateZ(-1px) scale(2.2);
+	filter:blur(2px);
+}
+.section2 {
+	content:"";
+	width: 100%;
+	height: 100%;
+	position: absolute;
+	background: url("gal.jpg") top center;
+	background-size: cover;
+}
+.text {
+	top: 30%;
+	left: 50%;
+	position: absolute;
+	font-family: 'Franklin Gothic Medium';
+	font-size: 5vw;
+	color: yellow;
+	text-shadow: 4px 4px 6px rgba(0, 0, 0, 1),
+	5px 5px 70px rgba(255, 255, 255, 0.5);
+	transform: scale(1, 1.1) translate(-50%, 10%);
+}
+.second_text {
+	top: 70%;
+	left:62%;
+	position: absolute;
+	font-family: 'Franklin Gothic Medium';
+	font-size: 1.5vw;
+	color: yellow;
+	text-shadow: 3px 3px 5px rgba(0, 0, 0, 1),
+	5px 5px 70px rgba(255, 255, 255, 0.5);
+	transform: scale(1, 1.1) translate(-50%, 10%);
+}

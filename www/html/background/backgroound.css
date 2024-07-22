@@ -1,0 +1,17 @@
+body {
+	background-color: white;
+}
+
+.container {
+	height: 200px;
+	position: relative;
+  }
+  
+  .vertical-center {
+	margin: 0;
+	position: relative;
+	top: 20px;
+	left: 20px;
+	-ms-transform: translateY(-50%);
+	transform: translateY(-50%);
+  }

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 10:53:21 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/22 11:01:11 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -174,7 +174,7 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 {
 	this->headerFields["content-length: "] = itoa(this->responseBody.size());
 	this->headerFields["date: "] = getIMFFixdate();
-	this->headerFields["content-type: "] = "application/octet-stream";
+	this->headerFields["content-type: "] = "text/html";
 	if (request.getConnectionStatus() == CLOSE)
 		this->headerFields["connection: "] = "close";
 	else

@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+         #
+#    By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/16 10:28:25 by plouda            #+#    #+#              #
-#    Updated: 2024/07/19 16:53:22 by plouda           ###   ########.fr        #
+#    Updated: 2024/07/22 12:09:00 by okraus           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -58,9 +58,9 @@ client: $(OBJS_CLIENT)
 	@$(COMP) $(OBJS_CLIENT) -o client
 	@echo "$(GREEN)Compilation of 'client' successful.$(RESET)"
 
-cgi: ./test_cgi-bin/test_cgi1.cpp
+cgi: ./www/html/cgi-bin/test_cgi1.cpp
 	@echo "$(CYAN)Compiling cgi...$(RESET)"
-	$(COMP) ./test_cgi-bin/test_cgi1.cpp -o ./test_cgi-bin/test1.cgi
+	$(COMP) ./www/html/cgi-bin/test_cgi1.cpp -o ./www/html/cgi-bin/test1.cgi
 	@echo "$(GREEN)Compilation of 'cgi' complete.$(RESET)"
 
 %.o: %.cpp
@@ -80,7 +80,7 @@ clean:
 fclean: clean
 	@rm -f $(NAME)
 	@rm -f client
-	rm -f ./test_cgi-bin/test1.cgi
+	rm -f ./www/html/cgi-bin/test1.cgi
 	@echo "$(YELLOW)Executable '${NAME}' successfully removed.$(RESET)"
 	@echo "$(YELLOW)Executable 'client' successfully removed.$(RESET)"
 	@echo "$(YELLOW)Executable 'test1.cgi' successfully removed.$(RESET)"
