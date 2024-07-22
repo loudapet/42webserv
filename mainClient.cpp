@@ -45,7 +45,7 @@ int main(void)
 							// "Transfer-Encoding: chunked\n"
 							"\n"
 							"1234567890a"
-							"GET /tours HTTP/1.1\r\n"
+							"GET /error_pages/main.css HTTP/1.1\r\n"
 							"Host: localhost\r\n"
 							"User-Agent: Mozilla/5.0\n"
 							"Accept: text/html, */*\r\n"

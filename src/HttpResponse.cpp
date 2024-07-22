@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 17:01:57 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/22 17:37:11 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -151,7 +151,7 @@ void HttpResponse::updateStatus(unsigned short code, const char* details)
 	{
 		this->statusLine.statusCode = code;
 		this->statusDetails = details;
-		Logger::safeLog(INFO, REQUEST, itoa(this->statusLine.statusCode) + " ", this->statusDetails);
+		//Logger::safeLog(INFO, REQUEST, itoa(this->statusLine.statusCode) + " ", this->statusDetails);
 	}
 	this->statusLocked = true;
 }
@@ -175,7 +175,8 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 {
 	this->headerFields["content-length: "] = itoa(this->responseBody.size());
 	this->headerFields["date: "] = getIMFFixdate();
-	this->headerFields["content-type: "] = "text/html";
+	if (this->headerFields.find("content-type: ") == this->headerFields.end())
+		this->headerFields["content-type: "] = "application/octet-stream";
 	if (request.getConnectionStatus() == CLOSE)
 		this->headerFields["connection: "] = "close";
 	else
@@ -251,8 +252,9 @@ void	HttpResponse::readErrorPage(const Location &location)
 	this->responseBody = convertStringToOctets(ss.str());
 }
 
-void HttpResponse::readRequestedFile(const std::string &targetResource)
+void HttpResponse::readRequestedFile(const std::string &targetResource, const stringmap_t& mimeExtensions)
 {
+	stringmap_t::const_iterator it;
 	std::ifstream	stream(targetResource.c_str(), std::ios::binary);
 	octets_t		contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
 	std::string		extension;
@@ -263,6 +265,11 @@ void HttpResponse::readRequestedFile(const std::string &targetResource)
         extension = targetResource.substr(lastDotPos + 1);
 	else
 		extension = "";
+	it = mimeExtensions.find(extension);
+	if (it != mimeExtensions.end())
+		this->headerFields["content-type: "] = it->second;
+	else
+		this->headerFields["content-type: "] = "application/octet-stream";
 	this->responseBody.insert(this->responseBody.end(), contents.begin(), contents.end());
 	stream.close();
 }
@@ -422,7 +429,10 @@ void	HttpResponse::readReturnDirective(const Location &location)
 const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 {
 	if (request.getHasExpect())
+	{
+		Logger::safeLog(INFO, RESPONSE, "100 Continue", this->statusDetails);
 		return (convertStringToOctets("HTTP/1.1 100 Continue"));
+	}
 	else
 	{
 		//Logger::safeLog(INFO, RESPONSE, "Response status code: ", itoa(this->statusLine.statusCode));
@@ -435,7 +445,7 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 			if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
 				request.response.readDirectoryListing(request.getTargetResource());
 			else if (this->statusLine.statusCode == 200)
-				request.response.readRequestedFile(request.getTargetResource());
+				request.response.readRequestedFile(request.getTargetResource(), request.getLocation().getMimeTypes().getMimeTypesDictInv());
 			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
 				request.response.readReturnDirective(request.getLocation());
 			else
@@ -449,6 +459,7 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 		request.response.buildResponseHeaders(request);
 		request.response.buildCompleteResponse();
 		octets_t message = request.response.getCompleteResponse();
+		Logger::safeLog(INFO, RESPONSE, itoa(this->statusLine.statusCode) + " ", this->statusDetails);
 		return (message);
 	}
 }

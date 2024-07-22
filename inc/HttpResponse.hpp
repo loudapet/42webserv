@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/18 17:09:10 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/22 17:19:11 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,7 +55,7 @@ class HttpResponse
 		stringmap_t		cgiHeaderFields;
 		octets_t		cgiBody;
 
-		void				readRequestedFile(const std::string& targetResource);
+		void				readRequestedFile(const std::string& targetResource, const stringmap_t& mimeExtensions);
 		void				readErrorPage(const Location &location);
 		void				readReturnDirective(const Location &Location);
 		void				readDirectoryListing(const std::string& targetResource);

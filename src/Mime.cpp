@@ -15,7 +15,7 @@
 Mime::Mime()
 {
 	this->_mimeTypesDict = std::map< std::string, std::set<std::string> >();
-	this->_mimeTypesDictInv = std::map < std::set<std::string>, std::string >();
+	this->_mimeTypesDictInv = stringmap_t();
 }
 
 Mime::Mime(const Mime& refObj)
@@ -41,7 +41,7 @@ const std::map< std::string, std::set<std::string> > &Mime::getMimeTypesDict() c
 	return (this->_mimeTypesDict);
 }
 
-const std::map< std::set<std::string>, std::string > &Mime::getMimeTypesDictInv() const
+const stringmap_t &Mime::getMimeTypesDictInv() const
 {
 	return (this->_mimeTypesDictInv);
 }
@@ -124,7 +124,8 @@ void Mime::parseMimeTypes(const std::string &mimeTypesFilePath)
 	if (this->_mimeTypesDict.size() > 0)
 		for (std::map< std::string, std::set<std::string> >::iterator it = this->_mimeTypesDict.begin(); it != this->_mimeTypesDict.end(); it++)
 			if (it->second.size() > 0)
-				this->_mimeTypesDictInv[it->second] = it->first;
+				for (std::set<std::string>::iterator itr = it->second.begin(); itr != it->second.end(); itr++)
+					this->_mimeTypesDictInv[*itr] = it->first;
 
 	// std::map<std::string, std::set<std::string> >::const_iterator mapIt;
     // for (mapIt = this->_mimeTypesDict.begin(); mapIt != this->_mimeTypesDict.end(); ++mapIt)
