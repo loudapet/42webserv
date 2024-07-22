@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Logger.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/18 15:03:51 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 10:57:38 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/22 14:17:34 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,12 +34,22 @@ enum LogLevel
 	DISABLED
 };
 
+// enum DebugCategory
+// {
+// 	REQUEST,
+// 	RESPONSE,
+// 	CGI,
+// 	CONFIG
+// };
+
 class Logger
 {
 	private:
-		static const enum LogLevel	_logLevel;
+		static const LogLevel	_logLevel;
 		static std::string			_logBuffer;
 		static int					_outputFd;
+		static std::map<ServerSection, bool>	_logOptions;
+		static std::map<ServerSection, bool>	initOptions();
 
 	public:
 		static bool	readyToWrite;
@@ -47,8 +57,8 @@ class Logger
 		Logger();
 		Logger(const Logger& refObj);
 		~Logger();
-		static void			log(enum LogLevel level, std::string message, std::string details);
-		static void			safeLog(enum LogLevel level, std::string message, std::string details);
+		static void			log(LogLevel level, ServerSection cat, std::string message, std::string details);
+		static void			safeLog(LogLevel level, ServerSection cat, std::string message, std::string details);
 		static std::string&	getLogBuffer();
 		static int&			getOutputFd();
 		static void			eraseLogRange(size_t toErase);

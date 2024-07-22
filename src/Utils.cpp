@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/22 11:27:19 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/22 15:06:14 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -182,7 +182,7 @@ std::string	dirIsValidAndAccessible(const std::string &path, const std::string &
 	return (path);
 }
 
-std::string	resolveDotSegments(std::string path, DotSegmentsResolution flag)
+std::string	resolveDotSegments(std::string path, ServerSection flag)
 {
 	std::stack<std::string>	segments;
 	std::stack<std::string>	output;
@@ -228,7 +228,6 @@ bool hasValidHeaderEnd(const octets_t &receivedData)
 		if (endOfSequence != receivedData.end())
 			return (true);
 	}
-//	std::cout << "NO HEADER" << std::endl;
 	return (false);
 }
 

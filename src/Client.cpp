@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/19 11:20:54 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/22 13:11:41 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -157,7 +157,6 @@ void	Client::clearReceivedData(void)
 
 void	Client::eraseRangeReceivedData(size_t start, size_t end)
 {
-	//std::cout << "RECEIVED DATA " << this->_receivedData.size() << std::endl;
 	if (start <= end && end <= this->_receivedData.size())
 		this->_receivedData.erase(this->_receivedData.begin() + start, this->_receivedData.begin() + end);
 }
@@ -194,7 +193,6 @@ bool Client::hasValidHeaderEnd(void)
 			return (true);
 		}
 	}
-	std::cout << "NO HEADER" << std::endl;
 	if (this->_receivedData.size() > CLIENT_MESSAGE_BUFF * 2)
 		throw(ResponseException(413, "Request header too large"));
 	return (false);
@@ -218,7 +216,6 @@ void Client::separateValidHeader(void)
 // we can be sure that the sequence will be found since this function is called only once hasValidHeaderEnd returns true
 //	if (endOfSequence == this->_receivedData.end())
 //		return (false);
-	//std::cout << CLR2 << "HELLO SEPARATED HEADER" << RESET << std::endl;
 	this->_receivedHeader.insert(this->_receivedHeader.end(), this->_receivedData.begin(), sequenceEnd);
 	this->_receivedData.erase(this->_receivedData.begin(), sequenceEnd);
 }

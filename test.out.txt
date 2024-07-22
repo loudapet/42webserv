@@ -1,0 +1,4 @@
+[38;5;113m[07-22-24 13:09:09] <INFO> Server 'localhost' started on 127.0.0.1:8002[0m
+[38;5;250m[07-22-24 13:09:09] <DEBUG> Server 'localhost' listening on port 8002...[0m
+
+[38;5;214m[07-22-24 13:09:12] <WARNING> Received SIGINT. Closed all connections and exiting.[0m

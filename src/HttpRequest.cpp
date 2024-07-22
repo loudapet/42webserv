@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 12:01:32 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/22 14:34:44 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -492,9 +492,8 @@ stringpair_t	HttpRequest::parseHeader(octets_t header)
 		throw (ResponseException(400, "Improperly terminated header-field section"));
 	this->parseFieldSection(splitLines);
 	authority = this->resolveHost();
-	//std::cout << this->requestLine << this->headerFields << std::endl;
-	//std::cout << "Final host:\t" << authority.first << std::endl;
-	//std::cout << "Final port:\t" << authority.second << std::endl;
+	Logger::safeLog(L_DEBUG, REQUEST, "Resolved host:\t", authority.first);
+	Logger::safeLog(L_DEBUG, REQUEST, "Resolved port:\t", authority.second);
 	return (authority);
 }
 
@@ -507,7 +506,6 @@ void	HttpRequest::validateContentType(const Location &location)
 
 	contentType = this->headerFields.find("content-type");
 	mimeTypesDict = location.getMimeTypes().getMimeTypesDict();
-	Logger::safeLog(L_DEBUG, this->targetResource, "");
 	// if (stat((this->targetResource).c_str(), &statBuff) != 0)
 	// 	throw (ResponseException(500, "Internal Server Error"));
 	if (contentType != this->headerFields.end()) // content-type found in headerFields
@@ -516,7 +514,7 @@ void	HttpRequest::validateContentType(const Location &location)
 		contentTypeValue = splitQuotedString(contentType->second, ';')[0];
 		contentTypeValue = trim(contentTypeValue);
 		std::transform(contentTypeValue.begin(), contentTypeValue.end(), contentTypeValue.begin(), tolower); // case-insensitive
-		std::cout << "CONTENT TYPE: " << contentTypeValue << std::endl;
+		Logger::safeLog(L_DEBUG, REQUEST, "Content type: ", contentTypeValue);
 	    if (mimeTypesDict.find(contentTypeValue) == mimeTypesDict.end()) // content-type not found in mimeTypesDict
 		{
 			this->response.updateStatus(415, "Unsupported media type");
@@ -614,18 +612,14 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 	std::string	root = location.getRoot();
 	if (*this->requestLine.requestTarget.absolutePath.rbegin() == '/' && *path.rbegin() != '/')
 		path = path + "/";
-	if (!DEBUG)
-	{
-		std::cout << CLR3 << "path:\t" << path << RESET << std::endl;
-		std::cout << CLR3 << "root:\t" << root << RESET << std::endl;
-		std::cout << CLR3 << "URL:\t" << this->requestLine.requestTarget.absolutePath << RESET << std::endl;
-	}
+	Logger::safeLog(L_DEBUG, REQUEST, "Location path:\t", path);
+	Logger::safeLog(L_DEBUG, REQUEST, "Location root:\t", root);
+	Logger::safeLog(L_DEBUG, REQUEST, "Absolute URL:\t", this->requestLine.requestTarget.absolutePath);
 	std::size_t pos = this->requestLine.requestTarget.absolutePath.find(path);
 	this->targetResource = this->requestLine.requestTarget.absolutePath;
 	this->targetResource.replace(pos, path.length(), root);
 	this->allowedDirListing = location.getAutoindex();
 	removeDoubleSlash(this->targetResource);
-	std::cout << CLR3 << "Final path:\t" << this->targetResource << RESET << std::endl;
 	//std::cout << CLR3 << "CGI path:\t" << location.getRelativeCgiPath() << RESET << std::endl;
 	if (!this->isRedirect && !isCgi) //&& this->requestLine.method == "GET"
 	{
@@ -685,7 +679,6 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 			validFile = stat(pathToResource.c_str(), &fileCheckBuff);
 			if (validFile < 0)
 			{
-				std::cout << CLR6 << pathToResource << std::endl;
 				this->response.updateStatus(404, "File does not exist");
 				break;
 			}
@@ -720,14 +713,15 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 				}
 			}
 		}
-		std::cout << CLR3 << "Final path after CGI resolution: " << this->targetResource << RESET << std::endl;
-		std::cout << CLR3 << "CGI path info:\t" << this->cgiPathInfo << RESET << std::endl;
 	}
 	else if (this->isRedirect)
 	{
 		this->response.lockStatusCode();
 		this->response.setStatusCode(location.getReturnCode());
+		Logger::safeLog(L_DEBUG, REQUEST, "Return directive specifies return code: ", itoa(location.getReturnCode()));
 	}
+	Logger::safeLog(L_DEBUG, REQUEST, "Target resource:\t", this->targetResource);
+	Logger::safeLog(L_DEBUG, REQUEST, "CGI PATH_INFO:\t", this->cgiPathInfo);
 	// POST and DELETE
 }
 
@@ -829,8 +823,7 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 	}
 	else if (this->messageFraming == TRANSFER_ENCODING)
 	{
-		if (DEBUG)
-			std::cout << CLR2 << "Received: " << bufferedBody.size() << " bytes" << RESET << std::endl;
+		Logger::safeLog(L_DEBUG, REQUEST, std::string("Received: ") + itoa(bufferedBody.size()) + " bytes", "");
 		for (octets_t::iterator	it = bufferedBody.begin() ; it != bufferedBody.end() ; it = bufferedBody.begin())
 		{
 			octets_t::iterator	newline = std::find(bufferedBody.begin(), bufferedBody.end(), '\n');

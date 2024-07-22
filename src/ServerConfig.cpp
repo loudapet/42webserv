@@ -534,7 +534,7 @@ void ServerConfig::startServer(void)
 				+ itoa(this->_host % 256) + "." + itoa(this->_host / 256 % 256) + "."
 				+ itoa(this->_host / 65536 % 256) + "." + itoa(this->_host / 16777216) + ":"
 				+ itoa(this->_port);
-	Logger::log(INFO, infoMessage, "");
+	Logger::log(INFO, CONFIG, infoMessage, "");
 	// std::cout << "Server '" << this->_primaryServerName << "' started on "
 	// 	<< this->_host % 256 << "." << this->_host / 256 % 256 << "."
 	// 	<< this->_host / 65536 % 256 << "." << this->_host / 16777216 << ":"

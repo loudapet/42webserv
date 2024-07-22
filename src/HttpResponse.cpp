@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 11:01:11 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/22 15:14:46 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -151,6 +151,7 @@ void HttpResponse::updateStatus(unsigned short code, const char* details)
 	{
 		this->statusLine.statusCode = code;
 		this->statusDetails = details;
+		Logger::safeLog(INFO, REQUEST, "", this->statusDetails);
 	}
 	this->statusLocked = true;
 }
@@ -412,7 +413,8 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 		return (convertStringToOctets("HTTP/1.1 100 Continue"));
 	else
 	{
-		std::cout << CLR1 << this->statusLine.statusCode << RESET << std::endl;
+		Logger::safeLog(INFO, RESPONSE, "Response status code: ", itoa(this->statusLine.statusCode));
+		//std::cout << CLR1 << this->statusLine.statusCode << RESET << std::endl;
 		if (codeDict.find(this->statusLine.statusCode) == codeDict.end())
 			this->codeDict[this->statusLine.statusCode] = "Undefined";
 		this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
