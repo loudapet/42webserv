@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/19 16:01:52 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/22 10:44:26 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -172,12 +172,9 @@ void	HttpResponse::lockStatusCode()
 // needs proper allowed methods handling
 void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 {
-	size_t		contentLength = this->responseBody.size();
-	std::string	date = getIMFFixdate();
-	std::string	type("text/html; charset=utf-8");
-	this->headerFields["Content-Length: "] = itoa(contentLength);
-	this->headerFields["Date: "] = date;
-	this->headerFields["Content-Type: "] = type;
+	this->headerFields["Content-Length: "] = itoa(this->responseBody.size());
+	this->headerFields["Date: "] = getIMFFixdate();
+	this->headerFields["Content-Type: "] = "application/octet-stream";
 	if (request.getConnectionStatus() == CLOSE)
 		this->headerFields["Connection: "] = "close";
 	else
@@ -210,7 +207,18 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 		this->headerFields["Upgrade: "] = "HTTP/1.1";
 	}
 	for (stringmap_t::iterator it = this->headerFields.begin() ; it != this->headerFields.end() ; it++)
+	{
+		std::transform(it->first.begin(), it->first.end(), it->first.begin(), tolower); // case-insensitive
 		it->second.append(CRLF);
+	}
+	if (this->cgiStatus)
+	{
+		for (stringmap_t::iterator it = this->cgiHeaderFields.begin(); it != this->cgiHeaderFields.end(); it++)
+		{
+			if (!(this->headerFields.insert(std::make_pair(it->first, it->second)).second))  // overwrite with CGI values if exists
+				this->headerFields[it->first] = it->second;
+		}
+	}
 }
 
 void	HttpResponse::readErrorPage(const Location &location)
@@ -404,26 +412,27 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 		return (convertStringToOctets("HTTP/1.1 100 Continue"));
 	else
 	{
-		if (request.getLocation().getIsCgi())
-		{
-			//cgi stuff
-			// std::cout << CLR2 << "CGI STUFF"<< RESET << std::endl;
-			// std::string str(this->cgiBody.begin(), this->cgiBody.end());
-			// std::cout << str << std::endl;
-			return (this->cgiBody);
-		}
 		std::cout << CLR1 << this->statusLine.statusCode << RESET << std::endl;
 		if (codeDict.find(this->statusLine.statusCode) == codeDict.end())
 			this->codeDict[this->statusLine.statusCode] = "Undefined";
 		this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
-		if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
-			request.response.readDirectoryListing(request.getTargetResource());
-		else if (this->statusLine.statusCode == 200)
-			request.response.readRequestedFile(request.getTargetResource());
-		else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
-			request.response.readReturnDirective(request.getLocation());
+
+		if (!this->cgiStatus)
+		{
+			if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
+				request.response.readDirectoryListing(request.getTargetResource());
+			else if (this->statusLine.statusCode == 200)
+				request.response.readRequestedFile(request.getTargetResource());
+			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
+				request.response.readReturnDirective(request.getLocation());
+			else
+				request.response.readErrorPage(request.getLocation());
+		}
 		else
-			request.response.readErrorPage(request.getLocation());
+		{
+			this->responseBody.clear();
+			this->responseBody = this->cgiBody;
+		}
 		request.response.buildResponseHeaders(request);
 		request.response.buildCompleteResponse();
 		octets_t message = request.response.getCompleteResponse();

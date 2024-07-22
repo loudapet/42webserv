@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/19 16:19:15 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/22 10:17:50 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -131,6 +131,7 @@ class HttpRequest
 		void					validateHeader(const Location& location);
 		size_t					readRequestBody(octets_t bufferedBody);
 
+		void							setRequestBody(octets_t requestBody);
 		void							setConnectionStatus(ConnectionStatus connectionStatus);
 		const Location&					getLocation() const;
 		const requestLine_t&			getRequestLine() const;

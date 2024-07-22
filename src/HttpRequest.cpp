@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/19 18:02:12 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/22 10:17:54 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -923,6 +923,11 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 void	HttpRequest::setConnectionStatus(ConnectionStatus connectionStatus)
 {
 	this->connectionStatus = connectionStatus;
+}
+
+void	HttpRequest::setRequestBody(octets_t requestBody)
+{
+	this->requestBody = requestBody;
 }
 
 const std::string&			HttpRequest::getAbsolutePath(void) const
