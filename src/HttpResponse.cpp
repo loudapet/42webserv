@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 15:14:46 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/22 16:56:56 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -254,6 +254,14 @@ void HttpResponse::readRequestedFile(const std::string &targetResource)
 {
 	std::ifstream	stream(targetResource.c_str(), std::ios::binary);
 	octets_t		contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+	std::string		extension;
+
+    std::string::size_type lastDotPos = targetResource.rfind('.');
+    std::string::size_type lastSlashPos = targetResource.rfind('/');
+    if (lastDotPos != std::string::npos && (lastSlashPos == std::string::npos || lastDotPos > lastSlashPos))
+        extension = targetResource.substr(lastDotPos + 1);
+	else
+		extension = "";
 	this->responseBody.insert(this->responseBody.end(), contents.begin(), contents.end());
 	stream.close();
 }
