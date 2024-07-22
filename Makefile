@@ -6,7 +6,7 @@
 #    By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/16 10:28:25 by plouda            #+#    #+#              #
-#    Updated: 2024/07/22 12:17:28 by plouda           ###   ########.fr        #
+#    Updated: 2024/07/22 15:49:28 by plouda           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -80,7 +80,7 @@ clean:
 fclean: clean
 	@rm -f $(NAME)
 	@rm -f client
-	rm -f ./www/html/cgi-bin/test1.cgi
+#	rm -f ./www/html/cgi-bin/test1.cgi
 	@echo "$(YELLOW)Executable '${NAME}' successfully removed.$(RESET)"
 	@echo "$(YELLOW)Executable 'client' successfully removed.$(RESET)"
 #	@echo "$(YELLOW)Executable 'test1.cgi' successfully removed.$(RESET)"

@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/22 15:04:32 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/22 15:58:05 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -199,7 +199,7 @@ void	ServerMaster::printServerBlocks(void) const
 {
 	for (size_t i = 0; i < this->_serverBlocks.size(); i++)
 	{
-		Logger::log(L_DEBUG, CONFIG, std::string("Server block ") + itoa(i) + this->_serverBlocks[i], "");
+		Logger::log(DEBUG, CONFIG, std::string("Server block ") + itoa(i) + this->_serverBlocks[i], "");
 		//	std::cout << "Server block " << i << ": " << std::endl;
 		//	std::cout << this->_serverBlocks[i] << std::endl;
 	}
@@ -215,7 +215,7 @@ void	ServerMaster::prepareServersToListen(void)
 			throw(std::runtime_error("Fcntl failed."));
 		FD_SET(this->_serverConfigs[i].getServerSocket(), &this->_readFds);
 		this->_servers.insert(std::make_pair(this->_serverConfigs[i].getServerSocket(), this->_serverConfigs[i]));
-		Logger::log(L_DEBUG, SERVER, std::string("Server '") + this->_serverConfigs[i].getPrimaryServerName() + "' listening on port " + itoa(this->_serverConfigs[i].getPort()) + "...", "");
+		Logger::log(DEBUG, SERVER, std::string("Server '") + this->_serverConfigs[i].getPrimaryServerName() + "' listening on port " + itoa(this->_serverConfigs[i].getPort()) + "...", "");
 		//if (DEBUG)
 		//	std::cout << "Server '" << this->_serverConfigs[i].getPrimaryServerName() << "' listening on port " << this->_serverConfigs[i].getPort() << "..." << std::endl;
 	}
@@ -732,7 +732,7 @@ void	ServerMaster::listenForConnections(void)
 								/* if (client.request.getHasExpect()) 
 									throw (ResponseException(100, "Continue")); - moved to HttpRequest */
 							}
-							//Logger::log(L_DEBUG, std::string("\nBody:\n") + std::string(client.getReceivedData().begin(), client.getReceivedData().end()), "");
+							//Logger::log(DEBUG, std::string("\nBody:\n") + std::string(client.getReceivedData().begin(), client.getReceivedData().end()), "");
 							//if (DEBUG)
 							//	std::cout << "Body:\n" << client.getReceivedData() << RESET << std::endl;
 							if (client.request.readingBodyInProgress) // processing request body
@@ -744,7 +744,7 @@ void	ServerMaster::listenForConnections(void)
 							}
 							if (client.request.requestComplete)
 							{
-								Logger::safeLog(L_DEBUG, REQUEST, "Changing to send() mode on socket ", itoa(i));
+								Logger::safeLog(DEBUG, REQUEST, "Changing to send() mode on socket ", itoa(i));
 								//if (DEBUG)
 								//std::cout << "Changing to send() " << i << std::endl;
 								removeFdFromSet(this->_readFds, i);
@@ -759,7 +759,7 @@ void	ServerMaster::listenForConnections(void)
 								client.request.response.setStatusLineAndDetails(e.getStatusLine(), e.getStatusDetails());
 								client.request.setConnectionStatus(CLOSE);
 							}
-							Logger::safeLog(L_DEBUG, RESPONSE, "Changing to send() mode on socket ", itoa(i));
+							Logger::safeLog(DEBUG, RESPONSE, "Changing to send() mode on socket ", itoa(i));
 							//if (DEBUG)
 							//	std::cout << "Changing to send() " << i << std::endl;
 							removeFdFromSet(this->_readFds, i);
@@ -823,7 +823,7 @@ void	ServerMaster::listenForConnections(void)
 					client.request.response.setMessage(client.request.response.prepareResponse(client.request));
 				octets_t message = client.request.response.getMessage();
 				size_t messageLen = message.size();
-				Logger::safeLog(L_DEBUG, RESPONSE, "Response size: ", itoa(messageLen));
+				Logger::safeLog(DEBUG, RESPONSE, "Response size: ", itoa(messageLen) + " bytes");
 				size_t buffLen;
 				if (messageLen <= CLIENT_MESSAGE_BUFF)
 					buffLen = messageLen;
@@ -851,8 +851,8 @@ void	ServerMaster::listenForConnections(void)
 					client.request.response.eraseRangeMessage(0, buffLen);
 				else
 				{
-					Logger::safeLog(L_DEBUG, RESPONSE, "Bytes sent in response: ", itoa(sendResult));
-					Logger::safeLog(L_DEBUG, RESPONSE, "Changing to recv() mode on socket ", itoa(i));
+					Logger::safeLog(DEBUG, RESPONSE, "Bytes sent in response: ", itoa(sendResult));
+					Logger::safeLog(DEBUG, RESPONSE, "Changing to recv() mode on socket ", itoa(i));
 					if (client.getReceivedData().size() > 0) // ensures we get back to reading the buffer without needing to go through select()
 						this->_clients.find(i)->second.bufferUnchecked = true;
 					removeFdFromSet(this->_writeFds, i);

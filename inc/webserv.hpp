@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/22 14:22:07 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/22 15:48:37 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,9 +35,6 @@
 # include <arpa/inet.h>
 # include <limits.h>
 
-#ifndef DEBUG
-# define DEBUG 0
-#endif
 # define CLR1 "\e[38;5;51m"
 # define CLR2 "\e[38;5;208m"
 # define CLR3 "\e[38;5;213m"

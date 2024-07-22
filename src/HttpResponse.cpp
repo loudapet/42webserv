@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 15:14:46 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/22 16:56:24 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -151,7 +151,7 @@ void HttpResponse::updateStatus(unsigned short code, const char* details)
 	{
 		this->statusLine.statusCode = code;
 		this->statusDetails = details;
-		Logger::safeLog(INFO, REQUEST, "", this->statusDetails);
+		Logger::safeLog(INFO, REQUEST, itoa(this->statusLine.statusCode) + " ", this->statusDetails);
 	}
 	this->statusLocked = true;
 }
@@ -181,7 +181,7 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 	else
 	{
 		this->headerFields["connection: "] = "keep-alive";
-		this->headerFields["keep-Alive: "] = std::string("timeout=" + itoa(CONNECTION_TIMEOUT));
+		this->headerFields["keep-alive: "] = std::string("timeout=" + itoa(CONNECTION_TIMEOUT));
 	}
 	if (this->statusLine.statusCode >= 300 && this->statusLine.statusCode <= 308)
 	{
@@ -230,6 +230,7 @@ void	HttpResponse::readErrorPage(const Location &location)
 	std::map<unsigned short, std::string>::const_iterator	it;
 	std::stringstream										ss;
 	
+	this->headerFields["content-type: "] = "text/html; charset=utf-8";
 	it = errorPages.find(this->statusLine.statusCode);
 	if (it != errorPages.end())
 	{
@@ -287,6 +288,8 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 	std::stringstream		body;
 	std::set<std::string>	strings;
 	DIR*					dirPtr;
+
+	this->headerFields["content-type: "] = "text/html; charset=utf-8";
 	dirPtr = opendir(targetResource.c_str());
 	body << "<html>\r\n"
 		<< "<head><title>" << "Index of " << targetResource << "</title></head>\r\n"
@@ -405,6 +408,7 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 void	HttpResponse::readReturnDirective(const Location &location)
 {
 	this->responseBody = convertStringToOctets(location.getReturnURLOrBody());
+	this->headerFields["content-type: "] = "text/plain";
 }
 
 const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
@@ -413,8 +417,7 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 		return (convertStringToOctets("HTTP/1.1 100 Continue"));
 	else
 	{
-		Logger::safeLog(INFO, RESPONSE, "Response status code: ", itoa(this->statusLine.statusCode));
-		//std::cout << CLR1 << this->statusLine.statusCode << RESET << std::endl;
+		//Logger::safeLog(INFO, RESPONSE, "Response status code: ", itoa(this->statusLine.statusCode));
 		if (codeDict.find(this->statusLine.statusCode) == codeDict.end())
 			this->codeDict[this->statusLine.statusCode] = "Undefined";
 		this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];

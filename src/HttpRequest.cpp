@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 14:34:44 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/22 16:20:57 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -492,8 +492,8 @@ stringpair_t	HttpRequest::parseHeader(octets_t header)
 		throw (ResponseException(400, "Improperly terminated header-field section"));
 	this->parseFieldSection(splitLines);
 	authority = this->resolveHost();
-	Logger::safeLog(L_DEBUG, REQUEST, "Resolved host:\t", authority.first);
-	Logger::safeLog(L_DEBUG, REQUEST, "Resolved port:\t", authority.second);
+	Logger::safeLog(DEBUG, REQUEST, "Resolved host:\t", authority.first);
+	Logger::safeLog(DEBUG, REQUEST, "Resolved port:\t", authority.second);
 	return (authority);
 }
 
@@ -514,10 +514,10 @@ void	HttpRequest::validateContentType(const Location &location)
 		contentTypeValue = splitQuotedString(contentType->second, ';')[0];
 		contentTypeValue = trim(contentTypeValue);
 		std::transform(contentTypeValue.begin(), contentTypeValue.end(), contentTypeValue.begin(), tolower); // case-insensitive
-		Logger::safeLog(L_DEBUG, REQUEST, "Content type: ", contentTypeValue);
+		Logger::safeLog(DEBUG, REQUEST, "Content type: ", contentTypeValue);
 	    if (mimeTypesDict.find(contentTypeValue) == mimeTypesDict.end()) // content-type not found in mimeTypesDict
 		{
-			this->response.updateStatus(415, "Unsupported media type");
+			this->response.updateStatus(415, "Intended file type not supported");
 			return ;
 		}
 	}
@@ -612,9 +612,9 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 	std::string	root = location.getRoot();
 	if (*this->requestLine.requestTarget.absolutePath.rbegin() == '/' && *path.rbegin() != '/')
 		path = path + "/";
-	Logger::safeLog(L_DEBUG, REQUEST, "Location path:\t", path);
-	Logger::safeLog(L_DEBUG, REQUEST, "Location root:\t", root);
-	Logger::safeLog(L_DEBUG, REQUEST, "Absolute URL:\t", this->requestLine.requestTarget.absolutePath);
+	Logger::safeLog(DEBUG, REQUEST, "Location path:\t", path);
+	Logger::safeLog(DEBUG, REQUEST, "Location root:\t", root);
+	Logger::safeLog(DEBUG, REQUEST, "Absolute URL:\t", this->requestLine.requestTarget.absolutePath);
 	std::size_t pos = this->requestLine.requestTarget.absolutePath.find(path);
 	this->targetResource = this->requestLine.requestTarget.absolutePath;
 	this->targetResource.replace(pos, path.length(), root);
@@ -660,7 +660,7 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 					dirPtr = opendir(this->targetResource.c_str());
 					if (dirPtr == NULL)
 						this->response.updateStatus(500, "Failed to open directory");
-					if (closedir(dirPtr))
+					if (dirPtr != NULL && closedir(dirPtr))
 						this->response.updateStatus(500, "Failed to close directory");
 					this->targetIsDirectory = true;
 				}
@@ -718,10 +718,10 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 	{
 		this->response.lockStatusCode();
 		this->response.setStatusCode(location.getReturnCode());
-		Logger::safeLog(L_DEBUG, REQUEST, "Return directive specifies return code: ", itoa(location.getReturnCode()));
+		Logger::safeLog(INFO, REQUEST, "Return directive specifies return code: ", itoa(location.getReturnCode()));
 	}
-	Logger::safeLog(L_DEBUG, REQUEST, "Target resource:\t", this->targetResource);
-	Logger::safeLog(L_DEBUG, REQUEST, "CGI PATH_INFO:\t", this->cgiPathInfo);
+	Logger::safeLog(DEBUG, REQUEST, "Target resource:\t", this->targetResource);
+	Logger::safeLog(DEBUG, REQUEST, "CGI PATH_INFO:\t", this->cgiPathInfo);
 	// POST and DELETE
 }
 
@@ -823,7 +823,7 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 	}
 	else if (this->messageFraming == TRANSFER_ENCODING)
 	{
-		Logger::safeLog(L_DEBUG, REQUEST, std::string("Received: ") + itoa(bufferedBody.size()) + " bytes", "");
+		Logger::safeLog(DEBUG, REQUEST, std::string("Received: ") + itoa(bufferedBody.size()) + " bytes", "");
 		for (octets_t::iterator	it = bufferedBody.begin() ; it != bufferedBody.end() ; it = bufferedBody.begin())
 		{
 			octets_t::iterator	newline = std::find(bufferedBody.begin(), bufferedBody.end(), '\n');

@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/18 15:03:51 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 14:17:34 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/22 15:49:04 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@
 
 enum LogLevel
 {
-	L_DEBUG,
+	DEBUG,
 	INFO,
 	NOTICE,
 	WARNING,

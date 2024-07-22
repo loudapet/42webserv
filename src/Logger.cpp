@@ -6,13 +6,13 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/18 15:03:44 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 15:21:18 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/22 15:49:04 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/Logger.hpp"
 
-const enum LogLevel Logger::_logLevel = L_DEBUG;
+const enum LogLevel Logger::_logLevel = DEBUG;
 std::string	Logger::_logBuffer = "";
 int Logger::_outputFd = STDOUT_FILENO;
 bool Logger::readyToWrite = false;
@@ -56,7 +56,7 @@ void	Logger::log(enum LogLevel level, enum ServerSection cat, std::string messag
 	curr_tm = std::gmtime(&curr_time);
 	std::strftime(buffer, 100, "[%m-%d-%y %H:%M:%S]", curr_tm);
 	if (level >= Logger::_logLevel)
-		if (level != L_DEBUG || (level == L_DEBUG && _logOptions[cat]))
+		if (level != DEBUG || (level == DEBUG && _logOptions[cat]))
 			std::cout << clrArray[level] << buffer <<  " <" << levelArray[level] << "> " << message << details << RESET << std::endl;
 	// std::cout << GREY << "HELLO WORLD QWRETEUOLOIISPOAJKXHBVCHJVD" << RESET << std::endl;
 	// std::cout << GREEN << "HELLO WORLD QWRETEUOLOIISPOAJKXHBVCHJVD" << RESET << std::endl;
@@ -69,7 +69,7 @@ void	Logger::safeLog(enum LogLevel level, enum ServerSection cat, std::string me
 {
 	if (level >= Logger::_logLevel)
 	{
-		if (level != L_DEBUG || (level == L_DEBUG && _logOptions[cat]))
+		if (level != DEBUG || (level == DEBUG && _logOptions[cat]))
 		{
 			std::string		levelArray[5] = {"DEBUG", "INFO", "NOTICE", "WARNING", "ERROR"};
 			std::string		clrArray[5] = {GREY, GREEN, YELLOW, ORANGE, RED};
