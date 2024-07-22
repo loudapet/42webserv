@@ -14,6 +14,7 @@
 # define LOCATION_HPP
 
 # include "webserv.hpp"
+# include "Mime.hpp"
 
 class Location
 {
@@ -37,6 +38,7 @@ class Location
 		bool										getIsRedirect(void) const;
 		const std::map<unsigned short, std::string>	&getErrorPages(void) const;
 		const std::string							&getServerName(void) const;
+		const Mime									&getMimeTypes(void) const;
 
 		void	setPath(const std::string &path);
 		void	setRoot(const std::string &root);
@@ -49,6 +51,7 @@ class Location
 		void	setIsRedirect(bool value);
 		void	addErrorPage(short errorCode, const std::string &errorPageFile);
 		void	setServerName(const std::string &serverName);
+		void	setMimeTypes(const Mime &mimeTypes);
 	
 	private:
 		
@@ -67,6 +70,7 @@ class Location
 		bool									_isRedirect;
 		std::map<unsigned short, std::string>	_errorPages;
 		std::string								_serverName; // hostname or IP address for CGI
+		Mime 									_mimeTypes;
 };
 
 std::ostream &operator << (std::ostream &o, Location const &instance);

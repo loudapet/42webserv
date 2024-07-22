@@ -32,15 +32,6 @@
 #include "webserv.hpp"
 #include "HttpResponse.hpp"
 #include "Location.hpp"
-# define CLR1 "\e[38;5;51m"
-# define CLR2 "\e[38;5;208m"
-# define CLR3 "\e[38;5;213m"
-# define CLR4 "\e[38;5;161m"
-# define CLR5 "\e[38;5;34m"
-# define CLR6 "\e[38;5;226m"
-# define CLRE "\e[38:5:226;48:5:196m"
-#define UNDERLINE "\033[4m"
-#define	RESET "\033[0m"
 #define CR '\r'
 #define SP ' '
 #define CRLF "\r\n"
@@ -125,6 +116,7 @@ class HttpRequest
 		void					validateMessageFraming();
 		void					manageExpectations();
 		void					validateConnectionOption();
+		void					validateContentType(const Location& location);
 
 	public:
 		HttpRequest();

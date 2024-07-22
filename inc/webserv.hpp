@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webserv.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/17 23:50:54 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/18 16:29:18 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,6 +38,17 @@
 #ifndef DEBUG
 # define DEBUG 0
 #endif
+# define CLR1 "\e[38;5;51m"
+# define CLR2 "\e[38;5;208m"
+# define CLR3 "\e[38;5;213m"
+# define CLR4 "\e[38;5;161m"
+# define CLR5 "\e[38;5;34m"
+# define CLR6 "\e[38;5;226m"
+# define CLRE "\e[38:5:226;48:5:196m"
+# define UNDERLINE "\033[4m"
+# define	RESET "\033[0m"
+# include "../inc/Logger.hpp"
+
 
 extern bool g_runWebserv;
 
@@ -72,10 +83,11 @@ std::vector<std::string>	validateIndex(const std::vector<std::string> &indexes, 
 unsigned short				validateReturnCode(std::string &scopeElement);
 std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::string> &mainVector, size_t pos);
 
-void						fileIsValidAndAccessible(const std::string &path, const std::string &exceptionMessage);
+void						fileIsValidAndAccessible(const std::string &path, const std::string &fileName);
 std::string					dirIsValidAndAccessible(const std::string &path, const std::string &accessMessage, const std::string &dirOrFileMessage);
 std::string					resolveDotSegments(std::string path, DotSegmentsResolution flag);
 void						logSockets(int socket, std::string action);
+std::string					trim(const std::string& str);
 
 /* inline std::ostream &operator << (std::ostream &o, std::vector<std::string> &stringVectorToPrint)
 {

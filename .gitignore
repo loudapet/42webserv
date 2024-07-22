@@ -37,6 +37,7 @@ obj/
 cgi-bin/
 docs/
 *.cgi
+*.dSYM
 
 # Executables
 parser
