@@ -619,9 +619,9 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 		std::cout << CLR3 << "root:\t" << root << RESET << std::endl;
 		std::cout << CLR3 << "URL:\t" << this->requestLine.requestTarget.absolutePath << RESET << std::endl;
 	}
-    std::size_t pos = this->requestLine.requestTarget.absolutePath.find(path);
+	std::size_t pos = this->requestLine.requestTarget.absolutePath.find(path);
 	this->targetResource = this->requestLine.requestTarget.absolutePath;
-   	this->targetResource.replace(pos, path.length(), root);
+	this->targetResource.replace(pos, path.length(), root);
 	this->allowedDirListing = location.getAutoindex();
 	removeDoubleSlash(this->targetResource);
 	std::cout << CLR3 << "Final path:\t" << this->targetResource << RESET << std::endl;
@@ -950,7 +950,7 @@ const stringmap_t	&HttpRequest::getHeaderFields(void) const
 	return (this->headerFields);
 }
 
-const octets_t &HttpRequest::getRequestBody(void) const
+octets_t &HttpRequest::getRequestBody(void)
 {
 	return (this->requestBody);
 }
@@ -963,6 +963,11 @@ const Location	&HttpRequest::getLocation(void) const
 const std::string&	HttpRequest::getTargetResource() const
 {
 	return (this->targetResource);
+}
+
+const std::string&	HttpRequest::getCgiPathInfo() const
+{
+	return (this->cgiPathInfo);
 }
 
 const bool&	HttpRequest::getTargetIsDirectory() const

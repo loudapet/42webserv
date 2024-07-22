@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:17:04 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/18 16:56:11 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/19 14:07:25 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 # include "Client.hpp"
 # include "HttpRequest.hpp"
 # define MAX_FILE_SIZE 1000000000
-# define CGI_BUFFER_SIZE 65536
+# define CGI_BUFFER_SIZE 8092
 
 class ServerMaster
 {
@@ -27,6 +27,8 @@ class ServerMaster
 		~ServerMaster(void);
 
 		void	runWebserv(const std::string &configFile);
+		bool	fdIsSetWrite(int fd) const;
+		bool	fdIsSetRead(int fd) const;
 
 	private:
 		void	removeCommentsAndEmptyLines(void);
@@ -44,8 +46,6 @@ class ServerMaster
 
 		void	addFdToSet(fd_set &set, int fd);
 		void	removeFdFromSet(fd_set &set, int fd);
-		bool	fdIsSetWrite(int fd) const;
-		bool	fdIsSetRead(int fd) const;
 
 
 		std::string					_configContent;

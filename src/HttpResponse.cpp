@@ -3,9 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
+/*   Updated: 2024/07/19 16:01:52 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -406,9 +407,9 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 		if (request.getLocation().getIsCgi())
 		{
 			//cgi stuff
-			std::cout << CLR2 << "CGI STUFF"<< RESET << std::endl;
-			std::string str(this->cgiBody.begin(), this->cgiBody.end());
-			std::cout << str << std::endl;
+			// std::cout << CLR2 << "CGI STUFF"<< RESET << std::endl;
+			// std::string str(this->cgiBody.begin(), this->cgiBody.end());
+			// std::cout << str << std::endl;
 			return (this->cgiBody);
 		}
 		std::cout << CLR1 << this->statusLine.statusCode << RESET << std::endl;
