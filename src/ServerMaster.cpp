@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/25 13:53:41 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/25 13:35:51 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -508,12 +508,14 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 		{
 			std::cerr << "Error: access CGI" << std::endl;
 			response.setCgiStatus(CGI_ERROR);
+			response.updateStatus(500, "Cannot access CGI file");
 			return ;
 		}
 		if (pipe(fd1) == -1)
 		{
 			std::cerr << "Error: Pipe" << std::endl;
 			response.setCgiStatus(CGI_ERROR);
+			response.updateStatus(500, "Piping failed");
 			return ;
 		}
 		if (pipe(fd2) == -1 )
@@ -522,6 +524,7 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 			close(fd1[1]);
 			std::cerr << "Error: Pipe" << std::endl;
 			response.setCgiStatus(CGI_ERROR);
+			response.updateStatus(500, "Piping failed");
 			return ;
 		}
 		else
@@ -535,6 +538,7 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 				close(fd2[1]);
 				std::cerr << "Error: Fork" << std::endl;
 				response.setCgiStatus(CGI_ERROR);
+				response.updateStatus(500, "Forking failed");
 				return ;
 			}
 			else if (pid == 0)
@@ -614,6 +618,7 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 		{
 			//std::cerr << CLRE "write fail or nothing was written" RESET << std::endl;
 			response.setCgiStatus(CGI_ERROR);
+			response.updateStatus(502, "CGI failure");
 			return ;
 		}
 	}
@@ -653,11 +658,13 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 		{
 			//std::cerr << CLRE "read fail or nothing was read" RESET << std::endl;
 			response.setCgiStatus(CGI_ERROR);
+			response.updateStatus(502, "CGI failure");
 			return ;
 		}
 		if (response.getCgiBody().size() > MAX_FILE_SIZE)
 		{
 			response.setCgiStatus(CGI_ERROR);
+			response.updateStatus(502, "CGI response too large");
 			return ;
 		}
 		if (wpid == response.getCgiPid())
@@ -720,7 +727,10 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 				return ;
 			}
 			else
+			{
 				response.setCgiStatus(CGI_ERROR);
+				response.updateStatus(502, "CGI failure");
+			}
 			return ;
 		}
 	}
@@ -836,9 +846,7 @@ void	ServerMaster::listenForConnections(void)
 					// # define CGI_ERROR 256
 					if (old_cgi_status == CGI_STARTED && cgi_status == CGI_WRITING)
 					{
-						//std::cout << "Adding to read: " << client.request.response.getRfd() << std::endl;
 						addFdToSet(this->_readFds, client.request.response.getRfd());
-						//std::cout << "Adding to write: " << client.request.response.getWfd() << std::endl;
 						addFdToSet(this->_writeFds, client.request.response.getWfd());
 					}
 					else if (old_cgi_status == CGI_WRITING && cgi_status == CGI_READING)
@@ -863,9 +871,7 @@ void	ServerMaster::listenForConnections(void)
 						client.request.response.setRfd(0);
 					}
 					if (cgi_status < CGI_COMPLETE)
-					{
 						continue ;
-					}
 				}
 				if (!client.request.response.getMessageTooLongForOneSend())
 					client.request.response.setMessage(client.request.response.prepareResponse(client.request));
