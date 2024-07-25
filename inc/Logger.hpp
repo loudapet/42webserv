@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Logger.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/18 15:03:51 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/24 17:10:38 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/25 13:41:06 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,16 +37,17 @@ enum LogLevel
 class Logger
 {
 	private:
-		static const std::string				_levelArray[5];
+		static const std::vector<std::string>	_levelArray;
 		static const std::string				_clrArray[5];
 		static int								_activeClient;
 		static int								_activeRequestID;
 		static std::map<int,int>				_fdToClientID;
-		static const LogLevel					_logLevel;
+		static LogLevel							_logLevel;
 		static std::string						_logBuffer;
 		static int								_outputFd;
 		static std::map<ServerSection, bool>	_logOptions;
 		static std::map<ServerSection, bool>	initOptions();
+		static std::vector<std::string>			initLogLevels();
 		static std::string						getCurrentLogTime(void);
 
 		Logger();
@@ -64,6 +65,9 @@ class Logger
 		static void			mapFdToClientID(int fd);
 		static void			setActiveClient(int fd);
 		static void			setActiveRequestID(int requestID);
+		static const std::vector<std::string>	&getLevelArray();
+		static void			setOutputFd(int fd);
+		static void			setLogLevel(LogLevel level);
 };
 
 typedef void(Logger::*RaiseMessage)(void);

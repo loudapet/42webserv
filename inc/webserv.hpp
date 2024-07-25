@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webserv.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/23 11:34:17 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/25 12:59:38 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -95,6 +95,7 @@ std::string					resolveDotSegments(std::string path, ServerSection flag);
 void						logSockets(int socket, std::string action);
 std::string					trim(const std::string& str);
 std::vector<std::string>	splitQuotedString(const std::string& str, char sep);
+std::vector<std::string>	splitBlock(std::string &block);
 
 /* inline std::ostream &operator << (std::ostream &o, std::vector<std::string> &stringVectorToPrint)
 {

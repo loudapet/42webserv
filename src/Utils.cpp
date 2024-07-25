@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/23 11:34:10 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/25 12:59:31 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -283,4 +283,28 @@ std::vector<std::string>	splitQuotedString(const std::string& str, char sep)
 		}
 	}
 	return (splitString);
+}
+
+std::vector<std::string>	splitBlock(std::string &block)
+{
+	std::vector<std::string>	blockElements;
+	size_t						start;
+	size_t						end;
+
+	start = 0;
+	end = block.find_first_not_of(WHITESPACES);
+	while (end != std::string::npos)
+	{
+		start = block.find_first_not_of(WHITESPACES, start);
+		end = block.find_first_of(WHITESPACES, start);
+		if (start != std::string::npos)
+		{
+			if (end != std::string::npos)
+				blockElements.push_back(block.substr(start, end - start));
+			else
+				blockElements.push_back(block.substr(start, block.length() - start));
+		}
+		start = end + 1;
+	}
+	return (blockElements);
 }

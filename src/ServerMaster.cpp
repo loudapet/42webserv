@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/25 11:06:36 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/25 13:53:41 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -113,23 +113,23 @@ void	ServerMaster::removeCommentsAndEmptyLines(void)
 }
 
 
-size_t	validateServerBlockStart(size_t pos, std::string &configContent)
+size_t	validateBlockStart(size_t pos, std::string &configContent, std::string scope)
 {
 	size_t	i;
 
 	i = configContent.find_first_not_of(" \t\n\r", pos);
 	if (i == std::string::npos)
 		return (pos);
-	if (configContent.substr(i, 6) != "server")
-		throw(std::runtime_error("Config parser: Invalid server scope."));
-	i += 6;
+	if (configContent.substr(i, scope.size()) != scope)
+		throw(std::runtime_error("Config parser: Invalid " + scope + " scope."));
+	i += scope.size();
 	i = configContent.find_first_not_of(" \t\n\r", i);
 	if (i == std::string::npos || configContent[i] != '{')
-		throw(std::runtime_error("Config parser: Invalid server scope."));
+		throw(std::runtime_error("Config parser: Invalid " + scope + " scope."));
 	return (i);
 }
 
-size_t	validateServerBlockEnd(size_t pos, std::string &configContent)
+size_t	validateBlockEnd(size_t pos, std::string &configContent)
 {
 	size_t	i;
 	size_t	nested;
@@ -153,26 +153,99 @@ size_t	validateServerBlockEnd(size_t pos, std::string &configContent)
 	return (pos);
 }
 
+void	processLogsBlock(std::string &logsBlock)
+{
+	std::vector<std::string>		logsBlockElements;
+	std::string						logsLevel;
+	std::string						logsFile;
+	int								fd;
+
+	logsBlockElements = splitBlock(logsBlock);
+	for (size_t i = 0; i < logsBlockElements.size(); i++)
+	{
+		if (logsBlockElements[i] == "logs_level" && (i + 1) < logsBlockElements.size()
+			&& validateElement(logsBlockElements[i + 1]))
+		{
+			if (logsLevel != "")
+				throw(std::runtime_error("Config parser: Duplicate logs_level directive."));
+			logsLevel = logsBlockElements[i + 1];
+			i++;
+		}
+		else if (logsBlockElements[i] == "logs_file" && (i + 1) < logsBlockElements.size()
+			&& validateElement(logsBlockElements[i + 1]))
+		{
+			if (logsFile != "")
+				throw(std::runtime_error("Config parser: Duplicate logs_file directive."));
+			logsFile = logsBlockElements[i + 1];
+			i++;
+		}
+		else if (logsBlockElements[i] != "{" && logsBlockElements[i] != "}")
+			throw (std::runtime_error("Config parser: Invalid directive in a logs block."));
+	}
+	if (!logsLevel.empty() || !logsFile.empty())
+	{
+		if (!logsLevel.empty())
+		{
+			std::transform(logsLevel.begin(), logsLevel.end(), logsLevel.begin(), ::toupper);
+			if (std::find(Logger::getLevelArray().begin(), Logger::getLevelArray().end(), logsLevel) == Logger::getLevelArray().end())
+				throw(std::runtime_error("Config parser: Invalid logs level."));
+			Logger::setLogLevel(static_cast<LogLevel>(std::distance(Logger::getLevelArray().begin(), std::find(Logger::getLevelArray().begin(), Logger::getLevelArray().end(), logsLevel))));
+			if (!logsFile.empty())
+			{
+				if ((fd = open(logsFile.c_str(), O_WRONLY | O_APPEND)) < 0)
+					throw(std::runtime_error("Config parser: Logs file at '" + logsFile + "' could not be opened."));
+				Logger::setOutputFd(fd);
+			}
+		}
+		else
+		{
+			Logger::setLogLevel(DISABLED);
+			if (!logsFile.empty())
+			{
+				if (access(logsFile.c_str(), F_OK) < 0)
+					throw(std::runtime_error("Config parser: Logs file at '" + logsFile + "' does not exist."));
+			}
+		}
+	}
+}
+
 void	ServerMaster::detectServerBlocks(void)
 {
-	size_t		serverStart;
-	size_t		serverEnd;
+	size_t		blockStart;
+	size_t		blockEnd;
 	std::string	serverBlock;
+	std::string	logsBlock;
+	std::string::iterator itServer;
+	std::string::iterator itLogs;
 
+	if (this->_configContent.find("logs") != std::string::npos)
+	{
+		itServer = this->_configContent.begin() + this->_configContent.find("server");
+		itLogs = this->_configContent.begin() + this->_configContent.find("logs");
+		if (itLogs > itServer)
+			throw(std::runtime_error("Config parser: Logs block must at the beginning of the config file."));
+		blockStart = validateBlockStart(0, this->_configContent, "logs");
+		blockEnd = validateBlockEnd(blockStart + 1, this->_configContent);
+		logsBlock = this->_configContent.substr(blockStart, blockEnd - blockStart + 1);
+		if (blockEnd == std::string::npos || blockEnd == blockStart + 1)
+			throw(std::runtime_error("Config parser: Logs block has no scope."));
+		this->_configContent.erase(0, blockEnd + 1);
+		processLogsBlock(logsBlock);
+	}
 	if (this->_configContent.find("server") == std::string::npos)
 		throw(std::runtime_error("Config parser: No server block found."));
-	serverStart = validateServerBlockStart(0, this->_configContent);
-	serverEnd = validateServerBlockEnd(serverStart + 1, this->_configContent);
-	if (serverEnd == std::string::npos || serverEnd == serverStart + 1)
+	blockStart = validateBlockStart(0, this->_configContent, "server");
+	blockEnd = validateBlockEnd(blockStart + 1, this->_configContent);
+	if (blockEnd == std::string::npos || blockEnd == blockStart + 1)
 		throw(std::runtime_error("Config parser: Server block has no scope."));
-	while (serverStart < this->_configContent.length() - 1 && serverEnd != serverStart)
+	while (blockStart < this->_configContent.length() - 1 && blockEnd != blockStart)
 	{
-		if (serverEnd == serverStart + 1)
+		if (blockEnd == blockStart + 1)
 			throw(std::runtime_error("Config parser: Server block has no scope."));
-		serverBlock = this->_configContent.substr(serverStart, serverEnd - serverStart + 1);
+		serverBlock = this->_configContent.substr(blockStart, blockEnd - blockStart + 1);
 		this->_serverBlocks.push_back(serverBlock);
-		serverStart = validateServerBlockStart(serverEnd + 1, this->_configContent);
-		serverEnd = validateServerBlockEnd(serverStart + 1, this->_configContent);
+		blockStart = validateBlockStart(blockEnd + 1, this->_configContent, "server");
+		blockEnd = validateBlockEnd(blockStart + 1, this->_configContent);
 	}
 }
 

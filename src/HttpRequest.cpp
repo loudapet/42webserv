@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/25 10:29:33 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/25 13:51:27 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -763,7 +763,6 @@ Q: what happens if methods in config are not valid?
 void	HttpRequest::validateHeader(const Location& location)
 {
 	this->location = location;
-	std::cout << location.getServerName() << std::endl;
 	this->isRedirect = location.getIsRedirect();
 	this->allowedMethods = location.getAllowMethods();
 	this->requestBodySizeLimit = location.getRequestBodySizeLimit();

@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:21:17 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/22 17:42:36 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/25 13:35:39 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,9 +74,6 @@ class ServerConfig
 		struct sockaddr_in				_serverAddr;
 		std::string						_mimeTypesFile;
 		Mime 							_mimeTypes;
-		bool							_logs;
-		std::string						_logsFile;
-		std::string						_logsLevel;
 		
 };
 
