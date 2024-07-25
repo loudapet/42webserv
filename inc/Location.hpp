@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.hpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:27 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/19 16:47:48 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/25 10:53:30 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,6 +39,7 @@ class Location
 		const std::map<unsigned short, std::string>	&getErrorPages(void) const;
 		const std::string							&getServerName(void) const;
 		const Mime									&getMimeTypes(void) const;
+		unsigned short								getPort(void) const;
 
 		void	setPath(const std::string &path);
 		void	setRoot(const std::string &root);
@@ -52,6 +53,7 @@ class Location
 		void	addErrorPage(short errorCode, const std::string &errorPageFile);
 		void	setServerName(const std::string &serverName);
 		void	setMimeTypes(const Mime &mimeTypes);
+		void	setPort(unsigned short port);
 	
 	private:
 		
@@ -71,6 +73,7 @@ class Location
 		std::map<unsigned short, std::string>	_errorPages;
 		std::string								_serverName; // hostname or IP address for CGI
 		Mime 									_mimeTypes;
+		unsigned short							_port;
 };
 
 std::ostream &operator << (std::ostream &o, Location const &instance);

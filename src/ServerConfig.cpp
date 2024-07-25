@@ -19,29 +19,6 @@ ServerConfig::ServerConfig(void)
 	return ;
 }
 
-std::vector<std::string>	splitServerBlock(std::string &serverBlock)
-{
-	std::vector<std::string>	serverBlockElements;
-	size_t						start;
-	size_t						end;
-
-	start = 0;
-	end = serverBlock.find_first_not_of(WHITESPACES);
-	while (end != std::string::npos)
-	{
-		start = serverBlock.find_first_not_of(WHITESPACES, start);
-		end = serverBlock.find_first_of(WHITESPACES, start);
-		if (start != std::string::npos)
-		{
-			if (end != std::string::npos)
-				serverBlockElements.push_back(serverBlock.substr(start, end - start));
-			else
-				serverBlockElements.push_back(serverBlock.substr(start, serverBlock.length() - start));
-		}
-		start = end + 1;
-	}
-	return (serverBlockElements);
-}
 
 ServerConfig::ServerConfig(std::string &serverBlock)
 {
@@ -53,6 +30,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	bool							rbslInConfig;
 	bool							autoindexInConfig;
 	bool						allowMethodsInConfig;
+	bool						returnInConfig;
 	std::vector<std::string>	allowMethodsLine;
 	std::string 				validMethodsArray[] = {"GET", "POST", "DELETE"};
 	std::set<std::string> 		validMethods(validMethodsArray, validMethodsArray + sizeof(validMethodsArray) / sizeof(validMethodsArray[0]));
@@ -62,7 +40,8 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	rbslInConfig = false;
 	autoindexInConfig = false;
 	allowMethodsInConfig = false;
-	serverBlockElements = splitServerBlock(serverBlock);
+	returnInConfig = false;
+	serverBlockElements = splitBlock(serverBlock);
 	// std::cout << "elements: \n" << serverBlockElements << std::endl;
 	// add check for minimal number of elements for the config to be valid
 	for (size_t i = 0; i < serverBlockElements.size(); i++)
@@ -143,20 +122,26 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 			else if (serverBlockElements[i] == "return" && (i + 2) < serverBlockElements.size()
 				&& serverBlockElements[i + 1].find_first_of(";") == std::string::npos && validateElement(serverBlockElements[i + 2]))
 			{
+				if (returnInConfig)
+					throw(std::runtime_error("Config parser: Duplicate return directive."));
 				// source: https://nginx.org/en/docs/http/ngx_http_rewrite_module.html#return
 				this->_returnCode = validateReturnCode(serverBlockElements[i + 1]);
 				this->_returnURLOrBody = serverBlockElements[i + 2];		
 				this->_isRedirect = true;
+				returnInConfig = true;
 				i += 2;						
 			}
 			else if (serverBlockElements[i] == "return" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
 			{
+				if (returnInConfig)
+					throw(std::runtime_error("Config parser: Duplicate return directive."));
 				this->_returnCode = 302;
 				this->_returnURLOrBody = serverBlockElements[i + 1];
 				if (this->_returnURLOrBody.substr(0, 7) != "http://" && this->_returnURLOrBody.substr(0, 8) != "https://")
 					throw(std::runtime_error("Config parser: Invalid URL in return directive. In this format, the directive is assumed to represent 'return [URL];'."));
 				this->_isRedirect = true;
+				returnInConfig = true;
 				i++;
 			}
 			else if (serverBlockElements[i] == "location" && (i + 1) < serverBlockElements.size()) // validate start and end of the block different to the above
@@ -204,6 +189,8 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 			else if (serverBlockElements[i] == "mime_types" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
 			{
+				if (this->_mimeTypesFile != "")
+					throw(std::runtime_error("Config parser: Duplicate mime_types directive."));
 				if (access(serverBlockElements[i + 1].c_str(), F_OK) < 0)
 					throw(std::runtime_error("Config parser: Mime types file at '" + serverBlockElements[i + 1] + "' is an invalid file."));
 				this->_mimeTypesFile = serverBlockElements[i + 1];
@@ -236,10 +223,8 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 		fileIsValidAndAccessible(this->getRoot() + this->_index[i], "Index");
 	for (std::map<unsigned short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
 		fileIsValidAndAccessible(this->getRoot() + it->second, "Error page");
-	// the location is completed only here as access to the server values is needed
-	completeLocations();
+	completeLocations(); // the location is completed only here as access to the server values is needed
 	validateLocations();
-	// QUESTION: validate mandatory directives
 	//std::cout << *this << std::endl;
 }
 
@@ -475,6 +460,7 @@ void	ServerConfig::completeLocations(void)
 			this->_locations[i].setIsRedirect(true);
 		}
 		this->_locations[i].setMimeTypes(this->_mimeTypes);
+		this->_locations[i].setPort(this->_port);
 	}
 }
 

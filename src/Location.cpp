@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/22 16:57:05 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/25 11:05:43 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@ Location::Location(void)
 	this->_errorPages = std::map<unsigned short, std::string>();
 	this->_serverName = "";
 	this->_mimeTypes = Mime();
+	this->_port = 0;
 }
 
 Location::Location(unsigned short serverReturnCode, std::string serverReturnURLOrBody)
@@ -44,6 +45,7 @@ Location::Location(unsigned short serverReturnCode, std::string serverReturnURLO
 	this->_errorPages = std::map<unsigned short, std::string>();
 	this->_serverName = "";
 	this->_mimeTypes = Mime();
+	this->_port = 0;
 }
 
 Location::Location(std::string locationPath, std::vector<std::string> locationBlockElements)
@@ -165,6 +167,7 @@ Location::Location(const Location& copy)
 	this->_errorPages = copy._errorPages;
 	this->_serverName = copy._serverName;
 	this->_mimeTypes = copy._mimeTypes;
+	this->_port = copy._port;
 }
 
 Location &Location::operator = (const Location &src)
@@ -184,6 +187,7 @@ Location &Location::operator = (const Location &src)
 		this->_errorPages = src._errorPages;
 		this->_serverName = src._serverName;
 		this->_mimeTypes = src._mimeTypes;
+		this->_port = src._port;
 	}
 	return (*this);
 }
@@ -259,6 +263,11 @@ const Mime	&Location::getMimeTypes(void) const
 	return (this->_mimeTypes);
 }
 
+unsigned short	Location::getPort(void) const
+{
+	return (this->_port);
+}
+
 void	Location::setPath(const std::string &path)
 {
 	this->_path = path;
@@ -304,6 +313,11 @@ void	Location::setIsRedirect(bool value)
 	this->_isRedirect = value; 
 }
 
+void	Location::setPort(unsigned short port)
+{
+	this->_port = port;
+}
+
 void	Location::addErrorPage(short errorCode, const std::string &errorPageFile)
 {
 	this->_errorPages[errorCode] = errorPageFile;
@@ -334,6 +348,7 @@ void	Location::initLocation(void)
 	this->_errorPages = std::map<unsigned short, std::string>();
 	this->_serverName = "";
 	this->_mimeTypes = Mime();
+	this->_port = 0;
 }
 		
 void	Location::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
@@ -380,6 +395,7 @@ std::ostream &operator << (std::ostream &o, Location const &instance)
 		<< "allow_methods: " << instance.getAllowMethods() << '\n'
 		<< "isCgi: " << instance.getIsCgi() << '\n'
 		<< "return: " << instance.getReturnCode() << " " << instance.getReturnURLOrBody() << '\n'
+		<< "port: " << instance.getPort() << '\n'
 		<< "error pages: ";
 	if (errorPages.size() > 0)
 		o << "\n";

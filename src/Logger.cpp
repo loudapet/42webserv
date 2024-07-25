@@ -3,19 +3,19 @@
 /*                                                        :::      ::::::::   */
 /*   Logger.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/18 15:03:44 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/25 11:00:44 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/25 13:49:20 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/Logger.hpp"
 #include "../inc/ServerMaster.hpp"
 
-const enum LogLevel Logger::_logLevel = DEBUG;
+enum LogLevel Logger::_logLevel = DEBUG;
 std::string			Logger::_logBuffer = "";
-const std::string 	Logger::_levelArray[5] = {"DEBUG", "INFO", "NOTICE", "WARNING", "ERROR"};
+const std::vector<std::string> 	Logger::_levelArray = initLogLevels();
 const std::string 	Logger::_clrArray[5] = {GREY, GREEN, YELLOW, ORANGE, RED};
 int					Logger::_outputFd = STDOUT_FILENO;
 bool				Logger::readyToWrite = false;
@@ -62,6 +62,17 @@ std::map<enum ServerSection, bool>	Logger::initOptions()
 	return (tmp);
 }
 
+std::vector<std::string>	Logger::initLogLevels()
+{
+	std::vector<std::string> tmp = std::vector<std::string>(5);
+	tmp[0] = "DEBUG";
+	tmp[1] = "INFO";
+	tmp[2] = "NOTICE";
+	tmp[3] = "WARNING";
+	tmp[4] = "ERROR";
+	return (tmp);
+}
+
 void	Logger::log(enum LogLevel level, enum ServerSection cat, std::string message, std::string details)
 {
 	if (level >= Logger::_logLevel)
@@ -73,7 +84,7 @@ void	Logger::log(enum LogLevel level, enum ServerSection cat, std::string messag
 			if (Logger::_outputFd == STDOUT_FILENO)
 				std::cout << _clrArray[level] << logLine << RESET << std::endl;
 			else
-				std::cout << logLine << std::endl;
+				write(Logger::_outputFd, logLine.c_str(), logLine.size());
 		}
 	}
 }
@@ -131,4 +142,19 @@ std::string &Logger::getLogBuffer()
 int&	Logger::getOutputFd()
 {
 	return (_outputFd);
+}
+
+const std::vector<std::string>	&Logger::getLevelArray()
+{
+	return (_levelArray);
+}
+
+void	Logger::setOutputFd(int fd)
+{
+	_outputFd = fd;
+}
+
+void Logger::setLogLevel(LogLevel level)
+{
+	_logLevel = level;
 }
