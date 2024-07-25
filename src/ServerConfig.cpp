@@ -410,6 +410,9 @@ void	ServerConfig::initServerConfig(void)
 	this->_locations = std::vector<Location>();
 	this->_mimeTypesFile = "";
 	this->_mimeTypes = Mime();
+	this->_logs = false;
+	this->_logsFile = "";
+	this->_logsLevel = "";
 }
 
 void	ServerConfig::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
@@ -475,6 +478,7 @@ void	ServerConfig::completeLocations(void)
 			this->_locations[i].setIsRedirect(true);
 		}
 		this->_locations[i].setMimeTypes(this->_mimeTypes);
+		this->_locations[i].setPort(this->_port);
 	}
 }
 

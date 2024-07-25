@@ -26,8 +26,10 @@ Mime::Mime(const Mime& refObj)
 Mime& Mime::operator = (const Mime& refObj)
 {
 	if (this != &refObj)
+	{
 		this->_mimeTypesDict = refObj._mimeTypesDict;
 		this->_mimeTypesDictInv = refObj._mimeTypesDictInv;
+	}
 	return (*this);
 }
 

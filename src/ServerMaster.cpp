@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/24 15:30:15 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/25 11:06:36 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,34 +41,21 @@ void	ServerMaster::runWebserv(const std::string &configFile)
 	tmpFileContent << file.rdbuf();
 	file.close();
 	this->_configContent = tmpFileContent.str();
-
-//	if (DEBUG)
-	//std::cout << "CONTENT (initial)" << std::endl;
-//	if (DEBUG)
-	//std::cout << this->_configContent << std::endl;
 	removeCommentsAndEmptyLines();
 	detectServerBlocks();
-//	if (DEBUG)
-	//std::cout << "DETECTED SERVER BLOCKS" << std::endl;
-//	printServerBlocks();
 	for (size_t i = 0; i < this->_serverBlocks.size(); i++)
 	{
 		ServerConfig newServer(this->_serverBlocks[i]);
 		this->_serverConfigs.push_back(newServer);
 	}
-	// MORE VALIDATION OF CONFIG - across different configs
-	// check duplicates of ports
 	for (size_t i = 0; i < this->_serverConfigs.size(); i++)
 	{
 		port = this->_serverConfigs[i].getPort();
 		if (!ports.insert(port).second)
 			throw(std::runtime_error("Config parser: Duplicate port detected."));
 	}
-	// QUESTION: check duplicates of server_names?
-
-	// Launch servers
 	for (size_t i = 0; i < this->_serverConfigs.size(); i++)
-		this->_serverConfigs[i].startServer();
+		this->_serverConfigs[i].startServer(); // launch servers
 	prepareServersToListen(); // listen
 	listenForConnections(); // select
 }
@@ -110,10 +97,6 @@ void	ServerMaster::removeCommentsAndEmptyLines(void)
 		this->_configContent.erase(start, end - start);
 		start = this->_configContent.find('#');
 	}
-//	if (DEBUG)
-	//std::cout << "CONTENT (removed comments)" << std::endl;
-//	if (DEBUG)
-	//std::cout << this->_configContent << std::endl;
 	ss.str(this->_configContent);
 	while (std::getline(ss, line))
 	{
@@ -127,10 +110,6 @@ void	ServerMaster::removeCommentsAndEmptyLines(void)
 			newFileContent += line + '\n';
 	}
 	this->_configContent = newFileContent;
-//	if (DEBUG)
-	//std::cout << "CONTENT (removed empty lines)" << std::endl;
-//	if (DEBUG)
-	//std::cout << this->_configContent << std::endl;
 }
 
 
