@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/18 15:03:44 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/24 17:30:20 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/25 11:00:44 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,7 +87,7 @@ void	Logger::safeLog(enum LogLevel level, enum ServerSection cat, std::string me
 			std::string	logLine;
 			std::map<int,int>::iterator activeID = Logger::_fdToClientID.find(Logger::_activeClient);
 
-			if (cat != SERVER && activeID != Logger::_fdToClientID.end())
+			if ((cat != SERVER && cat != CONFIG) && activeID != Logger::_fdToClientID.end())
 				logLine = Logger::getCurrentLogTime() + " <" + _levelArray[level] + "> [C_ID:" + itoa(activeID->second) + "][" + itoa(Logger::_activeRequestID) + "] "+ message + details;
 			else
 				logLine = Logger::getCurrentLogTime() + " <" + _levelArray[level] + "> " + message + details;
