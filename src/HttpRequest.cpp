@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 16:20:57 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/25 10:29:33 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,6 +47,7 @@ HttpRequest::HttpRequest()
 	this->connectionStatus = KEEP_ALIVE;
 	this->hasExpect = false;
 	this->silentErrorRaised = false;
+	//this->requestID = 0;
 	return ;
 }
 
@@ -78,6 +79,7 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& refObj)
 		targetIsDirectory = refObj.targetIsDirectory;
 		hasExpect = refObj.hasExpect;
 		silentErrorRaised = refObj.silentErrorRaised;
+		//requestID = refObj.requestID;
 	}
 	return (*this);
 }
@@ -87,34 +89,6 @@ HttpRequest::~HttpRequest()
 	return ;
 }
 
-
-// upgrade to handle backslashes and quotes as literals
-std::vector<std::string>	splitQuotedString(const std::string& str, char sep)
-{
-	if (std::count(str.begin(), str.end(), '\"') % 2)
-		throw(ResponseException(400, "Unclosed quotes in quoted string"));
-	std::vector<std::string> splitString;
-	unsigned int counter = 0;
-	std::string segment;
-	std::stringstream stream_input(str);
-	while(std::getline(stream_input, segment, '\"'))
-	{
-		++counter;
-		if (counter % 2 == 0)
-		{
-			if (!segment.empty())
-				splitString.push_back(segment);
-		}
-		else
-		{
-			std::stringstream stream_segment(segment);
-			while(std::getline(stream_segment, segment, sep))
-				if (!segment.empty())
-					splitString.push_back(segment);
-		}
-	}
-	return (splitString);
-}
 
 void	HttpRequest::parseMethod(std::string& token)
 {
@@ -789,6 +763,7 @@ Q: what happens if methods in config are not valid?
 void	HttpRequest::validateHeader(const Location& location)
 {
 	this->location = location;
+	std::cout << location.getServerName() << std::endl;
 	this->isRedirect = location.getIsRedirect();
 	this->allowedMethods = location.getAllowMethods();
 	this->requestBodySizeLimit = location.getRequestBodySizeLimit();
@@ -814,6 +789,8 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 	}
 	if (this->messageFraming == CONTENT_LENGTH)
 	{
+		Logger::safeLog(DEBUG, REQUEST, "Content length: ", itoa(this->contentLength));
+		Logger::safeLog(DEBUG, REQUEST, "Body size limit: ", itoa(this->requestBodySizeLimit));
 		if (this->contentLength > static_cast<size_t>(this->requestBodySizeLimit))
 			throw (ResponseException(413, "Payload too large"));
 		this->requestBody = octets_t(bufferedBody.begin(), bufferedBody.begin() + this->contentLength);
@@ -976,7 +953,12 @@ const bool&	HttpRequest::getTargetIsDirectory() const
 	return (this->targetIsDirectory);
 }
 
-bool	HttpRequest::getHasExpect() const
+// const int &HttpRequest::getRequestID() const
+// {
+// 	return (this->requestID);
+// }
+
+bool HttpRequest::getHasExpect() const
 {
     return (this->hasExpect);
 }
@@ -1071,4 +1053,5 @@ void	HttpRequest::resetRequestObject(void)
 	this->hasExpect = newRequest.hasExpect;
 	this->location = newRequest.location;
 	this->silentErrorRaised = newRequest.silentErrorRaised;
+	//this->requestID = newRequest.requestID;
 }

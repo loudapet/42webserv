@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 17:37:11 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/23 12:54:32 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -190,6 +190,15 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 			this->headerFields["location: "] = request.getAbsolutePath() + "/";
 		else
 			this->headerFields["location: "] = request.getLocation().getReturnURLOrBody();
+		{
+			if (request.getLocation().getReturnURLOrBody().size() > 0 
+				&& *request.getLocation().getReturnURLOrBody().begin() == '/')	// if starts with slash, append scheme + host:port
+				this->headerFields["location: "] = std::string("http://") + request.getLocation().getServerName() + ":8002" + request.getLocation().getReturnURLOrBody();
+			else
+				request.getLocation().getReturnURLOrBody();
+		}
+		// if starts with http(s), append the rest without http(s)
+		// if starts with http(s)://host:port, append path
 	}
 	if (this->statusLine.statusCode == 405)
 	{
@@ -209,18 +218,11 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 		this->headerFields["upgrade: "] = "HTTP/1.1";
 	}
 	for (stringmap_t::iterator it = this->headerFields.begin() ; it != this->headerFields.end() ; it++)
-	{
-		//std::transform(it->first.begin(), it->first.end(), it->first.begin(), tolower); // case-insensitive
 		it->second.append(CRLF);
-	}
 	if (this->cgiStatus)
-	{
 		for (stringmap_t::iterator it = this->cgiHeaderFields.begin(); it != this->cgiHeaderFields.end(); it++)
-		{
 			if (!(this->headerFields.insert(std::make_pair(it->first, it->second)).second))  // overwrite with CGI values if exists
 				this->headerFields[it->first] = it->second;
-		}
-	}
 }
 
 void	HttpResponse::readErrorPage(const Location &location)

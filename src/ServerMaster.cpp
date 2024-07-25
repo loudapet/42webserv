@@ -6,13 +6,15 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/22 15:58:05 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/24 15:30:15 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/ServerMaster.hpp"
 #include "../inc/ResponseException.hpp"
 #include "../inc/webserv.hpp"
+
+int ServerMaster::_connectionCounter = 0;
 
 ServerMaster::ServerMaster(void)
 {
@@ -680,7 +682,7 @@ void	ServerMaster::listenForConnections(void)
 	stringpair_t	parserPair;
 	int				sendResult;
 
-	addFdToSet(this->_writeFds, STDOUT_FILENO);	
+	addFdToSet(this->_writeFds, Logger::getOutputFd());
 	// main listening loop
 	while(g_runWebserv)
 	{
@@ -697,8 +699,10 @@ void	ServerMaster::listenForConnections(void)
 		// run through the existing connections looking for data to read
 		for (int i = 0; i <= this->_fdMax; i++)
 		{
+			Logger::setActiveClient(i);
 			if (FD_ISSET(i, &readFds) || (this->_clients.count(i) && this->_clients.find(i)->second.bufferUnchecked)) // finds a socket with data to read
 			{
+				Logger::safeLog(DEBUG, SERVER, "Active client fd: ", itoa(i));
 				if (this->_servers.count(i)) // indicates that the server socket is ready to read which means that a client is attempting to connect
 					acceptConnection(i);
 				else if (this->_clients.count(i))
@@ -710,8 +714,6 @@ void	ServerMaster::listenForConnections(void)
 					if (this->_clients.find(i) == this->_clients.end()) // temp fix for a closed client
 						continue;
 					Client	&client = this->_clients.find(i)->second;
-					// if (DEBUG)
-					// 	std::cout << client.getReceivedData().size() << std::endl;
 					while (client.getReceivedData().size() > 0 && this->_clients.find(i) != this->_clients.end()) // won't go back to select until it processes all the data in the buffer
 					{
 						try
@@ -720,6 +722,8 @@ void	ServerMaster::listenForConnections(void)
 								break ;
 							if (!client.request.requestComplete && !client.request.readingBodyInProgress) // client has sent a valid header, this is the first while iteration, so we parse it
 							{
+								client.incrementRequestID();
+								Logger::setActiveRequestID(client.getRequestID());
 								client.separateValidHeader(); // separates the header from the body, header is stored in dataToParse, body in receivedData
 								parserPair = client.request.parseHeader(client.getReceivedHeader());
 								selectServerRules(parserPair, i); // resolve ServerConfig to HttpRequest
@@ -729,12 +733,8 @@ void	ServerMaster::listenForConnections(void)
 								const ServerConfig &serverConfig = client.getServerConfig();
 								client.request.validateHeader(matchLocation(client.request.getAbsolutePath(), serverConfig, parserPair.first));
 								client.request.readingBodyInProgress = true;
-								/* if (client.request.getHasExpect()) 
-									throw (ResponseException(100, "Continue")); - moved to HttpRequest */
 							}
 							//Logger::log(DEBUG, std::string("\nBody:\n") + std::string(client.getReceivedData().begin(), client.getReceivedData().end()), "");
-							//if (DEBUG)
-							//	std::cout << "Body:\n" << client.getReceivedData() << RESET << std::endl;
 							if (client.request.readingBodyInProgress) // processing request body
 							{
 								bytesToDelete = client.request.readRequestBody(client.getReceivedData());									
@@ -745,8 +745,6 @@ void	ServerMaster::listenForConnections(void)
 							if (client.request.requestComplete)
 							{
 								Logger::safeLog(DEBUG, REQUEST, "Changing to send() mode on socket ", itoa(i));
-								//if (DEBUG)
-								//std::cout << "Changing to send() " << i << std::endl;
 								removeFdFromSet(this->_readFds, i);
 								addFdToSet(this->_writeFds, i);
 								break ;
@@ -760,8 +758,6 @@ void	ServerMaster::listenForConnections(void)
 								client.request.setConnectionStatus(CLOSE);
 							}
 							Logger::safeLog(DEBUG, RESPONSE, "Changing to send() mode on socket ", itoa(i));
-							//if (DEBUG)
-							//	std::cout << "Changing to send() " << i << std::endl;
 							removeFdFromSet(this->_readFds, i);
 							addFdToSet(this->_writeFds, i);
 							break ;
@@ -819,7 +815,7 @@ void	ServerMaster::listenForConnections(void)
 						continue ;
 					}
 				}
-				if(!client.request.response.getMessageTooLongForOneSend())
+				if (!client.request.response.getMessageTooLongForOneSend())
 					client.request.response.setMessage(client.request.response.prepareResponse(client.request));
 				octets_t message = client.request.response.getMessage();
 				size_t messageLen = message.size();
@@ -851,7 +847,7 @@ void	ServerMaster::listenForConnections(void)
 					client.request.response.eraseRangeMessage(0, buffLen);
 				else
 				{
-					Logger::safeLog(DEBUG, RESPONSE, "Bytes sent in response: ", itoa(sendResult));
+					//Logger::safeLog(DEBUG, RESPONSE, "Bytes sent in response: ", itoa(sendResult));
 					Logger::safeLog(DEBUG, RESPONSE, "Changing to recv() mode on socket ", itoa(i));
 					if (client.getReceivedData().size() > 0) // ensures we get back to reading the buffer without needing to go through select()
 						this->_clients.find(i)->second.bufferUnchecked = true;
@@ -977,7 +973,7 @@ void	ServerMaster::acceptConnection(int serverSocket)
 		throw(std::runtime_error("Getsockname failed."));
 	newClient.setPortConnectedOn(ntohs(serverAddr.sin_port));
 	//std::cout << "Client connected to server port: " << newClient.getPortConnectedOn() << std::endl;
-	Logger::log(INFO, SERVER, "Client connected to server port: ", itoa(newClient.getPortConnectedOn()));
+	Logger::safeLog(INFO, SERVER, "Client connected to server port: ", itoa(newClient.getPortConnectedOn()));
 	newClient.updateTimeLastMessage();
 	newClient.updateTimeLastValidHeaderEnd();
 	addFdToSet(this->_readFds, clientSocket);
@@ -989,8 +985,10 @@ void	ServerMaster::acceptConnection(int serverSocket)
 	newClient.setClientSocket(clientSocket);
 	newClient.setClientAddr(clientAddr);
 	this->_clients.insert(std::make_pair(clientSocket, newClient));
-	Logger::log(NOTICE, SERVER, std::string("New connection accepted from ") + inet_ntop(AF_INET, &clientAddr, buff, INET_ADDRSTRLEN),
+	Logger::safeLog(NOTICE, SERVER, std::string("New connection accepted from ") + inet_ntop(AF_INET, &clientAddr, buff, INET_ADDRSTRLEN),
 		 std::string(". Assigned socket ") + itoa(clientSocket) + ".");
+	ServerMaster::incrementConnectionCounter();
+	Logger::mapFdToClientID(clientSocket);
 	//std::cout << "New connection accepted from "
 	//	<< inet_ntop(AF_INET, &clientAddr, buff, INET_ADDRSTRLEN)
 	//	<< ". Assigned socket " << clientSocket << '.' << std::endl;
@@ -999,7 +997,6 @@ void	ServerMaster::acceptConnection(int serverSocket)
 void	ServerMaster::handleDataFromClient(const int clientSocket)
 {
 	uint8_t							recvBuf[CLIENT_MESSAGE_BUFF]; // Buffer to store received data
-	//const char						*confirmReceived = "Well received!\n";
 	ssize_t							bytesReceived;
 	
 	memset(recvBuf, 0, sizeof(recvBuf)); // clear the receive buffer
@@ -1018,13 +1015,6 @@ void	ServerMaster::handleDataFromClient(const int clientSocket)
 		clientToHandle.updateTimeLastMessage();
 		clientToHandle.updateReceivedData(recvBuf, bytesReceived);
 		clientToHandle.trimHeaderEmptyLines();
-		// std::cout << "Data from client on socket " << clientSocket << ": ";
-		// clientToHandle.printReceivedData();
-		// std::cout << std::endl;
-		
-		// send acknowledgement to the client 
-		// if (send(clientSocket, confirmReceived, strlen(confirmReceived), 0) == -1)
-		// 	std::cerr << "Error sending acknowledgement to client." << std::endl;
 	}
 }
 
@@ -1085,4 +1075,17 @@ bool	ServerMaster::fdIsSetWrite(int fd) const
 bool	ServerMaster::fdIsSetRead(int fd) const
 {
 	return (FD_ISSET(fd, &this->_readFds));
+}
+
+void	ServerMaster::incrementConnectionCounter()
+{
+	if (ServerMaster::_connectionCounter < INT_MAX)
+		ServerMaster::_connectionCounter++;
+	else
+		ServerMaster::_connectionCounter = 1;
+}
+
+int	ServerMaster::getConnectionCounter()
+{
+	return (ServerMaster::_connectionCounter);
 }

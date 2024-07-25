@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/14 19:17:59 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/19 11:09:18 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/24 15:12:40 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,6 +43,7 @@ class Client
 		const ServerConfig			&getServerConfig(void) const;
 		const HttpRequest			&getRequest(void) const;
 		const struct sockaddr_in	&getClientAddr(void) const;
+		const int&					getRequestID(void) const;
 
 		void		printReceivedData(void) const;
 		void		printReceivedHeader(void) const;
@@ -52,11 +53,13 @@ class Client
 		void		trimHeaderEmptyLines(void);
 		bool		hasValidHeaderEnd(void);
 		void		separateValidHeader(void);
+		void		incrementRequestID(void);
 		
 		HttpRequest	request;
 		bool		bufferUnchecked;
 
 	private:
+		int					_requestID;
 		int					_clientSocket;
 		time_t				_timeLastMessage;
 		time_t				_timeLastValidHeaderEnd;

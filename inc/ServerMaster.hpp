@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:17:04 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/19 14:07:25 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/24 11:51:17 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,6 +29,8 @@ class ServerMaster
 		void	runWebserv(const std::string &configFile);
 		bool	fdIsSetWrite(int fd) const;
 		bool	fdIsSetRead(int fd) const;
+		static void	incrementConnectionCounter();
+		static int	getConnectionCounter();
 
 	private:
 		void	removeCommentsAndEmptyLines(void);
@@ -54,6 +56,7 @@ class ServerMaster
 		std::map<int, ServerConfig>	_servers;
 		std::map<int, Client>		_clients;
 
+		static int				_connectionCounter;
 		int						_fdMax; // maximum fd number
 		fd_set					_readFds; // master fds list
 		fd_set					_writeFds;
