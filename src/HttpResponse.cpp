@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/23 12:54:32 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/25 12:13:17 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -169,34 +169,41 @@ void	HttpResponse::lockStatusCode()
 	this->statusLocked = true;
 }
 
-// needs different Content-Type
-// needs proper allowed methods handling
 void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 {
-	this->headerFields["content-length: "] = itoa(this->responseBody.size());
-	this->headerFields["date: "] = getIMFFixdate();
+	if (this->cgiStatus)
+		for (stringmap_t::iterator it = this->cgiHeaderFields.begin(); it != this->cgiHeaderFields.end(); it++)
+			if (!(this->headerFields.insert(std::make_pair(it->first, it->second)).second))  // overwrite with CGI values if exists
+				this->headerFields[it->first] = it->second;
+	this->headerFields.insert(std::make_pair("content-length: ", itoa(this->responseBody.size())));
+	//this->headerFields["content-length: "] = itoa(this->responseBody.size());
+	this->headerFields.insert(std::make_pair("date: ", getIMFFixdate()));
+	//this->headerFields["date: "] = getIMFFixdate();
 	if (this->headerFields.find("content-type: ") == this->headerFields.end())
-		this->headerFields["content-type: "] = "application/octet-stream";
+		this->headerFields.insert(std::make_pair("content-type: ", "application/octet-stream"));
+		//this->headerFields["content-type: "] = "application/octet-stream";
 	if (request.getConnectionStatus() == CLOSE)
-		this->headerFields["connection: "] = "close";
+		this->headerFields.insert(std::make_pair("connection: ", "close"));
+		//this->headerFields["connection: "] = "close";
 	else
 	{
-		this->headerFields["connection: "] = "keep-alive";
-		this->headerFields["keep-alive: "] = std::string("timeout=" + itoa(CONNECTION_TIMEOUT));
+		this->headerFields.insert(std::make_pair("connection: ", "keep-alive"));
+		//this->headerFields["connection: "] = "keep-alive";
+		this->headerFields.insert(std::make_pair("keep-alive: ", std::string("timeout=" + itoa(CONNECTION_TIMEOUT))));
+		//this->headerFields["keep-alive: "] = std::string("timeout=" + itoa(CONNECTION_TIMEOUT));
 	}
 	if (this->statusLine.statusCode >= 300 && this->statusLine.statusCode <= 308)
 	{
 		if (this->statusDetails == "Trying to access a directory")
-			this->headerFields["location: "] = request.getAbsolutePath() + "/";
+			this->headerFields.insert(std::make_pair("location : ", request.getAbsolutePath() + "/"));
+			//this->headerFields["location: "] = request.getAbsolutePath() + "/";
 		else
-			this->headerFields["location: "] = request.getLocation().getReturnURLOrBody();
-		{
-			if (request.getLocation().getReturnURLOrBody().size() > 0 
-				&& *request.getLocation().getReturnURLOrBody().begin() == '/')	// if starts with slash, append scheme + host:port
-				this->headerFields["location: "] = std::string("http://") + request.getLocation().getServerName() + ":8002" + request.getLocation().getReturnURLOrBody();
-			else
-				request.getLocation().getReturnURLOrBody();
-		}
+			this->headerFields.insert(std::make_pair("location : ", request.getLocation().getReturnURLOrBody()));
+			//this->headerFields["location: "] = request.getLocation().getReturnURLOrBody();
+		if (request.getLocation().getReturnURLOrBody().size() > 0 
+			&& *request.getLocation().getReturnURLOrBody().begin() == '/')	// if starts with slash, append scheme + host:port
+			this->headerFields.insert(std::make_pair("location : ", std::string("http://") + request.getLocation().getServerName() + ":8002" + request.getLocation().getReturnURLOrBody()));
+			//this->headerFields["location: "] = std::string("http://") + request.getLocation().getServerName() + ":8002" + request.getLocation().getReturnURLOrBody();
 		// if starts with http(s), append the rest without http(s)
 		// if starts with http(s)://host:port, append path
 	}
@@ -210,19 +217,21 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 			if (++it != request.getAllowedMethods().end())
 				methods.append(", ");
 		}
-		this->headerFields["allow: "] = methods;
+		this->headerFields.insert(std::make_pair("allow : ", methods));
+		//this->headerFields["allow: "] = methods;
 	}
 	if (this->statusLine.statusCode == 426)
 	{
 		this->headerFields["connection: "].append(", Upgrade");
-		this->headerFields["upgrade: "] = "HTTP/1.1";
+		this->headerFields.insert(std::make_pair("upgrade : ", "HTTP/1.1"));
+		//this->headerFields["upgrade: "] = "HTTP/1.1";
 	}
 	for (stringmap_t::iterator it = this->headerFields.begin() ; it != this->headerFields.end() ; it++)
 		it->second.append(CRLF);
-	if (this->cgiStatus)
-		for (stringmap_t::iterator it = this->cgiHeaderFields.begin(); it != this->cgiHeaderFields.end(); it++)
-			if (!(this->headerFields.insert(std::make_pair(it->first, it->second)).second))  // overwrite with CGI values if exists
-				this->headerFields[it->first] = it->second;
+	// if (this->cgiStatus)
+	// 	for (stringmap_t::iterator it = this->cgiHeaderFields.begin(); it != this->cgiHeaderFields.end(); it++)
+	// 		if (!(this->headerFields.insert(std::make_pair(it->first, it->second)).second))  // overwrite with CGI values if exists
+	// 			this->headerFields[it->first] = it->second;
 }
 
 void	HttpResponse::readErrorPage(const Location &location)
@@ -438,6 +447,10 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 	else
 	{
 		//Logger::safeLog(INFO, RESPONSE, "Response status code: ", itoa(this->statusLine.statusCode));
+		if (this->cgiStatus)
+			for (stringmap_t::iterator it = this->cgiHeaderFields.begin(); it != this->cgiHeaderFields.end(); it++)
+				if (it->first == "status: ")
+					this->statusLine.statusCode = atoi(it->second.c_str());
 		if (codeDict.find(this->statusLine.statusCode) == codeDict.end())
 			this->codeDict[this->statusLine.statusCode] = "Undefined";
 		this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
