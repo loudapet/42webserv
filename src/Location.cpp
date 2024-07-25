@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/22 09:48:57 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/22 16:57:05 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -130,7 +130,7 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 			this->_returnCode = 302;
 			this->_returnURLOrBody = locationBlockElements[i + 1];
 			if (this->_returnURLOrBody.substr(0, 7) != "http://" && this->_returnURLOrBody.substr(0, 8) != "https://")
-				throw(std::runtime_error("Config parser: Invalid URL in return directive. A URL for temporary redirect with the code 302 should start with the 'http://' or 'https://'."));
+				throw(std::runtime_error("Config parser: Invalid URL in return directive. In this format, the directive is assumed to represent 'return [URL];'."));
 			this->_isRedirect = true;
 			i++;
 		}

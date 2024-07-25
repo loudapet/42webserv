@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/18 16:29:18 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/23 11:34:17 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,9 +35,6 @@
 # include <arpa/inet.h>
 # include <limits.h>
 
-#ifndef DEBUG
-# define DEBUG 0
-#endif
 # define CLR1 "\e[38;5;51m"
 # define CLR2 "\e[38;5;208m"
 # define CLR3 "\e[38;5;213m"
@@ -47,16 +44,25 @@
 # define CLRE "\e[38:5:226;48:5:196m"
 # define UNDERLINE "\033[4m"
 # define	RESET "\033[0m"
+enum ServerSection
+{
+	CONFIG,
+	REQUEST,
+	RESPONSE,
+	CGI,
+	SERVER
+};
 # include "../inc/Logger.hpp"
-
 
 extern bool g_runWebserv;
 
-enum	DotSegmentsResolution
-{
-	CONFIG,
-	REQUEST
-};
+// enum	DotSegmentsResolution
+// {
+// 	CONFIG,
+// 	REQUEST
+// };
+
+
 
 typedef std::vector<uint8_t> octets_t;
 typedef std::pair<std::string,std::string> stringpair_t;
@@ -85,9 +91,10 @@ std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::stri
 
 void						fileIsValidAndAccessible(const std::string &path, const std::string &fileName);
 std::string					dirIsValidAndAccessible(const std::string &path, const std::string &accessMessage, const std::string &dirOrFileMessage);
-std::string					resolveDotSegments(std::string path, DotSegmentsResolution flag);
+std::string					resolveDotSegments(std::string path, ServerSection flag);
 void						logSockets(int socket, std::string action);
 std::string					trim(const std::string& str);
+std::vector<std::string>	splitQuotedString(const std::string& str, char sep);
 
 /* inline std::ostream &operator << (std::ostream &o, std::vector<std::string> &stringVectorToPrint)
 {

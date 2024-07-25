@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 11:01:11 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/23 12:54:32 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -151,6 +151,7 @@ void HttpResponse::updateStatus(unsigned short code, const char* details)
 	{
 		this->statusLine.statusCode = code;
 		this->statusDetails = details;
+		//Logger::safeLog(INFO, REQUEST, itoa(this->statusLine.statusCode) + " ", this->statusDetails);
 	}
 	this->statusLocked = true;
 }
@@ -174,13 +175,14 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 {
 	this->headerFields["content-length: "] = itoa(this->responseBody.size());
 	this->headerFields["date: "] = getIMFFixdate();
-	this->headerFields["content-type: "] = "text/html";
+	if (this->headerFields.find("content-type: ") == this->headerFields.end())
+		this->headerFields["content-type: "] = "application/octet-stream";
 	if (request.getConnectionStatus() == CLOSE)
 		this->headerFields["connection: "] = "close";
 	else
 	{
 		this->headerFields["connection: "] = "keep-alive";
-		this->headerFields["keep-Alive: "] = std::string("timeout=" + itoa(CONNECTION_TIMEOUT));
+		this->headerFields["keep-alive: "] = std::string("timeout=" + itoa(CONNECTION_TIMEOUT));
 	}
 	if (this->statusLine.statusCode >= 300 && this->statusLine.statusCode <= 308)
 	{
@@ -188,6 +190,15 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 			this->headerFields["location: "] = request.getAbsolutePath() + "/";
 		else
 			this->headerFields["location: "] = request.getLocation().getReturnURLOrBody();
+		{
+			if (request.getLocation().getReturnURLOrBody().size() > 0 
+				&& *request.getLocation().getReturnURLOrBody().begin() == '/')	// if starts with slash, append scheme + host:port
+				this->headerFields["location: "] = std::string("http://") + request.getLocation().getServerName() + ":8002" + request.getLocation().getReturnURLOrBody();
+			else
+				request.getLocation().getReturnURLOrBody();
+		}
+		// if starts with http(s), append the rest without http(s)
+		// if starts with http(s)://host:port, append path
 	}
 	if (this->statusLine.statusCode == 405)
 	{
@@ -207,18 +218,11 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 		this->headerFields["upgrade: "] = "HTTP/1.1";
 	}
 	for (stringmap_t::iterator it = this->headerFields.begin() ; it != this->headerFields.end() ; it++)
-	{
-		//std::transform(it->first.begin(), it->first.end(), it->first.begin(), tolower); // case-insensitive
 		it->second.append(CRLF);
-	}
 	if (this->cgiStatus)
-	{
 		for (stringmap_t::iterator it = this->cgiHeaderFields.begin(); it != this->cgiHeaderFields.end(); it++)
-		{
 			if (!(this->headerFields.insert(std::make_pair(it->first, it->second)).second))  // overwrite with CGI values if exists
 				this->headerFields[it->first] = it->second;
-		}
-	}
 }
 
 void	HttpResponse::readErrorPage(const Location &location)
@@ -229,6 +233,7 @@ void	HttpResponse::readErrorPage(const Location &location)
 	std::map<unsigned short, std::string>::const_iterator	it;
 	std::stringstream										ss;
 	
+	this->headerFields["content-type: "] = "text/html; charset=utf-8";
 	it = errorPages.find(this->statusLine.statusCode);
 	if (it != errorPages.end())
 	{
@@ -249,10 +254,24 @@ void	HttpResponse::readErrorPage(const Location &location)
 	this->responseBody = convertStringToOctets(ss.str());
 }
 
-void HttpResponse::readRequestedFile(const std::string &targetResource)
+void HttpResponse::readRequestedFile(const std::string &targetResource, const stringmap_t& mimeExtensions)
 {
+	stringmap_t::const_iterator it;
 	std::ifstream	stream(targetResource.c_str(), std::ios::binary);
 	octets_t		contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+	std::string		extension;
+
+    std::string::size_type lastDotPos = targetResource.rfind('.');
+    std::string::size_type lastSlashPos = targetResource.rfind('/');
+    if (lastDotPos != std::string::npos && (lastSlashPos == std::string::npos || lastDotPos > lastSlashPos))
+        extension = targetResource.substr(lastDotPos + 1);
+	else
+		extension = "";
+	it = mimeExtensions.find(extension);
+	if (it != mimeExtensions.end())
+		this->headerFields["content-type: "] = it->second;
+	else
+		this->headerFields["content-type: "] = "application/octet-stream";
 	this->responseBody.insert(this->responseBody.end(), contents.begin(), contents.end());
 	stream.close();
 }
@@ -286,6 +305,8 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 	std::stringstream		body;
 	std::set<std::string>	strings;
 	DIR*					dirPtr;
+
+	this->headerFields["content-type: "] = "text/html; charset=utf-8";
 	dirPtr = opendir(targetResource.c_str());
 	body << "<html>\r\n"
 		<< "<head><title>" << "Index of " << targetResource << "</title></head>\r\n"
@@ -404,15 +425,19 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 void	HttpResponse::readReturnDirective(const Location &location)
 {
 	this->responseBody = convertStringToOctets(location.getReturnURLOrBody());
+	this->headerFields["content-type: "] = "text/plain";
 }
 
 const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 {
 	if (request.getHasExpect())
+	{
+		Logger::safeLog(INFO, RESPONSE, "100 Continue", this->statusDetails);
 		return (convertStringToOctets("HTTP/1.1 100 Continue"));
+	}
 	else
 	{
-		std::cout << CLR1 << this->statusLine.statusCode << RESET << std::endl;
+		//Logger::safeLog(INFO, RESPONSE, "Response status code: ", itoa(this->statusLine.statusCode));
 		if (codeDict.find(this->statusLine.statusCode) == codeDict.end())
 			this->codeDict[this->statusLine.statusCode] = "Undefined";
 		this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
@@ -422,7 +447,7 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 			if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
 				request.response.readDirectoryListing(request.getTargetResource());
 			else if (this->statusLine.statusCode == 200)
-				request.response.readRequestedFile(request.getTargetResource());
+				request.response.readRequestedFile(request.getTargetResource(), request.getLocation().getMimeTypes().getMimeTypesDictInv());
 			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
 				request.response.readReturnDirective(request.getLocation());
 			else
@@ -436,6 +461,7 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 		request.response.buildResponseHeaders(request);
 		request.response.buildCompleteResponse();
 		octets_t message = request.response.getCompleteResponse();
+		Logger::safeLog(INFO, RESPONSE, itoa(this->statusLine.statusCode) + " ", this->statusDetails);
 		return (message);
 	}
 }

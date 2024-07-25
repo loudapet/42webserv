@@ -15,6 +15,7 @@
 Mime::Mime()
 {
 	this->_mimeTypesDict = std::map< std::string, std::set<std::string> >();
+	this->_mimeTypesDictInv = stringmap_t();
 }
 
 Mime::Mime(const Mime& refObj)
@@ -26,6 +27,7 @@ Mime& Mime::operator = (const Mime& refObj)
 {
 	if (this != &refObj)
 		this->_mimeTypesDict = refObj._mimeTypesDict;
+		this->_mimeTypesDictInv = refObj._mimeTypesDictInv;
 	return (*this);
 }
 
@@ -38,6 +40,12 @@ const std::map< std::string, std::set<std::string> > &Mime::getMimeTypesDict() c
 {
 	return (this->_mimeTypesDict);
 }
+
+const stringmap_t &Mime::getMimeTypesDictInv() const
+{
+	return (this->_mimeTypesDictInv);
+}
+
 
 bool checkSemicolons(const std::string& str)
 {
@@ -86,7 +94,7 @@ void Mime::parseMimeTypes(const std::string &mimeTypesFilePath)
 	mimeTypesFileContent = tmpFileContent.str();
 	if (!checkSemicolons(mimeTypesFileContent))
 	{
-		std::cerr << "Warning: Config Parser: Mime types file is not properly formatted and won't be loaded into the server." << std::endl;
+		Logger::log(WARNING, CONFIG, "Config Parser: Mime types file is not properly formatted and won't be loaded into the server.", "");
 		return ;
 	}
 	iss.str(mimeTypesFileContent);
@@ -113,13 +121,19 @@ void Mime::parseMimeTypes(const std::string &mimeTypesFilePath)
 				extensions.insert(mimeTypes[i]);
 		}
 	}
-	std::map<std::string, std::set<std::string> >::const_iterator mapIt;
-    for (mapIt = this->_mimeTypesDict.begin(); mapIt != this->_mimeTypesDict.end(); ++mapIt)
-    {
-        std::cout << mapIt->first << ": ";
-        std::set<std::string>::const_iterator setIt;
-        for (setIt = mapIt->second.begin(); setIt != mapIt->second.end(); ++setIt)
-            std::cout << *setIt << " ";
-        std::cout << "|" << std::endl;
-    }
+	if (this->_mimeTypesDict.size() > 0)
+		for (std::map< std::string, std::set<std::string> >::iterator it = this->_mimeTypesDict.begin(); it != this->_mimeTypesDict.end(); it++)
+			if (it->second.size() > 0)
+				for (std::set<std::string>::iterator itr = it->second.begin(); itr != it->second.end(); itr++)
+					this->_mimeTypesDictInv[*itr] = it->first;
+
+	// std::map<std::string, std::set<std::string> >::const_iterator mapIt;
+    // for (mapIt = this->_mimeTypesDict.begin(); mapIt != this->_mimeTypesDict.end(); ++mapIt)
+    // {
+    //     std::cout << mapIt->first << ": ";
+    //     std::set<std::string>::const_iterator setIt;
+    //     for (setIt = mapIt->second.begin(); setIt != mapIt->second.end(); ++setIt)
+    //         std::cout << *setIt << " ";
+    //     std::cout << "|" << std::endl;
+    // }
 }

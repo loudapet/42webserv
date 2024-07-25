@@ -3,16 +3,16 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/19 11:20:54 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/24 15:20:55 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/Client.hpp"
 
-Client::Client(void): bufferUnchecked(false), _clientSocket(-1), 
+Client::Client(void): bufferUnchecked(false),  _requestID(0), _clientSocket(-1), 
 	_timeLastMessage(time(NULL)), _timeLastValidHeaderEnd(time(NULL)),
 	_receivedData(), _receivedHeader(), _portConnectedOn(0)
 {
@@ -32,6 +32,7 @@ Client::Client(const Client& copy)
 	this->request = copy.request;
 	this->bufferUnchecked = copy.bufferUnchecked;
 	this->_clientAddr = copy._clientAddr;
+	this->_requestID = copy._requestID;
 }
 
 Client	&Client::operator = (const Client &src)
@@ -48,6 +49,7 @@ Client	&Client::operator = (const Client &src)
 		this->request = src.request;
 		this->bufferUnchecked = src.bufferUnchecked;
 		this->_clientAddr = src._clientAddr;
+		this->_requestID = src._requestID;
 	}
 	return (*this);
 }
@@ -137,7 +139,12 @@ const struct sockaddr_in	&Client::getClientAddr(void) const
 	return (this->_clientAddr);
 }
 
-void		Client::printReceivedData(void) const
+const int &Client::getRequestID(void) const
+{
+	return (this->_requestID);
+}
+
+void Client::printReceivedData(void) const
 {
 	for (octets_t::const_iterator it = this->_receivedData.begin(); it != this->_receivedData.end(); it++)
 		std::cout << static_cast<char>(*it);
@@ -157,7 +164,6 @@ void	Client::clearReceivedData(void)
 
 void	Client::eraseRangeReceivedData(size_t start, size_t end)
 {
-	//std::cout << "RECEIVED DATA " << this->_receivedData.size() << std::endl;
 	if (start <= end && end <= this->_receivedData.size())
 		this->_receivedData.erase(this->_receivedData.begin() + start, this->_receivedData.begin() + end);
 }
@@ -194,7 +200,6 @@ bool Client::hasValidHeaderEnd(void)
 			return (true);
 		}
 	}
-	std::cout << "NO HEADER" << std::endl;
 	if (this->_receivedData.size() > CLIENT_MESSAGE_BUFF * 2)
 		throw(ResponseException(413, "Request header too large"));
 	return (false);
@@ -218,7 +223,14 @@ void Client::separateValidHeader(void)
 // we can be sure that the sequence will be found since this function is called only once hasValidHeaderEnd returns true
 //	if (endOfSequence == this->_receivedData.end())
 //		return (false);
-	//std::cout << CLR2 << "HELLO SEPARATED HEADER" << RESET << std::endl;
 	this->_receivedHeader.insert(this->_receivedHeader.end(), this->_receivedData.begin(), sequenceEnd);
 	this->_receivedData.erase(this->_receivedData.begin(), sequenceEnd);
+}
+
+void	Client::incrementRequestID(void)
+{
+	if (this->_requestID < INT_MAX)
+		this->_requestID++;
+	else
+		this->_requestID = 1;
 }

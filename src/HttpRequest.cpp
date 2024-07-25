@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 12:01:32 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/25 10:29:33 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,6 +47,7 @@ HttpRequest::HttpRequest()
 	this->connectionStatus = KEEP_ALIVE;
 	this->hasExpect = false;
 	this->silentErrorRaised = false;
+	//this->requestID = 0;
 	return ;
 }
 
@@ -78,6 +79,7 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& refObj)
 		targetIsDirectory = refObj.targetIsDirectory;
 		hasExpect = refObj.hasExpect;
 		silentErrorRaised = refObj.silentErrorRaised;
+		//requestID = refObj.requestID;
 	}
 	return (*this);
 }
@@ -87,34 +89,6 @@ HttpRequest::~HttpRequest()
 	return ;
 }
 
-
-// upgrade to handle backslashes and quotes as literals
-std::vector<std::string>	splitQuotedString(const std::string& str, char sep)
-{
-	if (std::count(str.begin(), str.end(), '\"') % 2)
-		throw(ResponseException(400, "Unclosed quotes in quoted string"));
-	std::vector<std::string> splitString;
-	unsigned int counter = 0;
-	std::string segment;
-	std::stringstream stream_input(str);
-	while(std::getline(stream_input, segment, '\"'))
-	{
-		++counter;
-		if (counter % 2 == 0)
-		{
-			if (!segment.empty())
-				splitString.push_back(segment);
-		}
-		else
-		{
-			std::stringstream stream_segment(segment);
-			while(std::getline(stream_segment, segment, sep))
-				if (!segment.empty())
-					splitString.push_back(segment);
-		}
-	}
-	return (splitString);
-}
 
 void	HttpRequest::parseMethod(std::string& token)
 {
@@ -492,9 +466,8 @@ stringpair_t	HttpRequest::parseHeader(octets_t header)
 		throw (ResponseException(400, "Improperly terminated header-field section"));
 	this->parseFieldSection(splitLines);
 	authority = this->resolveHost();
-	//std::cout << this->requestLine << this->headerFields << std::endl;
-	//std::cout << "Final host:\t" << authority.first << std::endl;
-	//std::cout << "Final port:\t" << authority.second << std::endl;
+	Logger::safeLog(DEBUG, REQUEST, "Resolved host:\t", authority.first);
+	Logger::safeLog(DEBUG, REQUEST, "Resolved port:\t", authority.second);
 	return (authority);
 }
 
@@ -507,7 +480,6 @@ void	HttpRequest::validateContentType(const Location &location)
 
 	contentType = this->headerFields.find("content-type");
 	mimeTypesDict = location.getMimeTypes().getMimeTypesDict();
-	Logger::safeLog(L_DEBUG, this->targetResource, "");
 	// if (stat((this->targetResource).c_str(), &statBuff) != 0)
 	// 	throw (ResponseException(500, "Internal Server Error"));
 	if (contentType != this->headerFields.end()) // content-type found in headerFields
@@ -516,10 +488,10 @@ void	HttpRequest::validateContentType(const Location &location)
 		contentTypeValue = splitQuotedString(contentType->second, ';')[0];
 		contentTypeValue = trim(contentTypeValue);
 		std::transform(contentTypeValue.begin(), contentTypeValue.end(), contentTypeValue.begin(), tolower); // case-insensitive
-		std::cout << "CONTENT TYPE: " << contentTypeValue << std::endl;
+		Logger::safeLog(DEBUG, REQUEST, "Content type: ", contentTypeValue);
 	    if (mimeTypesDict.find(contentTypeValue) == mimeTypesDict.end()) // content-type not found in mimeTypesDict
 		{
-			this->response.updateStatus(415, "Unsupported media type");
+			this->response.updateStatus(415, "Intended file type not supported");
 			return ;
 		}
 	}
@@ -614,18 +586,14 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 	std::string	root = location.getRoot();
 	if (*this->requestLine.requestTarget.absolutePath.rbegin() == '/' && *path.rbegin() != '/')
 		path = path + "/";
-	if (!DEBUG)
-	{
-		std::cout << CLR3 << "path:\t" << path << RESET << std::endl;
-		std::cout << CLR3 << "root:\t" << root << RESET << std::endl;
-		std::cout << CLR3 << "URL:\t" << this->requestLine.requestTarget.absolutePath << RESET << std::endl;
-	}
+	Logger::safeLog(DEBUG, REQUEST, "Location path:\t", path);
+	Logger::safeLog(DEBUG, REQUEST, "Location root:\t", root);
+	Logger::safeLog(DEBUG, REQUEST, "Absolute URL:\t", this->requestLine.requestTarget.absolutePath);
 	std::size_t pos = this->requestLine.requestTarget.absolutePath.find(path);
 	this->targetResource = this->requestLine.requestTarget.absolutePath;
 	this->targetResource.replace(pos, path.length(), root);
 	this->allowedDirListing = location.getAutoindex();
 	removeDoubleSlash(this->targetResource);
-	std::cout << CLR3 << "Final path:\t" << this->targetResource << RESET << std::endl;
 	//std::cout << CLR3 << "CGI path:\t" << location.getRelativeCgiPath() << RESET << std::endl;
 	if (!this->isRedirect && !isCgi) //&& this->requestLine.method == "GET"
 	{
@@ -666,7 +634,7 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 					dirPtr = opendir(this->targetResource.c_str());
 					if (dirPtr == NULL)
 						this->response.updateStatus(500, "Failed to open directory");
-					if (closedir(dirPtr))
+					if (dirPtr != NULL && closedir(dirPtr))
 						this->response.updateStatus(500, "Failed to close directory");
 					this->targetIsDirectory = true;
 				}
@@ -685,7 +653,6 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 			validFile = stat(pathToResource.c_str(), &fileCheckBuff);
 			if (validFile < 0)
 			{
-				std::cout << CLR6 << pathToResource << std::endl;
 				this->response.updateStatus(404, "File does not exist");
 				break;
 			}
@@ -720,14 +687,15 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 				}
 			}
 		}
-		std::cout << CLR3 << "Final path after CGI resolution: " << this->targetResource << RESET << std::endl;
-		std::cout << CLR3 << "CGI path info:\t" << this->cgiPathInfo << RESET << std::endl;
 	}
 	else if (this->isRedirect)
 	{
 		this->response.lockStatusCode();
 		this->response.setStatusCode(location.getReturnCode());
+		Logger::safeLog(INFO, REQUEST, "Return directive specifies return code: ", itoa(location.getReturnCode()));
 	}
+	Logger::safeLog(DEBUG, REQUEST, "Target resource:\t", this->targetResource);
+	Logger::safeLog(DEBUG, REQUEST, "CGI PATH_INFO:\t", this->cgiPathInfo);
 	// POST and DELETE
 }
 
@@ -795,6 +763,7 @@ Q: what happens if methods in config are not valid?
 void	HttpRequest::validateHeader(const Location& location)
 {
 	this->location = location;
+	std::cout << location.getServerName() << std::endl;
 	this->isRedirect = location.getIsRedirect();
 	this->allowedMethods = location.getAllowMethods();
 	this->requestBodySizeLimit = location.getRequestBodySizeLimit();
@@ -820,6 +789,8 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 	}
 	if (this->messageFraming == CONTENT_LENGTH)
 	{
+		Logger::safeLog(DEBUG, REQUEST, "Content length: ", itoa(this->contentLength));
+		Logger::safeLog(DEBUG, REQUEST, "Body size limit: ", itoa(this->requestBodySizeLimit));
 		if (this->contentLength > static_cast<size_t>(this->requestBodySizeLimit))
 			throw (ResponseException(413, "Payload too large"));
 		this->requestBody = octets_t(bufferedBody.begin(), bufferedBody.begin() + this->contentLength);
@@ -829,8 +800,7 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 	}
 	else if (this->messageFraming == TRANSFER_ENCODING)
 	{
-		if (DEBUG)
-			std::cout << CLR2 << "Received: " << bufferedBody.size() << " bytes" << RESET << std::endl;
+		Logger::safeLog(DEBUG, REQUEST, std::string("Received: ") + itoa(bufferedBody.size()) + " bytes", "");
 		for (octets_t::iterator	it = bufferedBody.begin() ; it != bufferedBody.end() ; it = bufferedBody.begin())
 		{
 			octets_t::iterator	newline = std::find(bufferedBody.begin(), bufferedBody.end(), '\n');
@@ -983,7 +953,12 @@ const bool&	HttpRequest::getTargetIsDirectory() const
 	return (this->targetIsDirectory);
 }
 
-bool	HttpRequest::getHasExpect() const
+// const int &HttpRequest::getRequestID() const
+// {
+// 	return (this->requestID);
+// }
+
+bool HttpRequest::getHasExpect() const
 {
     return (this->hasExpect);
 }
@@ -1078,4 +1053,5 @@ void	HttpRequest::resetRequestObject(void)
 	this->hasExpect = newRequest.hasExpect;
 	this->location = newRequest.location;
 	this->silentErrorRaised = newRequest.silentErrorRaised;
+	//this->requestID = newRequest.requestID;
 }

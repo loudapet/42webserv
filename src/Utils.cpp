@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/22 11:27:19 by okraus           ###   ########.fr       */
+/*   Updated: 2024/07/23 11:34:10 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -182,7 +182,7 @@ std::string	dirIsValidAndAccessible(const std::string &path, const std::string &
 	return (path);
 }
 
-std::string	resolveDotSegments(std::string path, DotSegmentsResolution flag)
+std::string	resolveDotSegments(std::string path, ServerSection flag)
 {
 	std::stack<std::string>	segments;
 	std::stack<std::string>	output;
@@ -228,7 +228,6 @@ bool hasValidHeaderEnd(const octets_t &receivedData)
 		if (endOfSequence != receivedData.end())
 			return (true);
 	}
-//	std::cout << "NO HEADER" << std::endl;
 	return (false);
 }
 
@@ -256,4 +255,32 @@ std::string	trim(const std::string& str)
 	const size_t strEnd = str.find_last_not_of(whitespace);
 	const size_t strRange = strEnd - strBegin + 1;
 	return (str.substr(strBegin, strRange));
+}
+
+// upgrade to handle backslashes and quotes as literals
+std::vector<std::string>	splitQuotedString(const std::string& str, char sep)
+{
+	if (std::count(str.begin(), str.end(), '\"') % 2)
+		throw(ResponseException(400, "Unclosed quotes in quoted string"));
+	std::vector<std::string> splitString;
+	unsigned int counter = 0;
+	std::string segment;
+	std::stringstream stream_input(str);
+	while(std::getline(stream_input, segment, '\"'))
+	{
+		++counter;
+		if (counter % 2 == 0)
+		{
+			if (!segment.empty())
+				splitString.push_back(segment);
+		}
+		else
+		{
+			std::stringstream stream_segment(segment);
+			while(std::getline(stream_segment, segment, sep))
+				if (!segment.empty())
+					splitString.push_back(segment);
+		}
+	}
+	return (splitString);
 }

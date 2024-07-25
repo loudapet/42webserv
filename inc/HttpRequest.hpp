@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 10:17:50 by plouda           ###   ########.fr       */
+/*   Updated: 2024/07/24 15:12:48 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,6 +87,7 @@ typedef struct KeepAlive
 class HttpRequest
 {
 	private:
+		//int						requestID;
 		requestLine_t			requestLine;
 		stringmap_t				headerFields;
 		octets_t				requestBody;
@@ -143,6 +144,7 @@ class HttpRequest
 		const std::string&				getTargetResource() const;
 		const std::string&				getCgiPathInfo() const;
 		const bool&						getTargetIsDirectory() const;
+		const int&						getRequestID() const;
 		void							resetRequestObject(void);
 		bool							getHasExpect() const;
 		void							disableHasExpect();

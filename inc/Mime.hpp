@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Mime.hpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/18 13:57:11 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/19 13:54:36 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/07/22 17:13:13 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,8 @@
 class Mime
 {
 	private:
-		std::map< std::string, std::set<std::string> > _mimeTypesDict;
+		std::map< std::string, std::set<std::string> >	_mimeTypesDict;
+		stringmap_t										_mimeTypesDictInv;
 
 	public:
 		Mime();
@@ -28,6 +29,7 @@ class Mime
 		void		parseMimeTypes(const std::string &mimeTypesFilePath);
 
 		const std::map< std::string, std::set<std::string> >&	getMimeTypesDict() const;
+		const stringmap_t&	getMimeTypesDictInv() const;
 };
 
 #endif  // MIME_HPP

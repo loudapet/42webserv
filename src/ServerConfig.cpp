@@ -155,7 +155,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				this->_returnCode = 302;
 				this->_returnURLOrBody = serverBlockElements[i + 1];
 				if (this->_returnURLOrBody.substr(0, 7) != "http://" && this->_returnURLOrBody.substr(0, 8) != "https://")
-					throw(std::runtime_error("Config parser: Invalid URL in return directive. A URL for temporary redirect with the code 302 should start with the 'http://' or 'https://'."));
+					throw(std::runtime_error("Config parser: Invalid URL in return directive. In this format, the directive is assumed to represent 'return [URL];'."));
 				this->_isRedirect = true;
 				i++;
 			}
@@ -534,7 +534,7 @@ void ServerConfig::startServer(void)
 				+ itoa(this->_host % 256) + "." + itoa(this->_host / 256 % 256) + "."
 				+ itoa(this->_host / 65536 % 256) + "." + itoa(this->_host / 16777216) + ":"
 				+ itoa(this->_port);
-	Logger::log(INFO, infoMessage, "");
+	Logger::log(INFO, CONFIG, infoMessage, "");
 	// std::cout << "Server '" << this->_primaryServerName << "' started on "
 	// 	<< this->_host % 256 << "." << this->_host / 256 % 256 << "."
 	// 	<< this->_host / 65536 % 256 << "." << this->_host / 16777216 << ":"
