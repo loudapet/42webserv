@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/05 13:46:12 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/05 14:51:14 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -275,7 +275,7 @@ const Location matchLocation(const std::string &absolutePath, const ServerConfig
 	locations = serverConfig.getLocations();
 	if (serverConfig.getIsRedirect())
 	{
-		Location generic(serverConfig.getReturnCode(), serverConfig.getReturnURLOrBody());
+		Location generic(serverConfig);
 		return (generic);
 	}
 	bestMatchLength = 0;

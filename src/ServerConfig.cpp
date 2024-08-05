@@ -139,7 +139,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				this->_returnCode = 302;
 				this->_returnURLOrBody = serverBlockElements[i + 1];
 				if (this->_returnURLOrBody.substr(0, 7) != "http://" && this->_returnURLOrBody.substr(0, 8) != "https://")
-					throw(std::runtime_error("Config parser: Invalid URL in return directive. In this format, the directive is assumed to represent 'return [URL];'."));
+					throw(std::runtime_error("Config parser: Invalid URL in return directive. In this format, the directive is assumed to represent 'return [URL];' and the [URL] needs to start with 'http://' or 'https://'."));
 				this->_isRedirect = true;
 				returnInConfig = true;
 				i++;

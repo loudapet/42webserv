@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:27 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/25 10:53:30 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/05 14:59:24 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,13 +15,16 @@
 
 # include "webserv.hpp"
 # include "Mime.hpp"
+# include "ServerConfig.hpp"
+
+class ServerConfig;
 
 class Location
 {
 	public:
-		Location(void);	
-		Location(unsigned short serverReturnCode, std::string serverReturnURL);
-		Location(std::string locationPath, std::vector<std::string> locationScope);
+		Location(void);	// generic Location for when no location was matched
+		Location(const ServerConfig &serverConfig); // generic Location for when there is a return directive in it
+		Location(std::string locationPath, std::vector<std::string> locationScope); // main Location constructor that parses the input from the config file
 		Location(const Location& copy);
 		Location	&operator=(const Location &src);
 		~Location(void);
