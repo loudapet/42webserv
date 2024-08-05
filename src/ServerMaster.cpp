@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/25 13:35:51 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/05 13:33:01 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -190,21 +190,14 @@ void	processLogsBlock(std::string &logsBlock)
 			if (std::find(Logger::getLevelArray().begin(), Logger::getLevelArray().end(), logsLevel) == Logger::getLevelArray().end())
 				throw(std::runtime_error("Config parser: Invalid logs level."));
 			Logger::setLogLevel(static_cast<LogLevel>(std::distance(Logger::getLevelArray().begin(), std::find(Logger::getLevelArray().begin(), Logger::getLevelArray().end(), logsLevel))));
-			if (!logsFile.empty())
-			{
-				if ((fd = open(logsFile.c_str(), O_WRONLY | O_APPEND)) < 0)
-					throw(std::runtime_error("Config parser: Logs file at '" + logsFile + "' could not be opened."));
-				Logger::setOutputFd(fd);
-			}
 		}
 		else
-		{
 			Logger::setLogLevel(DISABLED);
-			if (!logsFile.empty())
-			{
-				if (access(logsFile.c_str(), F_OK) < 0)
-					throw(std::runtime_error("Config parser: Logs file at '" + logsFile + "' does not exist."));
-			}
+		if (!logsFile.empty())
+		{
+			if ((fd = open(logsFile.c_str(), O_WRONLY | O_APPEND)) < 0)
+				throw(std::runtime_error("Config parser: Logs file at '" + logsFile + "' could not be opened."));
+			Logger::setOutputFd(fd);
 		}
 	}
 }
@@ -254,8 +247,8 @@ void	ServerMaster::printServerBlocks(void) const
 	for (size_t i = 0; i < this->_serverBlocks.size(); i++)
 	{
 		Logger::log(DEBUG, CONFIG, std::string("Server block ") + itoa(i) + this->_serverBlocks[i], "");
-		//	std::cout << "Server block " << i << ": " << std::endl;
-		//	std::cout << this->_serverBlocks[i] << std::endl;
+		//std::cout << "Server block " << i << ": " << std::endl;
+		//std::cout << this->_serverBlocks[i] << std::endl;
 	}
 }
 
@@ -270,8 +263,7 @@ void	ServerMaster::prepareServersToListen(void)
 		FD_SET(this->_serverConfigs[i].getServerSocket(), &this->_readFds);
 		this->_servers.insert(std::make_pair(this->_serverConfigs[i].getServerSocket(), this->_serverConfigs[i]));
 		Logger::log(DEBUG, SERVER, std::string("Server '") + this->_serverConfigs[i].getPrimaryServerName() + "' listening on port " + itoa(this->_serverConfigs[i].getPort()) + "...", "");
-		//if (DEBUG)
-		//	std::cout << "Server '" << this->_serverConfigs[i].getPrimaryServerName() << "' listening on port " << this->_serverConfigs[i].getPort() << "..." << std::endl;
+		//std::cout << "Server '" << this->_serverConfigs[i].getPrimaryServerName() << "' listening on port " << this->_serverConfigs[i].getPort() << "..." << std::endl;
 	}
 	this->_fdMax = this->_serverConfigs.back().getServerSocket();
 }
