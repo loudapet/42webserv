@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/05 13:33:01 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/05 13:46:12 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,7 +78,7 @@ ServerMaster::~ServerMaster(void)
 	if (!g_runWebserv)
 	{
 		std::cout << std::endl;
-		Logger::log(WARNING, SERVER, "Received SIGINT. Closed all connections and exiting.", "");
+		Logger::log(WARNING, SERVER, "Received SIGINT. Closed all connections and exiting.\n", "");
 	}
 }
 
@@ -245,11 +245,7 @@ void	ServerMaster::detectServerBlocks(void)
 void	ServerMaster::printServerBlocks(void) const
 {
 	for (size_t i = 0; i < this->_serverBlocks.size(); i++)
-	{
 		Logger::log(DEBUG, CONFIG, std::string("Server block ") + itoa(i) + this->_serverBlocks[i], "");
-		//std::cout << "Server block " << i << ": " << std::endl;
-		//std::cout << this->_serverBlocks[i] << std::endl;
-	}
 }
 
 void	ServerMaster::prepareServersToListen(void)
@@ -263,7 +259,6 @@ void	ServerMaster::prepareServersToListen(void)
 		FD_SET(this->_serverConfigs[i].getServerSocket(), &this->_readFds);
 		this->_servers.insert(std::make_pair(this->_serverConfigs[i].getServerSocket(), this->_serverConfigs[i]));
 		Logger::log(DEBUG, SERVER, std::string("Server '") + this->_serverConfigs[i].getPrimaryServerName() + "' listening on port " + itoa(this->_serverConfigs[i].getPort()) + "...", "");
-		//std::cout << "Server '" << this->_serverConfigs[i].getPrimaryServerName() << "' listening on port " << this->_serverConfigs[i].getPort() << "..." << std::endl;
 	}
 	this->_fdMax = this->_serverConfigs.back().getServerSocket();
 }
