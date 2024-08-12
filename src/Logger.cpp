@@ -6,14 +6,14 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/18 15:03:44 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/25 13:49:20 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/05 13:28:23 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/Logger.hpp"
 #include "../inc/ServerMaster.hpp"
 
-enum LogLevel Logger::_logLevel = DEBUG;
+enum LogLevel Logger::_logLevel = INFO;
 std::string			Logger::_logBuffer = "";
 const std::vector<std::string> 	Logger::_levelArray = initLogLevels();
 const std::string 	Logger::_clrArray[5] = {GREY, GREEN, YELLOW, ORANGE, RED};

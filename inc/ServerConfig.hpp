@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:21:17 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/25 13:35:39 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/05 14:59:54 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,8 @@
 # include "Location.hpp"
 # include "Mime.hpp"
 # include "webserv.hpp"
+
+class Location;
 
 class ServerConfig
 {

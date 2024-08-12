@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/25 11:05:43 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/05 15:02:52 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,7 @@ Location::Location(void)
 	this->_port = 0;
 }
 
-Location::Location(unsigned short serverReturnCode, std::string serverReturnURLOrBody)
+Location::Location(const ServerConfig &serverConfig)
 {
 	this->_path = "";
 	this->_root = "./";
@@ -39,13 +39,13 @@ Location::Location(unsigned short serverReturnCode, std::string serverReturnURLO
 	this->_autoindex = 0;
 	this->_allowMethods.insert("GET");
 	this->_isCgi = false;
-	this->_returnURLOrBody = serverReturnURLOrBody;
-	this->_returnCode = serverReturnCode;
+	this->_returnURLOrBody = serverConfig.getReturnURLOrBody();
+	this->_returnCode = serverConfig.getReturnCode();
 	this->_isRedirect = true;
 	this->_errorPages = std::map<unsigned short, std::string>();
-	this->_serverName = "";
+	this->_serverName = serverConfig.getPrimaryServerName();
 	this->_mimeTypes = Mime();
-	this->_port = 0;
+	this->_port = serverConfig.getPort();
 }
 
 Location::Location(std::string locationPath, std::vector<std::string> locationBlockElements)
@@ -132,7 +132,7 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 			this->_returnCode = 302;
 			this->_returnURLOrBody = locationBlockElements[i + 1];
 			if (this->_returnURLOrBody.substr(0, 7) != "http://" && this->_returnURLOrBody.substr(0, 8) != "https://")
-				throw(std::runtime_error("Config parser: Invalid URL in return directive. In this format, the directive is assumed to represent 'return [URL];'."));
+				throw(std::runtime_error("Config parser: Invalid URL in return directive. In this format, the directive is assumed to represent 'return [URL];' and the [URL] needs to start with 'http://' or 'https://'."));
 			this->_isRedirect = true;
 			i++;
 		}
