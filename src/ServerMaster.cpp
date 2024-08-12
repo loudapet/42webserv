@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/05 14:51:14 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/12 10:29:23 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -192,7 +192,7 @@ void	processLogsBlock(std::string &logsBlock)
 			Logger::setLogLevel(static_cast<LogLevel>(std::distance(Logger::getLevelArray().begin(), std::find(Logger::getLevelArray().begin(), Logger::getLevelArray().end(), logsLevel))));
 		}
 		else
-			Logger::setLogLevel(DISABLED);
+			Logger::setLogLevel(INFO);
 		if (!logsFile.empty())
 		{
 			if ((fd = open(logsFile.c_str(), O_WRONLY | O_APPEND)) < 0)
