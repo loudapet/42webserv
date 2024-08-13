@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/13 21:39:12 by okraus           ###   ########.fr       */
+/*   Updated: 2024/08/13 21:51:35 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -650,12 +650,15 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 			//std::cerr << CLRE "read fail or nothing was read" RESET << std::endl;
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(502, "CGI failure");
+			response.getCgiBody().clear();
 			return ;
 		}
 		if (response.getCgiBody().size() > MAX_FILE_SIZE)
 		{
+			//std::cerr << CLRE "CGI response too large" RESET << std::endl;
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(502, "CGI response too large");
+			response.getCgiBody().clear();
 			return ;
 		}
 		if (wpid == response.getCgiPid())
@@ -747,6 +750,7 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 			{
 				response.setCgiStatus(CGI_ERROR);
 				response.updateStatus(502, "CGI failure");
+				response.getCgiBody().clear();
 			}
 			return ;
 		}
