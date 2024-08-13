@@ -52,4 +52,4 @@ if os.environ.get('REQUEST_METHOD') == "GET":
 
 		print("Status: 204")
 		print(cookie.output())
-		print("\n")
+		print("")

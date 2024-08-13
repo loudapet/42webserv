@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/13 09:50:15 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/13 21:39:12 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -676,7 +676,7 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 				it[2]++;
 				while (it[2] != response.getCgiBody().end())
 				{
-					if ((*it[0] == '\n' && *it[1] == '\n') || (*it[0] == '\n' && *it[1] == '\r' && *it[2] == '\n'))
+					if ((*it[1] == '\n' && *it[2] == '\n') || (*it[0] == '\n' && *it[1] == '\r' && *it[2] == '\n'))
 					{
 						// std::string 
 						std::istringstream header(std::string(response.getCgiBody().begin(), it[0]));
@@ -701,20 +701,46 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 							key.clear();
 							value.clear();
 						}
-						if (*it[1] == '\n')
-							response.getCgiBody().erase(response.getCgiBody().begin(), it[1] + 1);
-						else
-							response.getCgiBody().erase(response.getCgiBody().begin(), it[2] + 1);
+						response.getCgiBody().erase(response.getCgiBody().begin(), it[2] + 1);
+						// std::cout << "CGICGI   " << response.getCgiBody().size() << std::endl;
+						// std::cout << "CGICGI   " << (int)response.getCgiBody()[0] << std::endl;
 						return ;
 					}
+					// std::cout << "CGICGICGI " << (int)*it[2] << std::endl;
 					it[0]++;
 					it[1]++;
 					it[2]++;
+					// std::cout << "CGICGI+++ " << (int)*it[2] << std::endl;
 				}
 				//process response to header fields and body
 				//find NLNL
 				//Remove header from body
 				//process header
+
+				//always header fix below
+				// std::istringstream header(std::string(response.getCgiBody().begin(), response.getCgiBody().end()));
+				// // std::cout << "Header:" << header << std::endl;
+				// while (std::getline(header, line))
+				// {
+				// 	// std::cout << line << std::endl;
+				// 	line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
+				// 	if (line.find(':') != std::string::npos)
+				// 	{
+				// 		key = line.substr(0, line.find(':')) + ": ";
+				// 		value = line.substr(line.find(':') + 1, line.size());
+				// 		while (value[0] == ' ')
+				// 			value.erase(0, 1);
+				// 	}
+				// 	if (key.size() && value.size())
+				// 	{
+				// 		response.getCgiHeaderFields()[lower(key)] = value;
+				// 	}
+				// 	// std::cout << "key:" << key << std::endl;
+				// 	// std::cout << "value:" << value << std::endl;
+				// 	key.clear();
+				// 	value.clear();
+				// }
+				// response.getCgiBody().clear();
 				return ;
 			}
 			else
