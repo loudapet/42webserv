@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/25 12:13:17 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/13 10:03:26 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -172,9 +172,17 @@ void	HttpResponse::lockStatusCode()
 void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 {
 	if (this->cgiStatus)
-		for (stringmap_t::iterator it = this->cgiHeaderFields.begin(); it != this->cgiHeaderFields.end(); it++)
+	{
+		stringmap_t::iterator it = this->cgiHeaderFields.begin();
+		std::cout << "HIIII" << std::endl;
+		for ( ; it != this->cgiHeaderFields.end(); it++)
+		{
+			std::cout << it->first << it->second << std::endl;
 			if (!(this->headerFields.insert(std::make_pair(it->first, it->second)).second))  // overwrite with CGI values if exists
 				this->headerFields[it->first] = it->second;
+		}
+		std::cout << "HIIII AGAIN" << std::endl;
+	}
 	this->headerFields.insert(std::make_pair("content-length: ", itoa(this->responseBody.size())));
 	//this->headerFields["content-length: "] = itoa(this->responseBody.size());
 	this->headerFields.insert(std::make_pair("date: ", getIMFFixdate()));
