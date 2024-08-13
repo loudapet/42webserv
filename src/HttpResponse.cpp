@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/13 10:03:26 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/13 16:40:29 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -174,14 +174,9 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 	if (this->cgiStatus)
 	{
 		stringmap_t::iterator it = this->cgiHeaderFields.begin();
-		std::cout << "HIIII" << std::endl;
-		for ( ; it != this->cgiHeaderFields.end(); it++)
-		{
-			std::cout << it->first << it->second << std::endl;
+		for ( ; it != this->cgiHeaderFields.end() && it->first != "status: "; it++)
 			if (!(this->headerFields.insert(std::make_pair(it->first, it->second)).second))  // overwrite with CGI values if exists
 				this->headerFields[it->first] = it->second;
-		}
-		std::cout << "HIIII AGAIN" << std::endl;
 	}
 	this->headerFields.insert(std::make_pair("content-length: ", itoa(this->responseBody.size())));
 	//this->headerFields["content-length: "] = itoa(this->responseBody.size());
@@ -479,6 +474,8 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 			this->responseBody.clear();
 			this->responseBody = this->cgiBody;
 		}
+		if (this->statusLine.statusCode == 204)
+			this->responseBody.clear();
 		request.response.buildResponseHeaders(request);
 		request.response.buildCompleteResponse();
 		octets_t message = request.response.getCompleteResponse();
@@ -539,7 +536,7 @@ int	HttpResponse::getRfd(void)
 	return(this->rfd);
 }
 
-stringmap_t	HttpResponse::getCgiHeaderFields(void)
+stringmap_t&	HttpResponse::getCgiHeaderFields(void)
 {
 	return(this->cgiHeaderFields);
 }

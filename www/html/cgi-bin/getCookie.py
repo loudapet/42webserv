@@ -1,32 +1,34 @@
 #!/usr/bin/python3
-from http import cookies as Cookie
-import os, time
 
-cookie = Cookie.SimpleCookie()
-cookie['lastvisit'] = str(time.time())
+import os
+import sys
+import urllib.parse
+import http.cookies as Cookie
 
-print (cookie)
-print ('Content-Type: text/html\n')
+if os.environ.get('REQUEST_METHOD') == "GET":
+	queryStr = os.environ.get('QUERY_STRING')
+	if queryStr:
+		lst = urllib.parse.parse_qsl(queryStr)
+		key = lst[0][1]
+		if 'HTTP_COOKIE' in os.environ:
+			http_cookie = os.environ['HTTP_COOKIE']
 
-print ('<html><body>')
-print ('<p>Server time is' + time.asctime(time.localtime()) + '</p>')
+			# Manually split the cookie string by semicolon and space
+			cookie = Cookie.SimpleCookie()
+			cookies_list = http_cookie.split('; ')
+			for cookie_str in cookies_list:
+				cookie.load(cookie_str)
 
-# The returned cookie is available in the os.environ dictionary
-cookie_string = os.environ.get('HTTP_COOKIE')
-
-# The first time the page is run there will be no cookies
-if not cookie_string:
-    print ('<p>First visit or cookies disabled</p>')
-
-else: # Run the page twice to retrieve the cookie
-    print ('<p>The returned cookie string was "' + cookie_string + '"</p>')
-
-    # load() parses the cookie string
-    cookie.load(cookie_string)
-    # Use the value attribute of the cookie to get it
-    lastvisit = float(cookie['lastvisit'].value)
-
-    print ('<p>Your last visit was at')
-    print (time.asctime(time.localtime(lastvisit)) + '</p>')
-
-print ('</body></html>')
+			if key in cookie:
+				print("HTTP/1.1 200 OK")
+				print("Content-Type: text/plain\n")
+				print("The value of Cookie", key, "is", cookie[key].value)
+				print()
+			else:
+				print("HTTP/1.1 200 OK")
+				print("Content-Type: text/plain\n")
+				print("Cookie not found")
+		else:
+			print("HTTP/1.1 200 OK")
+			print("Content-Type: text/plain\n")
+			print("No cookies found in the request")

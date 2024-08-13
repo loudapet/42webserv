@@ -13,7 +13,7 @@
 			margin: 0 auto;
 			padding: 42px;
 			background-color: #666;
-			color: #ccc
+			color: #ccc;
 			border: 1px solid #ccc;
 			border-radius: 15px;
 			box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
@@ -59,6 +59,11 @@
 		Key: <input type="text" name="key">
 		Value: <input type="text" name="value">
 		<input type="submit" value="Set cookie">
+	</form>
+	<form action="../cgi/getCookie.py" method="get" enctype="multipart/form-data" accept-charset="UTF-8">
+		<h3>Get Cookie</h3>
+		Key: <input type="text" name="key">
+		<input type="submit" value="Get cookie">
 	</form>
 </body>
 </html>
