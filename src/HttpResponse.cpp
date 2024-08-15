@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/13 16:40:29 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/14 10:08:43 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -178,11 +178,12 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 			if (!(this->headerFields.insert(std::make_pair(it->first, it->second)).second))  // overwrite with CGI values if exists
 				this->headerFields[it->first] = it->second;
 	}
-	this->headerFields.insert(std::make_pair("content-length: ", itoa(this->responseBody.size())));
+	if (this->statusLine.statusCode != 204)
+		this->headerFields.insert(std::make_pair("content-length: ", itoa(this->responseBody.size())));
 	//this->headerFields["content-length: "] = itoa(this->responseBody.size());
 	this->headerFields.insert(std::make_pair("date: ", getIMFFixdate()));
 	//this->headerFields["date: "] = getIMFFixdate();
-	if (this->headerFields.find("content-type: ") == this->headerFields.end())
+	if (this->headerFields.find("content-type: ") == this->headerFields.end() && this->statusLine.statusCode != 204)
 		this->headerFields.insert(std::make_pair("content-type: ", "application/octet-stream"));
 		//this->headerFields["content-type: "] = "application/octet-stream";
 	if (request.getConnectionStatus() == CLOSE)

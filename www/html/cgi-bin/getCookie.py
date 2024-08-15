@@ -20,15 +20,15 @@ if os.environ.get('REQUEST_METHOD') == "GET":
 				cookie.load(cookie_str)
 
 			if key in cookie:
-				print("HTTP/1.1 200 OK")
-				print("Content-Type: text/plain\n")
-				print("The value of Cookie", key, "is", cookie[key].value)
-				print()
+				print("Status: 200")
+				print("Content-Type: text/html\n")
+				print("<p>The value of cookie", key, "is", cookie[key].value, "</p>")
 			else:
-				print("HTTP/1.1 200 OK")
-				print("Content-Type: text/plain\n")
-				print("Cookie not found")
+				print("Status: 200")
+				print("Content-Type: text/html\n")
+				print("<p>Cookie not found</p>")
 		else:
-			print("HTTP/1.1 200 OK")
-			print("Content-Type: text/plain\n")
-			print("No cookies found in the request")
+			print("Status: 200")
+			print("Content-Type: text/html\n")
+			print("<p>No cookies found in the request</p>")
+print('<a href="../cookie/cookie.html">Back to cookie page</a>')

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/13 21:51:35 by okraus           ###   ########.fr       */
+/*   Updated: 2024/08/14 10:57:16 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -682,7 +682,7 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 					if ((*it[1] == '\n' && *it[2] == '\n') || (*it[0] == '\n' && *it[1] == '\r' && *it[2] == '\n'))
 					{
 						// std::string 
-						std::istringstream header(std::string(response.getCgiBody().begin(), it[0]));
+						std::istringstream header(std::string(response.getCgiBody().begin(), it[1]));
 						// std::cout << "Header:" << header << std::endl;
 						while (std::getline(header, line))
 						{
