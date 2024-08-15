@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/15 10:29:40 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/15 12:46:56 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -180,34 +180,26 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 	}
 	if (this->statusLine.statusCode != 204)
 		this->headerFields.insert(std::make_pair("content-length: ", itoa(this->responseBody.size())));
-	//this->headerFields["content-length: "] = itoa(this->responseBody.size());
 	this->headerFields.insert(std::make_pair("date: ", getIMFFixdate()));
-	//this->headerFields["date: "] = getIMFFixdate();
 	if (this->headerFields.find("content-type: ") == this->headerFields.end() && this->statusLine.statusCode != 204)
 		this->headerFields.insert(std::make_pair("content-type: ", "application/octet-stream"));
-		//this->headerFields["content-type: "] = "application/octet-stream";
 	if (request.getConnectionStatus() == CLOSE)
 		this->headerFields.insert(std::make_pair("connection: ", "close"));
-		//this->headerFields["connection: "] = "close";
 	else
 	{
 		this->headerFields.insert(std::make_pair("connection: ", "keep-alive"));
-		//this->headerFields["connection: "] = "keep-alive";
 		this->headerFields.insert(std::make_pair("keep-alive: ", std::string("timeout=" + itoa(CONNECTION_TIMEOUT))));
-		//this->headerFields["keep-alive: "] = std::string("timeout=" + itoa(CONNECTION_TIMEOUT));
 	}
-	if (this->statusLine.statusCode >= 300 && this->statusLine.statusCode <= 308)
+if (this->statusLine.statusCode >= 300 && this->statusLine.statusCode <= 308)
 	{
 		if (this->statusDetails == "Trying to access a directory")
-			this->headerFields.insert(std::make_pair("location : ", request.getAbsolutePath() + "/"));
+			this->headerFields.insert(std::make_pair("location: ", request.getAbsolutePath() + "/"));
 			//this->headerFields["location: "] = request.getAbsolutePath() + "/";
-		else
-			this->headerFields.insert(std::make_pair("location : ", request.getLocation().getReturnURLOrBody()));
-			//this->headerFields["location: "] = request.getLocation().getReturnURLOrBody();
-		if (request.getLocation().getReturnURLOrBody().size() > 0 
+		else if (request.getLocation().getReturnURLOrBody().size() > 0 
 			&& *request.getLocation().getReturnURLOrBody().begin() == '/')	// if starts with slash, append scheme + host:port
-			this->headerFields.insert(std::make_pair("location : ", std::string("http://") + request.getLocation().getServerName() + ":8002" + request.getLocation().getReturnURLOrBody()));
-			//this->headerFields["location: "] = std::string("http://") + request.getLocation().getServerName() + ":8002" + request.getLocation().getReturnURLOrBody();
+			this->headerFields.insert(std::make_pair("location: ", std::string("http://") + request.getLocation().getServerName() + ":8002" + request.getLocation().getReturnURLOrBody()));
+		else
+			this->headerFields.insert(std::make_pair("location: ", request.getLocation().getReturnURLOrBody()));
 		// if starts with http(s), append the rest without http(s)
 		// if starts with http(s)://host:port, append path
 	}
