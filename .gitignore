@@ -34,7 +34,7 @@
 # Custom
 obj/
 .vscode/settings.json
-cgi-bin/
+/cgi-bin/
 docs/
 *.cgi
 *.dSYM

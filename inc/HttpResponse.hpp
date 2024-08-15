@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 17:19:11 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/13 10:11:28 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,7 +87,7 @@ class HttpResponse
 		int						getCgiPid(void);
 		int						getWfd(void);
 		int						getRfd(void);
-		stringmap_t				getCgiHeaderFields(void);
+		stringmap_t&				getCgiHeaderFields(void);
 		octets_t&				getCgiBody(void);
 		void					setCgiStatus(int status);
 		void					setCgiPid(int pid);

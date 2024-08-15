@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/12 10:29:23 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/14 10:57:16 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -412,6 +412,8 @@ static void	get_env(Client	&client, char **env)
 		envstrings[upper(it->first)] = it->second;
 	// if (envstrings.find("AUTH_SCHEME") != envstrings.end())	//NOT SUPPORTED
 	// 	envstrings["AUTH_TYPE"] = envstrings.find("AUTH_SCHEME");
+	if (request.getHeaderFields().find("cookie") != request.getHeaderFields().end())
+		envstrings["HTTP_COOKIE"] = request.getHeaderFields().find("cookie")->second;
 	if (request.getRequestBody().size()) //message
 		envstrings["CONTENT_LENGTH"] = itoa(request.getRequestBody().size());
 	if (request.getHeaderFields().find("content-type") != request.getHeaderFields().end()) //Content type
@@ -543,11 +545,13 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 				get_env(client, env);
 				char *ex[2];
 				//ex[0] = (char *)request.getLocation().getRelativeCgiPath().c_str();
-				ex[0] = (char *)"test_cgi-bin/test.cgi";
+				ex[0] = (char *)request.getTargetResource().c_str();
 				ex[1] = NULL;
 				char **av = &ex[0];
 				//execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
+				//std::cout << request.getTargetResource().c_str() << std::endl;
 				execve(request.getTargetResource().c_str(), av, env);
+				//execve("/Library/Frameworks/Python.framework/Versions/3.12/bin/python3", av, env);
 				//clean exit later, get pid is not legal, maybe a better way to do it?
 				for (int i = 0; env[i]; i++)
 				{
@@ -646,12 +650,15 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 			//std::cerr << CLRE "read fail or nothing was read" RESET << std::endl;
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(502, "CGI failure");
+			response.getCgiBody().clear();
 			return ;
 		}
 		if (response.getCgiBody().size() > MAX_FILE_SIZE)
 		{
+			//std::cerr << CLRE "CGI response too large" RESET << std::endl;
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(502, "CGI response too large");
+			response.getCgiBody().clear();
 			return ;
 		}
 		if (wpid == response.getCgiPid())
@@ -672,10 +679,10 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 				it[2]++;
 				while (it[2] != response.getCgiBody().end())
 				{
-					if ((*it[0] == '\n' && *it[1] == '\n') || (*it[0] == '\n' && *it[1] == '\r' && *it[2] == '\n'))
+					if ((*it[1] == '\n' && *it[2] == '\n') || (*it[0] == '\n' && *it[1] == '\r' && *it[2] == '\n'))
 					{
 						// std::string 
-						std::istringstream header(std::string(response.getCgiBody().begin(), it[0]));
+						std::istringstream header(std::string(response.getCgiBody().begin(), it[1]));
 						// std::cout << "Header:" << header << std::endl;
 						while (std::getline(header, line))
 						{
@@ -697,26 +704,53 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 							key.clear();
 							value.clear();
 						}
-						if (*it[1] == '\n')
-							response.getCgiBody().erase(response.getCgiBody().begin(), it[1] + 1);
-						else
-							response.getCgiBody().erase(response.getCgiBody().begin(), it[2] + 1);
+						response.getCgiBody().erase(response.getCgiBody().begin(), it[2] + 1);
+						// std::cout << "CGICGI   " << response.getCgiBody().size() << std::endl;
+						// std::cout << "CGICGI   " << (int)response.getCgiBody()[0] << std::endl;
 						return ;
 					}
+					// std::cout << "CGICGICGI " << (int)*it[2] << std::endl;
 					it[0]++;
 					it[1]++;
 					it[2]++;
+					// std::cout << "CGICGI+++ " << (int)*it[2] << std::endl;
 				}
 				//process response to header fields and body
 				//find NLNL
 				//Remove header from body
 				//process header
+
+				//always header fix below
+				// std::istringstream header(std::string(response.getCgiBody().begin(), response.getCgiBody().end()));
+				// // std::cout << "Header:" << header << std::endl;
+				// while (std::getline(header, line))
+				// {
+				// 	// std::cout << line << std::endl;
+				// 	line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
+				// 	if (line.find(':') != std::string::npos)
+				// 	{
+				// 		key = line.substr(0, line.find(':')) + ": ";
+				// 		value = line.substr(line.find(':') + 1, line.size());
+				// 		while (value[0] == ' ')
+				// 			value.erase(0, 1);
+				// 	}
+				// 	if (key.size() && value.size())
+				// 	{
+				// 		response.getCgiHeaderFields()[lower(key)] = value;
+				// 	}
+				// 	// std::cout << "key:" << key << std::endl;
+				// 	// std::cout << "value:" << value << std::endl;
+				// 	key.clear();
+				// 	value.clear();
+				// }
+				// response.getCgiBody().clear();
 				return ;
 			}
 			else
 			{
 				response.setCgiStatus(CGI_ERROR);
 				response.updateStatus(502, "CGI failure");
+				response.getCgiBody().clear();
 			}
 			return ;
 		}
@@ -879,6 +913,7 @@ void	ServerMaster::listenForConnections(void)
 				//std::string buffStr(buff, buffLen); // prevents invalid read size from valgrind as buff is not null-terminated, it's a binary buffer so that we can send binery files too (e.g. executables)
 				//std::cout << CLR4 << "SEND: " << buffStr << RESET << std::endl;
 				//std::cout << "BUFF: " << client.getReceivedData() << std::endl;
+				std::cout << buff << std::endl;
 				sendResult = send(i, buff, buffLen, 0);
 				if (sendResult == -1)
 				{

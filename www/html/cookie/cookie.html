@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>File Upload Form</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			background-color: #333;
+		}
+
+		form {
+			width: 420px;
+			margin: 0 auto;
+			padding: 42px;
+			background-color: #666;
+			color: #ccc;
+			border: 1px solid #ccc;
+			border-radius: 15px;
+			box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+		}
+
+		h1 {
+			color: indigo;
+		}
+
+		h3 {
+			color: navy;
+		}
+
+		input[type="file"] {
+			margin: 10px 0;
+		}
+
+		input[type="submit"] {
+			background-color: #048;
+			color: #ccc;
+			border: none;
+			padding: 10px 20px;
+			border-radius: 5px;
+			cursor: pointer;
+		}
+
+		input[type="submit"]:hover {
+			background-color: #024;
+			color: #aaa;
+		}
+	</style>
+</head>
+<body>
+	<!-- <form action = "../cgi-bin/set_cookie.py" method = "get">
+        Cookie Name: <input type = "text" name = "key">  <br />
+        <br>
+        Cookie Value: <input type = "text" name = "value" />
+        <input type = "submit" value = "Submit" /> <br />
+    </form> -->
+	<form action="../cgi/setCookie.py" method="get" enctype="multipart/form-data" accept-charset="UTF-8">
+		<h1>42webserv</h1>
+		<h3>Set Cookie</h3>
+		Key: <input type="text" name="key">
+		Value: <input type="text" name="value">
+		<input type="submit" value="Set cookie">
+	</form>
+	<form action="../cgi/getCookie.py" method="get" enctype="multipart/form-data" accept-charset="UTF-8">
+		<h3>Get Cookie</h3>
+		Key: <input type="text" name="key">
+		<input type="submit" value="Get cookie">
+	</form>
+</body>
+</html>
