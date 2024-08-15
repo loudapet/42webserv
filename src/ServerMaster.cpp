@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/14 10:57:16 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/15 12:09:52 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ void	ServerMaster::runWebserv(const std::string &configFile)
 
 	if (configFile.size() < 5 || configFile.substr(configFile.size() - 5) != ".conf")
 		throw(std::runtime_error("Provided config file '" + configFile + "' doesn't have a .conf extension."));
-	fileIsValidAndAccessible(configFile, "Config file");
+	fileIsValidAndAccessible(configFile, "Config");
 	file.open(configFile.c_str());
 	if (!(file >> c)) // check if the file is empty by trying to read a character from it
 		throw(std::runtime_error("Provided config file '" + configFile + "' is empty."));
