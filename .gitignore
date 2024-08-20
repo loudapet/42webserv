@@ -38,6 +38,7 @@ obj/
 docs/
 *.cgi
 *.dSYM
+sessions/
 
 # Executables
 parser

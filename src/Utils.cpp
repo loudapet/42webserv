@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/25 12:59:31 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/18 19:02:54 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -235,6 +235,11 @@ octets_t	convertStringToOctets(std::string str)
 {
 	octets_t vec(str.begin(), str.end());
 	return (vec);
+}
+
+std::string convertOctetsToString(const octets_t& octets)
+{
+    return (std::string(octets.begin(), octets.end()));
 }
 
 void	logSockets(int socket, std::string action)
