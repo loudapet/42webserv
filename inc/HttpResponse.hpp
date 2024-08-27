@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/13 10:11:28 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/27 11:51:35 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,10 @@
 # define CGI_READING 4
 # define CGI_COMPLETE 8
 # define CGI_ERROR 256
+# define POST_STARTED 1
+# define POST_WRITING 2
+# define POST_COMPLETE 8
+# define POST_ERROR 256
 
 class HttpRequest;
 typedef struct StatusLine
