@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/27 12:42:14 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/27 13:01:46 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -439,7 +439,7 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 	if (request.getHasExpect())
 	{
 		Logger::safeLog(INFO, RESPONSE, "100 Continue", this->statusDetails);
-		return (convertStringToOctets("HTTP/1.1 100 Continue"));
+		return (convertStringToOctets("HTTP/1.1 100 Continue\r\n\r\n"));
 	}
 	else
 	{
