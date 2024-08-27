@@ -32,7 +32,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	bool						allowMethodsInConfig;
 	bool						returnInConfig;
 	std::vector<std::string>	allowMethodsLine;
-	std::string 				validMethodsArray[] = {"GET", "POST", "DELETE"};
+	std::string 				validMethodsArray[] = {"GET", "HEAD", "POST", "DELETE"};
 	std::set<std::string> 		validMethods(validMethodsArray, validMethodsArray + sizeof(validMethodsArray) / sizeof(validMethodsArray[0]));
 	
 	initServerConfig();
