@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/27 11:51:35 by okraus           ###   ########.fr       */
+/*   Updated: 2024/08/28 11:00:27 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@
 # define CGI_READING 4
 # define CGI_COMPLETE 8
 # define CGI_ERROR 256
+# define NOPOST 0
 # define POST_STARTED 1
 # define POST_WRITING 2
 # define POST_COMPLETE 8
@@ -52,8 +53,9 @@ class HttpResponse
 		std::map<unsigned short,std::string>	codeDict;
 		octets_t		message;
 		bool			messageTooLongForOneSend;
-		int				cgiStatus; //started
-		int				wfd;	//cgi pipe fd for write
+		int				cgiStatus;
+		int				postStatus;
+		int				wfd;	//cgi and post pipe fd for write
 		int				rfd;	//cgi pipe fd for read
 		int				cgi_pid; //pid of cgi process
 		stringmap_t		cgiHeaderFields;
@@ -88,12 +90,14 @@ class HttpResponse
 		bool					getMessageTooLongForOneSend() const;
 		void					setMessageTooLongForOneSend(bool value);
 		int						getCgiStatus(void);
+		int						getPostStatus(void);
 		int						getCgiPid(void);
 		int						getWfd(void);
 		int						getRfd(void);
-		stringmap_t&				getCgiHeaderFields(void);
+		stringmap_t&			getCgiHeaderFields(void);
 		octets_t&				getCgiBody(void);
 		void					setCgiStatus(int status);
+		void					setPostStatus(int status);
 		void					setCgiPid(int pid);
 		void					setWfd(int fd);
 		void					setRfd(int fd);

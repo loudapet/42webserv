@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/27 11:54:49 by okraus           ###   ########.fr       */
+/*   Updated: 2024/08/28 10:59:22 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -759,285 +759,54 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 
 void	ft_post(ServerMaster &sm, Client &client)
 {
-	(void)sm;
-	(void)client;
-	// HttpRequest&	request = client.request;
-	// HttpResponse&	response = request.response;
-	// int				wpid;
-	// // status code for CGI needs to be properly updated, I think?
-	// //std::cout << CLR6 << request.getLocation().getRelativeCgiPath() << RESET << std::endl;
-	// // this if might deserve its own function later
-	// //if (request.getLocation().getRelativeCgiPath().size())
-	// // std::cout << CLR6 "Processing CGI stuff0" RESET << std::endl;
-	// if (response.getCgiStatus() == NOCGI && request.getLocation().getIsCgi())
-	// 	response.setCgiStatus(CGI_STARTED);
-	// else if (response.getCgiStatus() == CGI_STARTED)
-	// {
-	// 	int	pid;
-	// 	int	fd1[2]; // writing to child
-	// 	int	fd2[2]; // reading from child
-	// 	if (access(request.getTargetResource().c_str(), X_OK) != 0)
-	// 	{
-	// 		std::cerr << "Error: access CGI" << std::endl;
-	// 		response.setCgiStatus(CGI_ERROR);
-	// 		response.updateStatus(500, "Cannot access CGI file");
-	// 		return ;
-	// 	}
-	// 	if (pipe(fd1) == -1)
-	// 	{
-	// 		std::cerr << "Error: Pipe" << std::endl;
-	// 		response.setCgiStatus(CGI_ERROR);
-	// 		response.updateStatus(500, "Piping failed");
-	// 		return ;
-	// 	}
-	// 	if (pipe(fd2) == -1 )
-	// 	{
-	// 		close(fd1[0]);
-	// 		close(fd1[1]);
-	// 		std::cerr << "Error: Pipe" << std::endl;
-	// 		response.setCgiStatus(CGI_ERROR);
-	// 		response.updateStatus(500, "Piping failed");
-	// 		return ;
-	// 	}
-	// 	else
-	// 	{
-	// 		pid = fork();
-	// 		if (pid == -1)
-	// 		{
-	// 			close(fd1[0]);
-	// 			close(fd1[1]);
-	// 			close(fd2[0]);
-	// 			close(fd2[1]);
-	// 			std::cerr << "Error: Fork" << std::endl;
-	// 			response.setCgiStatus(CGI_ERROR);
-	// 			response.updateStatus(500, "Forking failed");
-	// 			return ;
-	// 		}
-	// 		else if (pid == 0)
-	// 		{
-	// 			//child
-	// 			//some shenanigans to get execve working
-	// 			dup2 (fd1[0], STDIN_FILENO);
-	// 			close (fd1[0]);
-	// 			close (fd1[1]);
-	// 			dup2 (fd2[1], STDOUT_FILENO);
-	// 			close (fd2[0]);
-	// 			close (fd2[1]);
-	// 			char *env_vars[250];
-	// 			char **env = &env_vars[0];
-	// 			get_env(client, env);
-	// 			char *ex[2];
-	// 			//ex[0] = (char *)request.getLocation().getRelativeCgiPath().c_str();
-	// 			ex[0] = (char *)request.getTargetResource().c_str();
-	// 			ex[1] = NULL;
-	// 			char **av = &ex[0];
-	// 			//execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
-	// 			//std::cout << request.getTargetResource().c_str() << std::endl;
-	// 			execve(request.getTargetResource().c_str(), av, env);
-	// 			//execve("/Library/Frameworks/Python.framework/Versions/3.12/bin/python3", av, env);
-	// 			//clean exit later, get pid is not legal, maybe a better way to do it?
-	// 			for (int i = 0; env[i]; i++)
-	// 			{
-	// 				delete env[i];
-	// 			}
-	// 			std::cerr << "Failed to execute: " << ex[0] << std::endl;
-	// 			kill(getpid(), SIGINT);
-	// 			exit (1);
-	// 		}
-	// 		else
-	// 		{
-	// 			response.setCgiStatus(CGI_WRITING);
-	// 			response.setCgiPid(pid);
-	// 			response.setWfd(fd1[1]);
-	// 			response.setRfd(fd2[0]);
-	// 			//parent
-	// 			//close reading end of the first pipe
-	// 			close(fd1[0]);
-	// 			//close writing end of the second pipe
-	// 			close(fd2[1]);
-	// 			return ;
-				
-	// 			// continue on 0 read
-	// 		}
-	// 	}
-	// }
-	// else if (response.getCgiStatus() == CGI_WRITING)
-	// {
-	// 	size_t			w = 0;
-	// 	size_t			wsize;
-	// 	//std::string body(request.getRequestBody().begin(), request.getRequestBody().end());
-	// 	unsigned char	wbuffer[CGI_BUFFER_SIZE];
-	// 	if (!sm.fdIsSetWrite(response.getWfd()))
-	// 		return ;
-	// 	wsize = request.getRequestBody().size();
-	// 	if (wsize > CGI_BUFFER_SIZE)
-	// 		wsize = CGI_BUFFER_SIZE;
-	// 	if (wsize)
-	// 	{
-	// 		std::copy(request.getRequestBody().begin(), request.getRequestBody().begin() + wsize, wbuffer);
-	// 		w = write(response.getWfd(), wbuffer, wsize);
-	// 	}
-	// 	if (w > 0)
-	// 	{
-	// 		request.getRequestBody().erase(request.getRequestBody().begin(), request.getRequestBody().begin() + w);
-	// 		return ;
-	// 	}
-	// 	else if (!wsize)
-	// 	{
-	// 		//std::cout << CLR6 "Written to CGI" RESET << std::endl;
-	// 		response.setCgiStatus(CGI_READING);
-	// 		return ;
-	// 	}
-	// 	else
-	// 	{
-	// 		//std::cerr << CLRE "write fail or nothing was written" RESET << std::endl;
-	// 		response.setCgiStatus(CGI_ERROR);
-	// 		response.updateStatus(502, "CGI failure");
-	// 		return ;
-	// 	}
-	// }
-	// else if (response.getCgiStatus() == CGI_READING)
-	// {
-	// 	int	status;
-	// 	int	r;
-	// 	uint8_t	buffer[CGI_BUFFER_SIZE];
-	// 	// read needs to be in select somehow
-	// 	//what is read is sent?
-	// 	// close when read finished (<= 0)
-	// 	// fork and wait ? Make it non blocking
-	// 	// waitpid WNOHANG? flag for waiting for a response?
-	// 	if (!sm.fdIsSetRead(response.getRfd()))
-	// 		return ;
-	// 	wpid = waitpid(response.getCgiPid(), &status, WNOHANG);
-	// 	r = read(response.getRfd(), buffer, CGI_BUFFER_SIZE);
-	// 	if (r > 0)
-	// 	{
-	// 		// octets_t message;
-	// 		for (int i = 0; i < r; i++)
-	// 		{
-	// 			//there might be a better way
-	// 			response.getCgiBody().push_back(buffer[i]);
-	// 			// std::cout << CLR2 << "CGI MAIN STUFF" << response.getCgiBody().size() << RESET << std::endl;
-	// 		}
-	// 		//std::cout << CLR2 << "CGI MAIN STUFF" << response.getCgiBody().size() << RESET << std::endl;
-	// 		//std::cout << CLR2 << "if exited" << WIFEXITED(status) << RESET << std::endl;
-	// 		//std::cout << CLR2 << "status" << WEXITSTATUS(status) << RESET << std::endl;
-	// 		//std::cout << CLR2 << "if signalled" << WIFSIGNALED(status) << RESET << std::endl;
-	// 		//std::cout << CLR2 << "status" << WTERMSIG(status) << RESET << std::endl;
-	// 		// std::string str(response.getCgiBody().begin(), response.getCgiBody().end());
-	// 		// std::cout << str << std::endl;
-	// 		//std::cout << CLR6 "CGI Processed! " << r << RESET << std::endl;
-	// 	}
-	// 	else if (r < 0)
-	// 	{
-	// 		//std::cerr << CLRE "read fail or nothing was read" RESET << std::endl;
-	// 		response.setCgiStatus(CGI_ERROR);
-	// 		response.updateStatus(502, "CGI failure");
-	// 		response.getCgiBody().clear();
-	// 		return ;
-	// 	}
-	// 	if (response.getCgiBody().size() > MAX_FILE_SIZE)
-	// 	{
-	// 		//std::cerr << CLRE "CGI response too large" RESET << std::endl;
-	// 		response.setCgiStatus(CGI_ERROR);
-	// 		response.updateStatus(502, "CGI response too large");
-	// 		response.getCgiBody().clear();
-	// 		return ;
-	// 	}
-	// 	if (wpid == response.getCgiPid())
-	// 	{
-	// 		if (WIFEXITED(status) && !WEXITSTATUS(status))
-	// 		{
-	// 			std::string			line;
-	// 			std::string			key;
-	// 			std::string			value;
-	// 			octets_t::iterator	it[4];
-	// 			response.setCgiStatus(CGI_COMPLETE);
-	// 			if (response.getCgiBody().size() < 4)
-	// 				return ;
-	// 			it[0] = response.getCgiBody().begin();
-	// 			it[1] = it[0];
-	// 			it[1]++;
-	// 			it[2] = it[1];
-	// 			it[2]++;
-	// 			while (it[2] != response.getCgiBody().end())
-	// 			{
-	// 				if ((*it[1] == '\n' && *it[2] == '\n') || (*it[0] == '\n' && *it[1] == '\r' && *it[2] == '\n'))
-	// 				{
-	// 					// std::string 
-	// 					std::istringstream header(std::string(response.getCgiBody().begin(), it[1]));
-	// 					// std::cout << "Header:" << header << std::endl;
-	// 					while (std::getline(header, line))
-	// 					{
-	// 						// std::cout << line << std::endl;
-	// 						line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
-	// 						if (line.find(':') != std::string::npos)
-	// 						{
-	// 							key = line.substr(0, line.find(':')) + ": ";
-	// 							value = line.substr(line.find(':') + 1, line.size());
-	// 							while (value[0] == ' ')
-	// 								value.erase(0, 1);
-	// 						}
-	// 						if (key.size() && value.size())
-	// 						{
-	// 							response.getCgiHeaderFields()[lower(key)] = value;
-	// 						}
-	// 						// std::cout << "key:" << key << std::endl;
-	// 						// std::cout << "value:" << value << std::endl;
-	// 						key.clear();
-	// 						value.clear();
-	// 					}
-	// 					response.getCgiBody().erase(response.getCgiBody().begin(), it[2] + 1);
-	// 					// std::cout << "CGICGI   " << response.getCgiBody().size() << std::endl;
-	// 					// std::cout << "CGICGI   " << (int)response.getCgiBody()[0] << std::endl;
-	// 					return ;
-	// 				}
-	// 				// std::cout << "CGICGICGI " << (int)*it[2] << std::endl;
-	// 				it[0]++;
-	// 				it[1]++;
-	// 				it[2]++;
-	// 				// std::cout << "CGICGI+++ " << (int)*it[2] << std::endl;
-	// 			}
-	// 			//process response to header fields and body
-	// 			//find NLNL
-	// 			//Remove header from body
-	// 			//process header
+	HttpRequest&	request = client.request;
+	HttpResponse&	response = request.response;
 
-	// 			//always header fix below
-	// 			// std::istringstream header(std::string(response.getCgiBody().begin(), response.getCgiBody().end()));
-	// 			// // std::cout << "Header:" << header << std::endl;
-	// 			// while (std::getline(header, line))
-	// 			// {
-	// 			// 	// std::cout << line << std::endl;
-	// 			// 	line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
-	// 			// 	if (line.find(':') != std::string::npos)
-	// 			// 	{
-	// 			// 		key = line.substr(0, line.find(':')) + ": ";
-	// 			// 		value = line.substr(line.find(':') + 1, line.size());
-	// 			// 		while (value[0] == ' ')
-	// 			// 			value.erase(0, 1);
-	// 			// 	}
-	// 			// 	if (key.size() && value.size())
-	// 			// 	{
-	// 			// 		response.getCgiHeaderFields()[lower(key)] = value;
-	// 			// 	}
-	// 			// 	// std::cout << "key:" << key << std::endl;
-	// 			// 	// std::cout << "value:" << value << std::endl;
-	// 			// 	key.clear();
-	// 			// 	value.clear();
-	// 			// }
-	// 			// response.getCgiBody().clear();
-	// 			return ;
-	// 		}
-	// 		else
-	// 		{
-	// 			response.setCgiStatus(CGI_ERROR);
-	// 			response.updateStatus(502, "CGI failure");
-	// 			response.getCgiBody().clear();
-	// 		}
-	// 		return ;
-	// 	}
-	// }
+	if (response.getPostStatus() == NOPOST)
+	{
+		int fd;
+		fd = open(request.getTargetResource().c_str(), O_WRONLY | O_CREAT | O_TRUNC);
+		if (fd < 0)
+		{
+			response.setPostStatus(POST_ERROR);
+			response.updateStatus(500, "POST failure, could not open file");
+		}
+		response.setWfd(fd);
+		response.setPostStatus(POST_STARTED);
+	}
+	else if (response.getPostStatus() == POST_WRITING)
+	{
+		size_t			w = 0;
+		size_t			wsize;
+		unsigned char	wbuffer[POST_BUFFER_SIZE];
+		if (!sm.fdIsSetWrite(response.getWfd()))
+			return ;
+		wsize = request.getRequestBody().size();
+		if (wsize > POST_BUFFER_SIZE)
+			wsize = POST_BUFFER_SIZE;
+		if (wsize)
+		{
+			std::copy(request.getRequestBody().begin(), request.getRequestBody().begin() + wsize, wbuffer);
+			w = write(response.getWfd(), wbuffer, wsize);
+		}
+		if (w > 0)
+		{
+			request.getRequestBody().erase(request.getRequestBody().begin(), request.getRequestBody().begin() + w);
+			return ;
+		}
+		else if (!wsize)
+		{
+			response.updateStatus(201, request.getTargetResource().c_str());
+			response.setPostStatus(POST_COMPLETE);
+			return ;
+		}
+		else
+		{
+			response.setPostStatus(POST_ERROR);
+			response.updateStatus(500, "POST failure");
+			return ;
+		}
+	}
 }
 
 void	ServerMaster::listenForConnections(void)
@@ -1177,10 +946,30 @@ void	ServerMaster::listenForConnections(void)
 					if (cgi_status < CGI_COMPLETE)
 						continue ;
 				}
-				//if posting
-				// if post status == STARTED
-				// if POSt status == COMPLETE
-				// if post status == ERROR
+				if (client.request.getRequestLine().method == "POST"
+					&& (client.request.response.getStatusLine().statusCode == 200))
+				{
+					int old_post_status = client.request.response.getPostStatus();
+					ft_post(*this, client);
+					int post_status = client.request.response.getPostStatus();
+					// # define POST_STARTED 1
+					// # define POST_WRITING 2
+					// # define POST_COMPLETE 8
+					// # define POST_ERROR 256
+					if (post_status == POST_STARTED)
+					{
+						addFdToSet(this->_writeFds, client.request.response.getWfd());
+						response.setPostStatus(POST_WRITING);
+						continue ;
+					}
+					else if (post_status == POST_WRITING)
+						continue ;
+					else if (old_post_status== POST_WRITING && post_status != POST_WRITING)
+					{
+						close(client.request.response.getWfd());
+						removeFdToSet(this->_writeFds, client.request.response.getWfd());
+					}
+				}
 				if (!client.request.response.getMessageTooLongForOneSend())
 					client.request.response.setMessage(client.request.response.prepareResponse(client.request));
 				octets_t message = client.request.response.getMessage();
