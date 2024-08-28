@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 11:37:28 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 12:05:45 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -438,6 +438,32 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 	this->responseBody = convertStringToOctets(body.str());
 	closedir(dirPtr);
 }
+
+void	HttpResponse::deleteFile(const std::string& targetResource)
+{
+	int			validFile;
+	struct stat	fileCheckBuff;
+	validFile = stat(targetResource.c_str(), &fileCheckBuff);
+	if (validFile < 0)
+		throw (std::exception());
+	if (S_ISDIR(fileCheckBuff.st_mode))
+	{
+		DIR*	dirPtr;
+		dirPtr = opendir(targetResource.c_str());
+		for (dirent* dir = readdir(dirPtr); dir != NULL; dir = readdir(dirPtr))
+		{
+			std::stringstream	tempstream;
+			std::string	path = dir->d_name;
+			if (path == "." || path == "..")
+				continue;
+			path = targetResource + path;
+			this->deleteFile(path);
+		}
+		closedir(dirPtr);
+	}
+	std::remove(targetResource.c_str());
+}
+
 void	HttpResponse::readReturnDirective(const Location &location)
 {
 	this->responseBody = convertStringToOctets(location.getReturnURLOrBody());
@@ -492,7 +518,15 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 			{
 				this->statusLine.statusCode = 204;
 				this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
-				// additionally: delete the file
+				try
+				{
+					request.response.deleteFile(request.getTargetResource());
+				}
+				catch(const std::exception& e)
+				{
+					this->statusLine.statusCode = 500;
+					this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
+				}
 			}
 			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
 				request.response.readReturnDirective(request.getLocation());

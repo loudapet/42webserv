@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 11:00:27 by okraus           ###   ########.fr       */
+/*   Updated: 2024/08/28 11:43:00 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,6 +65,7 @@ class HttpResponse
 		void				readErrorPage(const Location &location);
 		void				readReturnDirective(const Location &Location);
 		void				readDirectoryListing(const std::string& targetResource);
+		void				deleteFile(const std::string& targetResource);
 		void				buildResponseHeaders(const HttpRequest& request);
 		void				buildCompleteResponse();
 

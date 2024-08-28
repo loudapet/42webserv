@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 11:22:56 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 11:49:43 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -665,10 +665,12 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 		if (validFile < 0)
 			this->response.updateStatus(404, "File does not exist");
 		std::string	dirPath; // check write and execute permissions of the parent folder
-		if (this->targetResource.find_last_of("/") != std::string::npos)
+		if (*targetResource.rbegin() == '/') // target is a directory
+			dirPath = this->targetResource + "..";
+		else if (this->targetResource.find_last_of("/") != std::string::npos)
 			dirPath = this->targetResource.substr(0, this->targetResource.find_last_of("/"));
-		else
-			dirPath = ".";
+		// else
+		// 	dirPath = ".";
 		if (access(dirPath.c_str(), W_OK | X_OK) < 0)
 			this->response.updateStatus(403, "Insufficient path permissions");
 	}
