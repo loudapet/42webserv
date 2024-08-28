@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/27 12:31:05 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 11:06:15 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -466,8 +466,7 @@ stringpair_t	HttpRequest::parseHeader(octets_t header)
 		throw (ResponseException(400, "Improperly terminated header-field section"));
 	this->parseFieldSection(splitLines);
 	authority = this->resolveHost();
-	Logger::safeLog(DEBUG, REQUEST, "Resolved host:\t", authority.first);
-	Logger::safeLog(DEBUG, REQUEST, "Resolved port:\t", authority.second);
+	Logger::safeLog(DEBUG, REQUEST, "Authority: ", authority.first + ":" + authority.second);
 	return (authority);
 }
 
@@ -594,7 +593,6 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 	this->targetResource.replace(pos, path.length(), root);
 	this->allowedDirListing = location.getAutoindex();
 	removeDoubleSlash(this->targetResource);
-	//std::cout << CLR3 << "CGI path:\t" << location.getRelativeCgiPath() << RESET << std::endl;
 	if (!this->isRedirect && !isCgi && (this->requestLine.method == "GET" || this->requestLine.method == "HEAD")) //&& this->requestLine.method == "GET"
 	{
 		validFile = stat(targetResource.c_str(), &fileCheckBuff);

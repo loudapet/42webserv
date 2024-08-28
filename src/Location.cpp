@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/05 15:02:52 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/28 10:52:28 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,6 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 	allowMethodsInConfig = false;
 	isCgiInConfig = false;
 	this->_path = locationPath;
-	//std::cout << "Location block: " << locationScope << std::endl;
 	for (size_t i = 0; i < locationBlockElements.size(); i++)
 	{
 		if (locationBlockElements[i] == "root" && (i + 1) < locationBlockElements.size()
@@ -144,10 +143,7 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 			errorPageLine.clear();
 		}
 		else if (locationBlockElements[i] != "{" && locationBlockElements[i] != "}")
-		{
-			//std::cout << "unsupported: " << locationScope[i] << std::endl;
 			throw (std::runtime_error("Config parser: Invalid directive in a location block."));
-		}
 	}
 	// the location will be completed back in ServerConfig loop over the serverScopeElements as access to the server values is needed
 }
