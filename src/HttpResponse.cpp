@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 16:58:25 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 17:09:10 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -206,7 +206,7 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 			this->headerFields.insert(std::make_pair("location: ", request.getAbsolutePath() + "/"));
 		else if (request.getLocation().getReturnURLOrBody().size() > 0 
 			&& *request.getLocation().getReturnURLOrBody().begin() == '/')	// if starts with slash, prepend scheme + host:port
-			this->headerFields.insert(std::make_pair("location: ", std::string("http://") + request.getLocation().getServerName() + itoa(request.getLocation().getPort()) + request.getLocation().getReturnURLOrBody()));
+			this->headerFields.insert(std::make_pair("location: ", std::string("http://") + request.getLocation().getServerName() + ":" + itoa(request.getLocation().getPort()) + request.getLocation().getReturnURLOrBody()));
 		else
 			this->headerFields.insert(std::make_pair("location: ", request.getLocation().getReturnURLOrBody()));
 		// if starts with http(s), append the rest without http(s)

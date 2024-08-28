@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 16:10:54 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 17:12:36 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -586,9 +586,9 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 	std::string	root = location.getRoot();
 	if (*this->requestLine.requestTarget.absolutePath.rbegin() == '/' && *path.rbegin() != '/')
 		path = path + "/";
-	Logger::safeLog(DEBUG, REQUEST, "Location path:\t", path);
-	Logger::safeLog(DEBUG, REQUEST, "Location root:\t", root);
-	Logger::safeLog(DEBUG, REQUEST, "Absolute URL:\t", this->requestLine.requestTarget.absolutePath);
+	Logger::safeLog(DEBUG, REQUEST, "Location path: ", path);
+	Logger::safeLog(DEBUG, REQUEST, "Location root: ", root);
+	Logger::safeLog(DEBUG, REQUEST, "Absolute URL: ", this->requestLine.requestTarget.absolutePath);
 	std::size_t pos = this->requestLine.requestTarget.absolutePath.find(path);
 	this->targetResource = this->requestLine.requestTarget.absolutePath;
 	this->targetResource.replace(pos, path.length(), root);
@@ -726,7 +726,7 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 		this->response.setStatusCode(location.getReturnCode());
 		Logger::safeLog(INFO, REQUEST, "Return directive specifies return code: ", itoa(location.getReturnCode()));
 	}
-	Logger::safeLog(DEBUG, REQUEST, "Target resource:\t", this->targetResource);
+	Logger::safeLog(DEBUG, REQUEST, "Target resource: ", this->targetResource);
 }
 
 void	HttpRequest::validateMessageFraming(void)
