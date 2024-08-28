@@ -55,7 +55,7 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 	bool						allowMethodsInConfig;
 	bool						isCgiInConfig;
 	std::vector<std::string>	allowMethodsLine;
-	std::string 				validMethodsArray[] = {"GET", "POST", "DELETE"};
+	std::string 				validMethodsArray[] = {"GET", "HEAD", "POST", "DELETE"};
 	std::set<std::string> 		validMethods(validMethodsArray, validMethodsArray + sizeof(validMethodsArray) / sizeof(validMethodsArray[0]));
 	std::vector<std::string>	errorPageLine; // to validate error page lines
 	std::istringstream			iss; // convert error code to short
