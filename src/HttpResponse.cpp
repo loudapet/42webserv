@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/27 13:01:46 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 10:15:49 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -177,6 +177,12 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 		for ( ; it != this->cgiHeaderFields.end() && it->first != "status: "; it++)
 			if (!(this->headerFields.insert(std::make_pair(it->first, it->second)).second))  // overwrite with CGI values if exists
 				this->headerFields[it->first] = it->second;
+	}
+	if (request.getRequestLine().httpVersion == "1.0")
+	{
+		this->statusLine.httpVersion = "HTTP/1.0";
+		if (this->headerFields.find("transfer-encoding: ") != this->headerFields.end()) // this will ensure compliance with 1.0, but will likely invalidate the response client-side
+			this->headerFields.erase(this->headerFields.find("transfer-encoding: "));
 	}
 	if (this->statusLine.statusCode != 204 && this->statusLine.statusCode != 304 && request.getRequestLine().method != "HEAD")
 		this->headerFields.insert(std::make_pair("content-length: ", itoa(this->responseBody.size())));
