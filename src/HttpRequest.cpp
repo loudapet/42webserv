@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 12:48:31 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 16:10:54 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -92,10 +92,9 @@ HttpRequest::~HttpRequest()
 
 void	HttpRequest::parseMethod(std::string& token)
 {
-	if (token == "GET" || token == "POST" || token == "DELETE")
+	if (token == "GET" || token == "POST" || token == "DELETE" || token == "HEAD" )
 		this->requestLine.method = token;
-	else if (token == "HEAD" || token == "PUT" || token == "CONNECT"
-			|| token == "OPTIONS" || token == "PATCH" || token == "TRACE")
+	else if (token == "PUT" || token == "CONNECT" || token == "OPTIONS" || token == "PATCH" || token == "TRACE")
 		this->response.updateStatus(501, "Method not supported");
 }
 
@@ -293,6 +292,7 @@ void	HttpRequest::parseRequestLine(std::string requestLine)
 									&HttpRequest::parseRequestTarget,
 									&HttpRequest::parseHttpVersion};
 
+	Logger::safeLog(INFO, REQUEST, "Request line: ", requestLine);
 	while (space != requestLine.end() || requestLine.size() != 0) // size != 0 to grab the last segment
 	{
 		std::string token(requestLine.begin(), space);
@@ -466,7 +466,7 @@ stringpair_t	HttpRequest::parseHeader(octets_t header)
 		throw (ResponseException(400, "Improperly terminated header-field section"));
 	this->parseFieldSection(splitLines);
 	authority = this->resolveHost();
-	Logger::safeLog(DEBUG, REQUEST, "Authority: ", authority.first + ":" + authority.second);
+	Logger::safeLog(INFO, REQUEST, "Authority: ", authority.first + ":" + authority.second);
 	return (authority);
 }
 
@@ -554,6 +554,7 @@ void	HttpRequest::validateConnectionOption(void)
 			std::transform(param->begin(), param->end(), param->begin(), tolower);
 		}
 	}
+	Logger::safeLog(DEBUG, REQUEST, "Indicated connection: ", (this->connectionStatus ? "keep-alive" : "close"));
 }
 
 static void	removeDoubleSlash(std::string& str)

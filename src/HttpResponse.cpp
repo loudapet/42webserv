@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 13:23:28 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 16:58:25 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -206,7 +206,7 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 			this->headerFields.insert(std::make_pair("location: ", request.getAbsolutePath() + "/"));
 		else if (request.getLocation().getReturnURLOrBody().size() > 0 
 			&& *request.getLocation().getReturnURLOrBody().begin() == '/')	// if starts with slash, prepend scheme + host:port
-			this->headerFields.insert(std::make_pair("location: ", std::string("http://") + request.getLocation().getServerName() + ":8002" + request.getLocation().getReturnURLOrBody()));
+			this->headerFields.insert(std::make_pair("location: ", std::string("http://") + request.getLocation().getServerName() + itoa(request.getLocation().getPort()) + request.getLocation().getReturnURLOrBody()));
 		else
 			this->headerFields.insert(std::make_pair("location: ", request.getLocation().getReturnURLOrBody()));
 		// if starts with http(s), append the rest without http(s)
@@ -443,13 +443,13 @@ void	HttpResponse::deleteFile(const std::string& targetResource, const Location&
 {
 	if (targetResource.size() < location.getRoot().size())
 	{
-		Logger::safeLog(DEBUG, RESPONSE, "Attempt at deleting above server root ", NULL);
+		Logger::safeLog(DEBUG, RESPONSE, "Attempt at deleting above server root ", "");
 		throw (std::exception());
 	}
 	std::string	targetRoot = targetResource.substr(0, location.getRoot().size());
 	if (targetRoot != location.getRoot())
 	{
-		Logger::safeLog(DEBUG, RESPONSE, "Attempt at deleting outside server root ", NULL);
+		Logger::safeLog(DEBUG, RESPONSE, "Attempt at deleting outside server root ", "");
 		throw (std::exception());
 	}
 	int			validFile;

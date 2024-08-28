@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/28 16:57:00 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/28 17:04:31 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ void	ServerMaster::runWebserv(const std::string &configFile)
 
 	if (configFile.size() < 5 || configFile.substr(configFile.size() - 5) != ".conf")
 		throw(std::runtime_error("Provided config file '" + configFile + "' doesn't have a .conf extension."));
-	fileIsValidAndAccessible(configFile, "Config");
+	fileIsValidAndAccessible(configFile, "Config file");
 	file.open(configFile.c_str());
 	if (!(file >> c)) // check if the file is empty by trying to read a character from it
 		throw(std::runtime_error("Provided config file '" + configFile + "' is empty."));
@@ -940,7 +940,6 @@ void	ServerMaster::listenForConnections(void)
 				if (sendResult == -1)
 				{
 					Logger::safeLog(WARNING, RESPONSE, "send() failed, ", "closing connection.");
-					//std::cerr << "Error sending acknowledgement to client." << std::endl;
 					closeConnection(i);
 				}
 				else if (sendResult < static_cast<int>(buffLen))
@@ -1072,7 +1071,7 @@ void	ServerMaster::acceptConnection(int serverSocket)
 	if (getsockname(clientSocket, (struct sockaddr *)&serverAddr, &lenClientAddr) == -1)
 		throw(std::runtime_error("Getsockname failed."));
 	newClient.setPortConnectedOn(ntohs(serverAddr.sin_port));
-	Logger::safeLog(INFO, SERVER, "Client connected to server port: ", itoa(newClient.getPortConnectedOn()));
+	//Logger::safeLog(INFO, SERVER, "Client connected to server port: ", itoa(newClient.getPortConnectedOn()));
 	newClient.updateTimeLastMessage();
 	newClient.updateTimeLastValidHeaderEnd();
 	addFdToSet(this->_readFds, clientSocket);
