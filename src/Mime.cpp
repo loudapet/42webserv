@@ -128,14 +128,4 @@ void Mime::parseMimeTypes(const std::string &mimeTypesFilePath)
 			if (it->second.size() > 0)
 				for (std::set<std::string>::iterator itr = it->second.begin(); itr != it->second.end(); itr++)
 					this->_mimeTypesDictInv[*itr] = it->first;
-
-	// std::map<std::string, std::set<std::string> >::const_iterator mapIt;
-    // for (mapIt = this->_mimeTypesDict.begin(); mapIt != this->_mimeTypesDict.end(); ++mapIt)
-    // {
-    //     std::cout << mapIt->first << ": ";
-    //     std::set<std::string>::const_iterator setIt;
-    //     for (setIt = mapIt->second.begin(); setIt != mapIt->second.end(); ++setIt)
-    //         std::cout << *setIt << " ";
-    //     std::cout << "|" << std::endl;
-    // }
 }

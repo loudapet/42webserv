@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/18 19:06:55 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/28 13:16:22 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -372,21 +372,12 @@ static std::string	getPathTranslated(Client &client)
 {
 	HttpRequest&	request = client.request;
 	Location cgi_location = matchLocation(request.getCgiPathInfo(), client.getServerConfig(), request.getLocation().getServerName());
-
 	
 	std::string path_translated;
-	// removeDoubleSlash(path_translated);
-	// 	bool		isCgi = location.getIsCgi();
-	// int			validFile;
-	// struct stat	fileCheckBuff;
 	std::string	path = cgi_location.getPath();
 	std::string	root = cgi_location.getRoot();
 	std::string	url = request.getCgiPathInfo();
-	// if (*this->requestLine.requestTarget.absolutePath.rbegin() == '/' && *path.rbegin() != '/')
-	// 	path = path + "/";
-	std::cerr << CLR4 << "PATH:\t" << path << RESET << std::endl;
-	std::cerr << CLR4 << "ROOT:\t" << root << RESET << std::endl;
-	std::cerr << CLR4 << "URL:\t" << url << RESET << std::endl;
+
 	path_translated = url;
 	url.erase(0, path.length());
 	if (root.size() && *root.rbegin() == '/')
@@ -394,7 +385,6 @@ static std::string	getPathTranslated(Client &client)
 	if (url.size() && *url.begin() == '/')
 		url.erase((url.begin()));
 	path_translated = root + "/" + url;
-	std::cerr << CLR4 << "FINAL:\t" << path_translated << RESET << std::endl;
 	return (path_translated);
 }
 
@@ -449,7 +439,6 @@ static void	get_env(Client	&client, char **env)
 		str.clear();
 		e++;
 	}
-	std::cerr << "e is: " << e << std::endl;
 	env[e] = NULL;
 }
 
@@ -482,10 +471,6 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 	HttpResponse&	response = request.response;
 	int				wpid;
 	// status code for CGI needs to be properly updated, I think?
-	//std::cout << CLR6 << request.getLocation().getRelativeCgiPath() << RESET << std::endl;
-	// this if might deserve its own function later
-	//if (request.getLocation().getRelativeCgiPath().size())
-	// std::cout << CLR6 "Processing CGI stuff0" RESET << std::endl;
 	if (response.getCgiStatus() == NOCGI && request.getLocation().getIsCgi())
 		response.setCgiStatus(CGI_STARTED);
 	else if (response.getCgiStatus() == CGI_STARTED)
@@ -495,14 +480,12 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 		int	fd2[2]; // reading from child
 		if (access(request.getTargetResource().c_str(), X_OK) != 0)
 		{
-			std::cerr << "Error: access CGI" << std::endl;
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(500, "Cannot access CGI file");
 			return ;
 		}
 		if (pipe(fd1) == -1)
 		{
-			std::cerr << "Error: Pipe" << std::endl;
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(500, "Piping failed");
 			return ;
@@ -511,7 +494,6 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 		{
 			close(fd1[0]);
 			close(fd1[1]);
-			std::cerr << "Error: Pipe" << std::endl;
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(500, "Piping failed");
 			return ;
@@ -525,7 +507,6 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 				close(fd1[1]);
 				close(fd2[0]);
 				close(fd2[1]);
-				std::cerr << "Error: Fork" << std::endl;
 				response.setCgiStatus(CGI_ERROR);
 				response.updateStatus(500, "Forking failed");
 				return ;
@@ -544,20 +525,15 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 				char **env = &env_vars[0];
 				get_env(client, env);
 				char *ex[2];
-				//ex[0] = (char *)request.getLocation().getRelativeCgiPath().c_str();
 				ex[0] = (char *)request.getTargetResource().c_str();
 				ex[1] = NULL;
 				char **av = &ex[0];
-				//execve(request.getLocation().getRelativeCgiPath().c_str(), av, env);
-				//std::cout << request.getTargetResource().c_str() << std::endl;
 				execve(request.getTargetResource().c_str(), av, env);
-				//execve("/Library/Frameworks/Python.framework/Versions/3.12/bin/python3", av, env);
 				//clean exit later, get pid is not legal, maybe a better way to do it?
 				for (int i = 0; env[i]; i++)
 				{
 					delete env[i];
 				}
-				std::cerr << "Failed to execute: " << ex[0] << std::endl;
 				kill(getpid(), SIGINT);
 				exit (1);
 			}
@@ -601,13 +577,11 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 		}
 		else if (!wsize)
 		{
-			//std::cout << CLR6 "Written to CGI" RESET << std::endl;
 			response.setCgiStatus(CGI_READING);
 			return ;
 		}
 		else
 		{
-			//std::cerr << CLRE "write fail or nothing was written" RESET << std::endl;
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(502, "CGI failure");
 			return ;
@@ -634,20 +608,10 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 			{
 				//there might be a better way
 				response.getCgiBody().push_back(buffer[i]);
-				// std::cout << CLR2 << "CGI MAIN STUFF" << response.getCgiBody().size() << RESET << std::endl;
 			}
-			//std::cout << CLR2 << "CGI MAIN STUFF" << response.getCgiBody().size() << RESET << std::endl;
-			//std::cout << CLR2 << "if exited" << WIFEXITED(status) << RESET << std::endl;
-			//std::cout << CLR2 << "status" << WEXITSTATUS(status) << RESET << std::endl;
-			//std::cout << CLR2 << "if signalled" << WIFSIGNALED(status) << RESET << std::endl;
-			//std::cout << CLR2 << "status" << WTERMSIG(status) << RESET << std::endl;
-			// std::string str(response.getCgiBody().begin(), response.getCgiBody().end());
-			// std::cout << str << std::endl;
-			//std::cout << CLR6 "CGI Processed! " << r << RESET << std::endl;
 		}
 		else if (r < 0)
 		{
-			//std::cerr << CLRE "read fail or nothing was read" RESET << std::endl;
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(502, "CGI failure");
 			response.getCgiBody().clear();
@@ -655,7 +619,6 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 		}
 		if (response.getCgiBody().size() > MAX_FILE_SIZE)
 		{
-			//std::cerr << CLRE "CGI response too large" RESET << std::endl;
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(502, "CGI response too large");
 			response.getCgiBody().clear();
@@ -681,12 +644,9 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 				{
 					if ((*it[1] == '\n' && *it[2] == '\n') || (*it[0] == '\n' && *it[1] == '\r' && *it[2] == '\n'))
 					{
-						// std::string 
 						std::istringstream header(std::string(response.getCgiBody().begin(), it[1]));
-						// std::cout << "Header:" << header << std::endl;
 						while (std::getline(header, line))
 						{
-							// std::cout << line << std::endl;
 							line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 							if (line.find(':') != std::string::npos)
 							{
@@ -699,21 +659,15 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 							{
 								response.getCgiHeaderFields()[lower(key)] = value;
 							}
-							// std::cout << "key:" << key << std::endl;
-							// std::cout << "value:" << value << std::endl;
 							key.clear();
 							value.clear();
 						}
 						response.getCgiBody().erase(response.getCgiBody().begin(), it[2] + 1);
-						// std::cout << "CGICGI   " << response.getCgiBody().size() << std::endl;
-						// std::cout << "CGICGI   " << (int)response.getCgiBody()[0] << std::endl;
 						return ;
 					}
-					// std::cout << "CGICGICGI " << (int)*it[2] << std::endl;
 					it[0]++;
 					it[1]++;
 					it[2]++;
-					// std::cout << "CGICGI+++ " << (int)*it[2] << std::endl;
 				}
 				//process response to header fields and body
 				//find NLNL
@@ -757,6 +711,58 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 	}
 }
 
+void	ft_post(ServerMaster &sm, Client &client)
+{
+	HttpRequest&	request = client.request;
+	HttpResponse&	response = request.response;
+
+	if (response.getPostStatus() == NOPOST)
+	{
+		int fd;
+		fd = open(request.getTargetResource().c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		if (fd < 0)
+		{
+			response.setPostStatus(POST_ERROR);
+			response.updateStatus(500, "POST failure, could not open file");
+		}
+		response.setWfd(fd);
+		response.setPostStatus(POST_STARTED);
+	}
+	else if (response.getPostStatus() == POST_WRITING)
+	{
+		size_t			w = 0;
+		size_t			wsize;
+		unsigned char	wbuffer[POST_BUFFER_SIZE];
+		if (!sm.fdIsSetWrite(response.getWfd()))
+			return ;
+		wsize = request.getRequestBody().size();
+		if (wsize > POST_BUFFER_SIZE)
+			wsize = POST_BUFFER_SIZE;
+		if (wsize)
+		{
+			std::copy(request.getRequestBody().begin(), request.getRequestBody().begin() + wsize, wbuffer);
+			w = write(response.getWfd(), wbuffer, wsize);
+		}
+		if (w > 0)
+		{
+			request.getRequestBody().erase(request.getRequestBody().begin(), request.getRequestBody().begin() + w);
+			return ;
+		}
+		else if (!wsize)
+		{
+			//response.updateStatus(201, request.getTargetResource().c_str());
+			response.setPostStatus(POST_COMPLETE);
+			return ;
+		}
+		else
+		{
+			response.setPostStatus(POST_ERROR);
+			response.updateStatus(500, "POST failure");
+			return ;
+		}
+	}
+}
+
 void	ServerMaster::listenForConnections(void)
 {
 	fd_set			readFds; // temp fds list for select()
@@ -785,7 +791,7 @@ void	ServerMaster::listenForConnections(void)
 			Logger::setActiveClient(i);
 			if (FD_ISSET(i, &readFds) || (this->_clients.count(i) && this->_clients.find(i)->second.bufferUnchecked)) // finds a socket with data to read
 			{
-				Logger::safeLog(DEBUG, SERVER, "Active client fd: ", itoa(i));
+				//Logger::safeLog(DEBUG, SERVER, "Active client fd: ", itoa(i));
 				if (this->_servers.count(i)) // indicates that the server socket is ready to read which means that a client is attempting to connect
 					acceptConnection(i);
 				else if (this->_clients.count(i))
@@ -829,7 +835,7 @@ void	ServerMaster::listenForConnections(void)
 							}
 							if (client.request.requestComplete)
 							{
-								Logger::safeLog(DEBUG, REQUEST, "Changing to send() mode on socket ", itoa(i));
+								//Logger::safeLog(DEBUG, REQUEST, "Changing to send() mode on socket ", itoa(i));
 								removeFdFromSet(this->_readFds, i);
 								addFdToSet(this->_writeFds, i);
 								break ;
@@ -842,7 +848,7 @@ void	ServerMaster::listenForConnections(void)
 								client.request.response.setStatusLineAndDetails(e.getStatusLine(), e.getStatusDetails());
 								client.request.setConnectionStatus(CLOSE);
 							}
-							Logger::safeLog(DEBUG, RESPONSE, "Changing to send() mode on socket ", itoa(i));
+							//Logger::safeLog(DEBUG, RESPONSE, "Changing to send() mode on socket ", itoa(i));
 							removeFdFromSet(this->_readFds, i);
 							addFdToSet(this->_writeFds, i);
 							break ;
@@ -855,18 +861,12 @@ void	ServerMaster::listenForConnections(void)
 				// CGI TBA - add conditions for it, othwerwise send normal response
 				Client	&client = this->_clients.find(i)->second;
 				if (client.request.getLocation().getIsCgi() && !client.request.getHasExpect() 
-					&& (client.request.response.getStatusLine().statusCode >= 200 && client.request.response.getStatusLine().statusCode <= 299))
+					&& (client.request.response.getStatusLine().statusCode >= 200 && client.request.response.getStatusLine().statusCode <= 299)
+					&& !(client.request.getLocation().getIsRedirect()))
 				{
 					int old_cgi_status = client.request.response.getCgiStatus();
-					//std::cout << CLR6 << "Old CGI status: " << old_cgi_status << RESET << std::endl;
 					ft_cgi(*this, client);
 					int cgi_status = client.request.response.getCgiStatus();
-					//std::cout << CLR6 << "CGI status: " << cgi_status << RESET << std::endl;
-					// # define CGI_STARTED 1
-					// # define CGI_WRITING 2
-					// # define CGI_READING 4
-					// # define CGI_COMPLETE 8
-					// # define CGI_ERROR 256
 					if (old_cgi_status == CGI_STARTED && cgi_status == CGI_WRITING)
 					{
 						addFdToSet(this->_readFds, client.request.response.getRfd());
@@ -896,6 +896,32 @@ void	ServerMaster::listenForConnections(void)
 					if (cgi_status < CGI_COMPLETE)
 						continue ;
 				}
+				if (!client.request.getLocation().getIsCgi()
+					&& client.request.getRequestLine().method == "POST"
+					&& (client.request.response.getStatusLine().statusCode == 200)
+					&& !(client.request.getLocation().getIsRedirect()))
+				{
+					int old_post_status = client.request.response.getPostStatus();
+					ft_post(*this, client);
+					int post_status = client.request.response.getPostStatus();
+					// # define POST_STARTED 1
+					// # define POST_WRITING 2
+					// # define POST_COMPLETE 8
+					// # define POST_ERROR 256
+					if (post_status == POST_STARTED)
+					{
+						addFdToSet(this->_writeFds, client.request.response.getWfd());
+						client.request.response.setPostStatus(POST_WRITING);
+						continue ;
+					}
+					else if (post_status == POST_WRITING)
+						continue ;
+					else if (old_post_status== POST_WRITING && post_status != POST_WRITING)
+					{
+						close(client.request.response.getWfd());
+						removeFdFromSet(this->_writeFds, client.request.response.getWfd());
+					}
+				}
 				if (!client.request.response.getMessageTooLongForOneSend())
 					client.request.response.setMessage(client.request.response.prepareResponse(client.request));
 				octets_t message = client.request.response.getMessage();
@@ -912,10 +938,6 @@ void	ServerMaster::listenForConnections(void)
 				char*	buff = new char [buffLen];
 				for (size_t i = 0; i < buffLen; i++)
 					buff[i] = message[i];
-				//std::string buffStr(buff, buffLen); // prevents invalid read size from valgrind as buff is not null-terminated, it's a binary buffer so that we can send binery files too (e.g. executables)
-				//std::cout << CLR4 << "SEND: " << buffStr << RESET << std::endl;
-				//std::cout << "BUFF: " << client.getReceivedData() << std::endl;
-				std::cout << buff << std::endl;
 				sendResult = send(i, buff, buffLen, 0);
 				if (sendResult == -1)
 				{
@@ -930,7 +952,7 @@ void	ServerMaster::listenForConnections(void)
 				else
 				{
 					//Logger::safeLog(DEBUG, RESPONSE, "Bytes sent in response: ", itoa(sendResult));
-					Logger::safeLog(DEBUG, RESPONSE, "Changing to recv() mode on socket ", itoa(i));
+					//Logger::safeLog(DEBUG, RESPONSE, "Changing to recv() mode on socket ", itoa(i));
 					if (client.getReceivedData().size() > 0) // ensures we get back to reading the buffer without needing to go through select()
 						this->_clients.find(i)->second.bufferUnchecked = true;
 					removeFdFromSet(this->_writeFds, i);
@@ -1012,7 +1034,6 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 		if (hostReceived == host)
 		{
 			this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
-			//std::cout << "Chosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
 	   		return ;
 		}
 		else
@@ -1025,7 +1046,6 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 			if (parserPair.first == serverNames[i])
 			{
 				this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
-				//std::cout << "Chosen config for client on socket " << clientSocket << ": " << this->_clients.find(clientSocket)->second.getServerConfig() << std::endl;
 				return ;
 			}
 		}
@@ -1054,7 +1074,6 @@ void	ServerMaster::acceptConnection(int serverSocket)
 	if (getsockname(clientSocket, (struct sockaddr *)&serverAddr, &lenClientAddr) == -1)
 		throw(std::runtime_error("Getsockname failed."));
 	newClient.setPortConnectedOn(ntohs(serverAddr.sin_port));
-	//std::cout << "Client connected to server port: " << newClient.getPortConnectedOn() << std::endl;
 	Logger::safeLog(INFO, SERVER, "Client connected to server port: ", itoa(newClient.getPortConnectedOn()));
 	newClient.updateTimeLastMessage();
 	newClient.updateTimeLastValidHeaderEnd();
@@ -1071,9 +1090,6 @@ void	ServerMaster::acceptConnection(int serverSocket)
 		 std::string(". Assigned socket ") + itoa(clientSocket) + ".");
 	ServerMaster::incrementConnectionCounter();
 	Logger::mapFdToClientID(clientSocket);
-	//std::cout << "New connection accepted from "
-	//	<< inet_ntop(AF_INET, &clientAddr, buff, INET_ADDRSTRLEN)
-	//	<< ". Assigned socket " << clientSocket << '.' << std::endl;
 }
 
 void	ServerMaster::handleDataFromClient(const int clientSocket)

@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 10:01:22 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/22 15:35:11 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 13:18:47 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,6 @@ int	main(int argc, char **argv)
 		catch(const std::exception& e)
 		{
 			Logger::log(ERROR, SERVER, e.what(), "");
-			//std::cerr << "Error: " << e.what() << '\n';
 		}
 	}
 	else

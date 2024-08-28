@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>File Upload Form</title>
+	<title>Cookie test page</title>
 	<style>
 		body {
 			font-family: Arial, sans-serif;
@@ -27,10 +27,6 @@
 			color: navy;
 		}
 
-		input[type="file"] {
-			margin: 10px 0;
-		}
-
 		input[type="submit"] {
 			background-color: #048;
 			color: #ccc;
@@ -47,22 +43,16 @@
 	</style>
 </head>
 <body>
-	<!-- <form action = "../cgi-bin/set_cookie.py" method = "get">
-        Cookie Name: <input type = "text" name = "key">  <br />
-        <br>
-        Cookie Value: <input type = "text" name = "value" />
-        <input type = "submit" value = "Submit" /> <br />
-    </form> -->
 	<form action="../cgi/setCookie.py" method="get" enctype="multipart/form-data" accept-charset="UTF-8">
 		<h1>42webserv</h1>
-		<h3>Set Cookie</h3>
-		Key: <input type="text" name="key">
-		Value: <input type="text" name="value">
+		<p>
+			Key: <input type="text" name="key" pattern="[a-zA-Z0-9]+" required><br>
+			Value: <input type="text" name="value" pattern="[a-zA-Z0-9]+" required><br>
+		</p>
 		<input type="submit" value="Set cookie">
 	</form>
-	<form action="../cgi/getCookie.py" method="get" enctype="multipart/form-data" accept-charset="UTF-8">
-		<h3>Get Cookie</h3>
-		Key: <input type="text" name="key">
+	<form target="_blank" action="../cgi/getCookie.py" method="get" enctype="multipart/form-data" accept-charset="UTF-8">
+		<p>Key: <input type="text" name="key" pattern="[a-zA-Z0-9]+" required><br></p>
 		<input type="submit" value="Get cookie">
 	</form>
 </body>

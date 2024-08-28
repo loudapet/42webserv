@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/12 17:21:09 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 12:48:31 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -466,8 +466,7 @@ stringpair_t	HttpRequest::parseHeader(octets_t header)
 		throw (ResponseException(400, "Improperly terminated header-field section"));
 	this->parseFieldSection(splitLines);
 	authority = this->resolveHost();
-	Logger::safeLog(DEBUG, REQUEST, "Resolved host:\t", authority.first);
-	Logger::safeLog(DEBUG, REQUEST, "Resolved port:\t", authority.second);
+	Logger::safeLog(DEBUG, REQUEST, "Authority: ", authority.first + ":" + authority.second);
 	return (authority);
 }
 
@@ -594,8 +593,7 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 	this->targetResource.replace(pos, path.length(), root);
 	this->allowedDirListing = location.getAutoindex();
 	removeDoubleSlash(this->targetResource);
-	//std::cout << CLR3 << "CGI path:\t" << location.getRelativeCgiPath() << RESET << std::endl;
-	if (!this->isRedirect && !isCgi) //&& this->requestLine.method == "GET"
+	if (!this->isRedirect && !isCgi && (this->requestLine.method == "GET" || this->requestLine.method == "HEAD")) //&& this->requestLine.method == "GET"
 	{
 		validFile = stat(targetResource.c_str(), &fileCheckBuff);
 		if (validFile < 0)
@@ -603,7 +601,7 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 		if (*targetResource.rbegin() != '/')
 		{
 			if (S_ISDIR(fileCheckBuff.st_mode)) // redirect to the existing folder
-				this->response.updateStatus(301, "Trying to access a directory"); // DO NOT CHANGE THE STRING! (connected to prepareHeaders in Http::Response)
+				this->response.updateStatus(308, "Trying to access a directory"); // DO NOT CHANGE THE STRING! (connected to prepareHeaders in Http::Response)
 			else  // if it's a normal file, check access
 			{
 				if (access(targetResource.c_str(), R_OK) < 0)
@@ -642,6 +640,39 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 					this->response.updateStatus(403, "Autoindexing is not allowed");
 			}
 		}
+	}
+	else if (!this->isRedirect && !isCgi && this->requestLine.method == "POST")
+	{
+		validFile = stat(targetResource.c_str(), &fileCheckBuff);
+		if (!validFile)
+			this->response.updateStatus(409, "Target resource already exists");
+		if (*targetResource.rbegin() == '/') // target is a directory
+			this->response.updateStatus(403, "Uploading a folder is not allowed");
+		std::string	dirPath; // check write permissions of the parent folder
+		if (this->targetResource.find_last_of("/") != std::string::npos)
+			dirPath = this->targetResource.substr(0, this->targetResource.find_last_of("/"));
+		else
+			dirPath = ".";
+		if (access(dirPath.c_str(), F_OK) < 0)
+			this->response.updateStatus(403, "Path does not exist");
+		if (access(dirPath.c_str(), W_OK) < 0)
+			this->response.updateStatus(403, "Path is not writable");
+
+	}
+	else if (!this->isRedirect && !isCgi && this->requestLine.method == "DELETE")
+	{
+		validFile = stat(targetResource.c_str(), &fileCheckBuff);
+		if (validFile < 0)
+			this->response.updateStatus(404, "File does not exist");
+		std::string	dirPath; // check write and execute permissions of the parent folder
+		if (*targetResource.rbegin() == '/') // target is a directory
+			dirPath = this->targetResource + "..";
+		else if (this->targetResource.find_last_of("/") != std::string::npos)
+			dirPath = this->targetResource.substr(0, this->targetResource.find_last_of("/"));
+		// else
+		// 	dirPath = ".";
+		if (access(dirPath.c_str(), W_OK | X_OK) < 0)
+			this->response.updateStatus(403, "Insufficient path permissions");
 	}
 	else if (!this->isRedirect && isCgi)
 	{
@@ -695,8 +726,6 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 		Logger::safeLog(INFO, REQUEST, "Return directive specifies return code: ", itoa(location.getReturnCode()));
 	}
 	Logger::safeLog(DEBUG, REQUEST, "Target resource:\t", this->targetResource);
-	Logger::safeLog(DEBUG, REQUEST, "CGI PATH_INFO:\t", this->cgiPathInfo);
-	// POST and DELETE
 }
 
 void	HttpRequest::validateMessageFraming(void)
@@ -735,7 +764,7 @@ void	HttpRequest::validateMessageFraming(void)
 	else
 	{
 		if (this->requestLine.method == "POST")
-			throw (ResponseException(400, "Invalid framing (depends on method - FIX)"));
+			throw (ResponseException(400, "Invalid framing - required Content-Length or TE"));
 	}
 }
 

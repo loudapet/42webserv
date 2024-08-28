@@ -42,7 +42,6 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	allowMethodsInConfig = false;
 	returnInConfig = false;
 	serverBlockElements = splitBlock(serverBlock);
-	// std::cout << "elements: \n" << serverBlockElements << std::endl;
 	// add check for minimal number of elements for the config to be valid
 	for (size_t i = 0; i < serverBlockElements.size(); i++)
 	{
@@ -163,12 +162,10 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				for (size_t j = 2; i + j < serverBlockElements.size() && serverBlockElements[i + j] != "}"; j++)
 					locationScope.push_back(serverBlockElements[i + j]);
 				locationScope.push_back("}");
-				//std::cout << "location path: " << locationPath << '\n' << "location scope: " << locationScope << std::endl;
 				Location newLocation(locationPath, locationScope);
 				this->_locations.push_back(newLocation);
 				i += locationScope.size() + 1; // if 'location' and location path from the config would be included, it'd be -1, but those 2 aren't in the vector
 				locationScope.clear();
-			//	inLocationBlock = true;
 			}
 			else if (serverBlockElements[i] == "allow_methods")
 			{
@@ -198,13 +195,8 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				i++;
 			}
 			else if (serverBlockElements[i] != "{" && serverBlockElements[i] != "}")
-			{
 				if (!inLocationBlock)
-				{
-					//std::cout << "unsupported: " << serverBlockElements[i] << std::endl;
 					throw (std::runtime_error("Config parser: Invalid directive in a server block."));
-				}
-			}
 		}
 	}
 	// set empty values
@@ -225,7 +217,6 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 		fileIsValidAndAccessible(this->getRoot() + it->second, "Error page");
 	completeLocations(); // the location is completed only here as access to the server values is needed
 	validateLocations();
-	//std::cout << *this << std::endl;
 }
 
 std::map<std::string, std::vector<std::string> > readMimeTypesFile(const std::string &mimeTypesFile)
@@ -518,10 +509,6 @@ void ServerConfig::startServer(void)
 				+ itoa(this->_host / 65536 % 256) + "." + itoa(this->_host / 16777216) + ":"
 				+ itoa(this->_port);
 	Logger::log(INFO, CONFIG, infoMessage, "");
-	// std::cout << "Server '" << this->_primaryServerName << "' started on "
-	// 	<< this->_host % 256 << "." << this->_host / 256 % 256 << "."
-	// 	<< this->_host / 65536 % 256 << "." << this->_host / 16777216 << ":"
-	// 	<< this->_port << std::endl;
 }
 
 std::ostream &operator << (std::ostream &o, ServerConfig const &instance)

@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/14 10:08:43 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 13:23:28 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,6 +70,7 @@ HttpResponse::HttpResponse()
 	this->message = octets_t();
 	this->messageTooLongForOneSend = false;
 	this->cgiStatus = 0;
+	this->postStatus = 0;
 	this->cgi_pid = 0;
 	this->wfd = 0;
 	this->rfd = 0;
@@ -110,6 +111,7 @@ HttpResponse& HttpResponse::operator=(const HttpResponse& refObj)
 		message = refObj.message;
 		messageTooLongForOneSend = refObj.messageTooLongForOneSend;
 		cgiStatus = refObj.cgiStatus;
+		postStatus = refObj.postStatus;
 		cgi_pid = refObj.cgi_pid;
 		wfd = refObj.wfd;
 		rfd = refObj.rfd;
@@ -178,39 +180,40 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 			if (!(this->headerFields.insert(std::make_pair(it->first, it->second)).second))  // overwrite with CGI values if exists
 				this->headerFields[it->first] = it->second;
 	}
-	if (this->statusLine.statusCode != 204)
+	if (request.getRequestLine().httpVersion == "1.0")
+	{
+		this->statusLine.httpVersion = "HTTP/1.0";
+		if (this->headerFields.find("transfer-encoding: ") != this->headerFields.end()) // this will ensure compliance with 1.0, but will likely invalidate the response client-side
+			this->headerFields.erase(this->headerFields.find("transfer-encoding: "));
+	}
+	if (this->statusLine.statusCode != 204 && this->statusLine.statusCode != 304 && request.getRequestLine().method != "HEAD")
 		this->headerFields.insert(std::make_pair("content-length: ", itoa(this->responseBody.size())));
-	//this->headerFields["content-length: "] = itoa(this->responseBody.size());
 	this->headerFields.insert(std::make_pair("date: ", getIMFFixdate()));
-	//this->headerFields["date: "] = getIMFFixdate();
-	if (this->headerFields.find("content-type: ") == this->headerFields.end() && this->statusLine.statusCode != 204)
+	if (this->headerFields.find("content-type: ") == this->headerFields.end() 
+		&& this->statusLine.statusCode != 204 && this->statusLine.statusCode != 304
+		&& request.getRequestLine().method != "HEAD")
 		this->headerFields.insert(std::make_pair("content-type: ", "application/octet-stream"));
-		//this->headerFields["content-type: "] = "application/octet-stream";
 	if (request.getConnectionStatus() == CLOSE)
 		this->headerFields.insert(std::make_pair("connection: ", "close"));
-		//this->headerFields["connection: "] = "close";
 	else
 	{
 		this->headerFields.insert(std::make_pair("connection: ", "keep-alive"));
-		//this->headerFields["connection: "] = "keep-alive";
 		this->headerFields.insert(std::make_pair("keep-alive: ", std::string("timeout=" + itoa(CONNECTION_TIMEOUT))));
-		//this->headerFields["keep-alive: "] = std::string("timeout=" + itoa(CONNECTION_TIMEOUT));
 	}
 	if (this->statusLine.statusCode >= 300 && this->statusLine.statusCode <= 308)
 	{
 		if (this->statusDetails == "Trying to access a directory")
-			this->headerFields.insert(std::make_pair("location : ", request.getAbsolutePath() + "/"));
-			//this->headerFields["location: "] = request.getAbsolutePath() + "/";
+			this->headerFields.insert(std::make_pair("location: ", request.getAbsolutePath() + "/"));
+		else if (request.getLocation().getReturnURLOrBody().size() > 0 
+			&& *request.getLocation().getReturnURLOrBody().begin() == '/')	// if starts with slash, prepend scheme + host:port
+			this->headerFields.insert(std::make_pair("location: ", std::string("http://") + request.getLocation().getServerName() + ":8002" + request.getLocation().getReturnURLOrBody()));
 		else
-			this->headerFields.insert(std::make_pair("location : ", request.getLocation().getReturnURLOrBody()));
-			//this->headerFields["location: "] = request.getLocation().getReturnURLOrBody();
-		if (request.getLocation().getReturnURLOrBody().size() > 0 
-			&& *request.getLocation().getReturnURLOrBody().begin() == '/')	// if starts with slash, append scheme + host:port
-			this->headerFields.insert(std::make_pair("location : ", std::string("http://") + request.getLocation().getServerName() + ":8002" + request.getLocation().getReturnURLOrBody()));
-			//this->headerFields["location: "] = std::string("http://") + request.getLocation().getServerName() + ":8002" + request.getLocation().getReturnURLOrBody();
+			this->headerFields.insert(std::make_pair("location: ", request.getLocation().getReturnURLOrBody()));
 		// if starts with http(s), append the rest without http(s)
 		// if starts with http(s)://host:port, append path
 	}
+	else if (this->statusLine.statusCode == 201)
+		this->headerFields.insert(std::make_pair("location: ", request.getRequestLine().requestTarget.absolutePath));
 	if (this->statusLine.statusCode == 405)
 	{
 		std::string	methods;
@@ -221,13 +224,13 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 			if (++it != request.getAllowedMethods().end())
 				methods.append(", ");
 		}
-		this->headerFields.insert(std::make_pair("allow : ", methods));
+		this->headerFields.insert(std::make_pair("allow: ", methods));
 		//this->headerFields["allow: "] = methods;
 	}
 	if (this->statusLine.statusCode == 426)
 	{
 		this->headerFields["connection: "].append(", Upgrade");
-		this->headerFields.insert(std::make_pair("upgrade : ", "HTTP/1.1"));
+		this->headerFields.insert(std::make_pair("upgrade: ", "HTTP/1.1"));
 		//this->headerFields["upgrade: "] = "HTTP/1.1";
 	}
 	for (stringmap_t::iterator it = this->headerFields.begin() ; it != this->headerFields.end() ; it++)
@@ -435,6 +438,54 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 	this->responseBody = convertStringToOctets(body.str());
 	closedir(dirPtr);
 }
+
+void	HttpResponse::deleteFile(const std::string& targetResource, const Location& location)
+{
+	if (targetResource.size() < location.getRoot().size())
+	{
+		Logger::safeLog(DEBUG, RESPONSE, "Attempt at deleting above server root ", NULL);
+		throw (std::exception());
+	}
+	std::string	targetRoot = targetResource.substr(0, location.getRoot().size());
+	if (targetRoot != location.getRoot())
+	{
+		Logger::safeLog(DEBUG, RESPONSE, "Attempt at deleting outside server root ", NULL);
+		throw (std::exception());
+	}
+	int			validFile;
+	struct stat	fileCheckBuff;
+	validFile = stat(targetResource.c_str(), &fileCheckBuff);
+	if (validFile < 0)
+	{
+		Logger::safeLog(DEBUG, RESPONSE, "Failed at deleting: ", targetResource);
+		throw (std::exception());
+	}
+	if (S_ISDIR(fileCheckBuff.st_mode))
+	{
+		DIR*	dirPtr;
+		dirPtr = opendir(targetResource.c_str());
+		for (dirent* dir = readdir(dirPtr); dir != NULL; dir = readdir(dirPtr))
+		{
+			std::stringstream	tempstream;
+			std::string	path = dir->d_name;
+			if (path == "." || path == "..")
+				continue;
+			if (*targetResource.rbegin() == '/')
+				path = targetResource + path;
+			else
+				path = targetResource + "/" + path;
+			this->deleteFile(path, location);
+		}
+		closedir(dirPtr);
+	}
+	Logger::safeLog(DEBUG, RESPONSE, "Deleting: ", targetResource);
+	if (std::remove(targetResource.c_str()))
+	{
+		Logger::safeLog(DEBUG, RESPONSE, "Failed at deleting: ", targetResource);
+		throw (std::exception());
+	}
+}
+
 void	HttpResponse::readReturnDirective(const Location &location)
 {
 	this->responseBody = convertStringToOctets(location.getReturnURLOrBody());
@@ -446,7 +497,7 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 	if (request.getHasExpect())
 	{
 		Logger::safeLog(INFO, RESPONSE, "100 Continue", this->statusDetails);
-		return (convertStringToOctets("HTTP/1.1 100 Continue"));
+		return (convertStringToOctets("HTTP/1.1 100 Continue\r\n\r\n"));
 	}
 	else
 	{
@@ -459,28 +510,67 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 			this->codeDict[this->statusLine.statusCode] = "Undefined";
 		this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
 
-		if (!this->cgiStatus)
+		if (!this->cgiStatus && (request.getRequestLine().method == "GET" || request.getRequestLine().method == "HEAD"))
 		{
-			if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
+			if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory() && !request.getLocation().getIsRedirect())
 				request.response.readDirectoryListing(request.getTargetResource());
-			else if (this->statusLine.statusCode == 200)
+			else if (this->statusLine.statusCode == 200 && !request.getLocation().getIsRedirect())
 				request.response.readRequestedFile(request.getTargetResource(), request.getLocation().getMimeTypes().getMimeTypesDictInv());
 			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
 				request.response.readReturnDirective(request.getLocation());
-			else
+			else if (this->statusLine.statusCode != 204 & this->statusLine.statusCode != 304) // this is in place so we don't read the error page for no reason
+				request.response.readErrorPage(request.getLocation());
+		}
+		else if (!this->cgiStatus && request.getRequestLine().method == "POST")
+		{
+			// location header in prepareHeaders, status update here, if creation failed, 500 was raised
+			if (this->statusLine.statusCode == 200 && !request.getLocation().getIsRedirect())
+			{
+				this->statusLine.statusCode = 201;
+				this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
+			}
+			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
+				request.response.readReturnDirective(request.getLocation());
+			else if (this->statusLine.statusCode != 204 && this->statusLine.statusCode != 304) // this is in place so we don't read the error page for no reason
+				request.response.readErrorPage(request.getLocation());
+		}
+		else if (!this->cgiStatus && request.getRequestLine().method == "DELETE")
+		{
+			if (this->statusLine.statusCode == 200 && !request.getLocation().getIsRedirect())
+			{
+				this->statusLine.statusCode = 204;
+				this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
+				try
+				{
+					request.response.deleteFile(request.getTargetResource(), request.getLocation());
+				}
+				catch(const std::exception& e)
+				{
+					this->statusLine.statusCode = 500;
+					this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
+					this->statusDetails = "Failed deletion of a targeted resource";
+					request.response.readErrorPage(request.getLocation());
+				}
+			}
+			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
+				request.response.readReturnDirective(request.getLocation());
+			else if (this->statusLine.statusCode != 204 && this->statusLine.statusCode != 304) // this is in place so we don't read the error page for no reason
 				request.response.readErrorPage(request.getLocation());
 		}
 		else
 		{
 			this->responseBody.clear();
 			this->responseBody = this->cgiBody;
+			if (this->cgiStatus == CGI_ERROR)
+				request.response.readErrorPage(request.getLocation());
 		}
-		if (this->statusLine.statusCode == 204)
+		if (this->statusLine.statusCode == 204 || this->statusLine.statusCode == 304 || request.getRequestLine().method == "HEAD")
 			this->responseBody.clear();
 		request.response.buildResponseHeaders(request);
 		request.response.buildCompleteResponse();
 		octets_t message = request.response.getCompleteResponse();
-		Logger::safeLog(INFO, RESPONSE, itoa(this->statusLine.statusCode) + " ", this->statusDetails);
+		Logger::safeLog(INFO, RESPONSE, itoa(this->statusLine.statusCode) + " ", 
+			this->statusLine.reasonPhrase + (this->statusDetails.size() ? ": " + this->statusDetails : ""));
 		return (message);
 	}
 }
@@ -522,6 +612,12 @@ int	HttpResponse::getCgiStatus(void)
 	return(this->cgiStatus);
 }
 
+int	HttpResponse::getPostStatus(void)
+{
+	return(this->postStatus);
+}
+
+
 int	HttpResponse::getCgiPid(void)
 {
 	return(this->cgi_pid);
@@ -550,6 +646,11 @@ octets_t&	HttpResponse::getCgiBody(void)
 void	HttpResponse::setCgiStatus(int status)
 {
 	this->cgiStatus = status;
+}
+
+void	HttpResponse::setPostStatus(int status)
+{
+	this->postStatus = status;
 }
 
 void	HttpResponse::setCgiPid(int pid)

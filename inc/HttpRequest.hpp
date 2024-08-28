@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/24 15:12:48 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 09:58:39 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,7 +75,7 @@ typedef struct RequestLine
 {
 	std::string			method; // GET, POST, DELETE
 	request_target_t	requestTarget; // origin-form / absolute form
-	std::string 		httpVersion; // "HTTP/" DIGIT "." DIGIT
+	std::string 		httpVersion; // DIGIT "." DIGIT
 } requestLine_t;
 
 typedef struct KeepAlive
