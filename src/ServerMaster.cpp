@@ -3,7 +3,7 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
 /*   Updated: 2024/08/28 11:00:05 by plouda           ###   ########.fr       */
@@ -730,6 +730,58 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 	}
 }
 
+void	ft_post(ServerMaster &sm, Client &client)
+{
+	HttpRequest&	request = client.request;
+	HttpResponse&	response = request.response;
+
+	if (response.getPostStatus() == NOPOST)
+	{
+		int fd;
+		fd = open(request.getTargetResource().c_str(), O_WRONLY | O_CREAT | O_TRUNC);
+		if (fd < 0)
+		{
+			response.setPostStatus(POST_ERROR);
+			response.updateStatus(500, "POST failure, could not open file");
+		}
+		response.setWfd(fd);
+		response.setPostStatus(POST_STARTED);
+	}
+	else if (response.getPostStatus() == POST_WRITING)
+	{
+		size_t			w = 0;
+		size_t			wsize;
+		unsigned char	wbuffer[POST_BUFFER_SIZE];
+		if (!sm.fdIsSetWrite(response.getWfd()))
+			return ;
+		wsize = request.getRequestBody().size();
+		if (wsize > POST_BUFFER_SIZE)
+			wsize = POST_BUFFER_SIZE;
+		if (wsize)
+		{
+			std::copy(request.getRequestBody().begin(), request.getRequestBody().begin() + wsize, wbuffer);
+			w = write(response.getWfd(), wbuffer, wsize);
+		}
+		if (w > 0)
+		{
+			request.getRequestBody().erase(request.getRequestBody().begin(), request.getRequestBody().begin() + w);
+			return ;
+		}
+		else if (!wsize)
+		{
+			response.updateStatus(201, request.getTargetResource().c_str());
+			response.setPostStatus(POST_COMPLETE);
+			return ;
+		}
+		else
+		{
+			response.setPostStatus(POST_ERROR);
+			response.updateStatus(500, "POST failure");
+			return ;
+		}
+	}
+}
+
 void	ServerMaster::listenForConnections(void)
 {
 	fd_set			readFds; // temp fds list for select()
@@ -859,6 +911,30 @@ void	ServerMaster::listenForConnections(void)
 					}
 					if (cgi_status < CGI_COMPLETE)
 						continue ;
+				}
+				if (client.request.getRequestLine().method == "POST"
+					&& (client.request.response.getStatusLine().statusCode == 200))
+				{
+					int old_post_status = client.request.response.getPostStatus();
+					ft_post(*this, client);
+					int post_status = client.request.response.getPostStatus();
+					// # define POST_STARTED 1
+					// # define POST_WRITING 2
+					// # define POST_COMPLETE 8
+					// # define POST_ERROR 256
+					if (post_status == POST_STARTED)
+					{
+						addFdToSet(this->_writeFds, client.request.response.getWfd());
+						response.setPostStatus(POST_WRITING);
+						continue ;
+					}
+					else if (post_status == POST_WRITING)
+						continue ;
+					else if (old_post_status== POST_WRITING && post_status != POST_WRITING)
+					{
+						close(client.request.response.getWfd());
+						removeFdToSet(this->_writeFds, client.request.response.getWfd());
+					}
 				}
 				if (!client.request.response.getMessageTooLongForOneSend())
 					client.request.response.setMessage(client.request.response.prepareResponse(client.request));

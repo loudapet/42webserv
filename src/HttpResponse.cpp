@@ -3,7 +3,7 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
 /*   Updated: 2024/08/28 10:15:49 by plouda           ###   ########.fr       */
@@ -70,6 +70,7 @@ HttpResponse::HttpResponse()
 	this->message = octets_t();
 	this->messageTooLongForOneSend = false;
 	this->cgiStatus = 0;
+	this->postStatus = 0;
 	this->cgi_pid = 0;
 	this->wfd = 0;
 	this->rfd = 0;
@@ -110,6 +111,7 @@ HttpResponse& HttpResponse::operator=(const HttpResponse& refObj)
 		message = refObj.message;
 		messageTooLongForOneSend = refObj.messageTooLongForOneSend;
 		cgiStatus = refObj.cgiStatus;
+		postStatus = refObj.postStatus;
 		cgi_pid = refObj.cgi_pid;
 		wfd = refObj.wfd;
 		rfd = refObj.rfd;
@@ -549,6 +551,12 @@ int	HttpResponse::getCgiStatus(void)
 	return(this->cgiStatus);
 }
 
+int	HttpResponse::getPostStatus(void)
+{
+	return(this->postStatus);
+}
+
+
 int	HttpResponse::getCgiPid(void)
 {
 	return(this->cgi_pid);
@@ -577,6 +585,11 @@ octets_t&	HttpResponse::getCgiBody(void)
 void	HttpResponse::setCgiStatus(int status)
 {
 	this->cgiStatus = status;
+}
+
+void	HttpResponse::setPostStatus(int status)
+{
+	this->postStatus = status;
 }
 
 void	HttpResponse::setCgiPid(int pid)

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:17:04 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/24 11:51:17 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 10:29:17 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@
 # include "HttpRequest.hpp"
 # define MAX_FILE_SIZE 1000000000
 # define CGI_BUFFER_SIZE 8092
+# define POST_BUFFER_SIZE 8092
 
 class ServerMaster
 {
