@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 12:05:45 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 13:23:28 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -439,13 +439,27 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 	closedir(dirPtr);
 }
 
-void	HttpResponse::deleteFile(const std::string& targetResource)
+void	HttpResponse::deleteFile(const std::string& targetResource, const Location& location)
 {
+	if (targetResource.size() < location.getRoot().size())
+	{
+		Logger::safeLog(DEBUG, RESPONSE, "Attempt at deleting above server root ", NULL);
+		throw (std::exception());
+	}
+	std::string	targetRoot = targetResource.substr(0, location.getRoot().size());
+	if (targetRoot != location.getRoot())
+	{
+		Logger::safeLog(DEBUG, RESPONSE, "Attempt at deleting outside server root ", NULL);
+		throw (std::exception());
+	}
 	int			validFile;
 	struct stat	fileCheckBuff;
 	validFile = stat(targetResource.c_str(), &fileCheckBuff);
 	if (validFile < 0)
+	{
+		Logger::safeLog(DEBUG, RESPONSE, "Failed at deleting: ", targetResource);
 		throw (std::exception());
+	}
 	if (S_ISDIR(fileCheckBuff.st_mode))
 	{
 		DIR*	dirPtr;
@@ -456,12 +470,20 @@ void	HttpResponse::deleteFile(const std::string& targetResource)
 			std::string	path = dir->d_name;
 			if (path == "." || path == "..")
 				continue;
-			path = targetResource + path;
-			this->deleteFile(path);
+			if (*targetResource.rbegin() == '/')
+				path = targetResource + path;
+			else
+				path = targetResource + "/" + path;
+			this->deleteFile(path, location);
 		}
 		closedir(dirPtr);
 	}
-	std::remove(targetResource.c_str());
+	Logger::safeLog(DEBUG, RESPONSE, "Deleting: ", targetResource);
+	if (std::remove(targetResource.c_str()))
+	{
+		Logger::safeLog(DEBUG, RESPONSE, "Failed at deleting: ", targetResource);
+		throw (std::exception());
+	}
 }
 
 void	HttpResponse::readReturnDirective(const Location &location)
@@ -520,12 +542,14 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 				this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
 				try
 				{
-					request.response.deleteFile(request.getTargetResource());
+					request.response.deleteFile(request.getTargetResource(), request.getLocation());
 				}
 				catch(const std::exception& e)
 				{
 					this->statusLine.statusCode = 500;
 					this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
+					this->statusDetails = "Failed deletion of a targeted resource";
+					request.response.readErrorPage(request.getLocation());
 				}
 			}
 			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))

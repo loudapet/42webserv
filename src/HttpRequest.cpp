@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 11:49:43 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 12:48:31 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -726,7 +726,6 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 		Logger::safeLog(INFO, REQUEST, "Return directive specifies return code: ", itoa(location.getReturnCode()));
 	}
 	Logger::safeLog(DEBUG, REQUEST, "Target resource:\t", this->targetResource);
-	Logger::safeLog(DEBUG, REQUEST, "CGI PATH_INFO:\t", this->cgiPathInfo);
 }
 
 void	HttpRequest::validateMessageFraming(void)
@@ -765,7 +764,7 @@ void	HttpRequest::validateMessageFraming(void)
 	else
 	{
 		if (this->requestLine.method == "POST")
-			throw (ResponseException(400, "Invalid framing (depends on method - FIX)"));
+			throw (ResponseException(400, "Invalid framing - required Content-Length or TE"));
 	}
 }
 

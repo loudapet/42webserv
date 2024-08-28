@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/28 11:37:00 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 13:16:22 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -372,21 +372,12 @@ static std::string	getPathTranslated(Client &client)
 {
 	HttpRequest&	request = client.request;
 	Location cgi_location = matchLocation(request.getCgiPathInfo(), client.getServerConfig(), request.getLocation().getServerName());
-
 	
 	std::string path_translated;
-	// removeDoubleSlash(path_translated);
-	// 	bool		isCgi = location.getIsCgi();
-	// int			validFile;
-	// struct stat	fileCheckBuff;
 	std::string	path = cgi_location.getPath();
 	std::string	root = cgi_location.getRoot();
 	std::string	url = request.getCgiPathInfo();
-	// if (*this->requestLine.requestTarget.absolutePath.rbegin() == '/' && *path.rbegin() != '/')
-	// 	path = path + "/";
-	std::cerr << CLR4 << "PATH:\t" << path << RESET << std::endl;
-	std::cerr << CLR4 << "ROOT:\t" << root << RESET << std::endl;
-	std::cerr << CLR4 << "URL:\t" << url << RESET << std::endl;
+
 	path_translated = url;
 	url.erase(0, path.length());
 	if (root.size() && *root.rbegin() == '/')
@@ -394,7 +385,6 @@ static std::string	getPathTranslated(Client &client)
 	if (url.size() && *url.begin() == '/')
 		url.erase((url.begin()));
 	path_translated = root + "/" + url;
-	std::cerr << CLR4 << "FINAL:\t" << path_translated << RESET << std::endl;
 	return (path_translated);
 }
 
@@ -449,7 +439,6 @@ static void	get_env(Client	&client, char **env)
 		str.clear();
 		e++;
 	}
-	std::cerr << "e is: " << e << std::endl;
 	env[e] = NULL;
 }
 
@@ -491,14 +480,12 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 		int	fd2[2]; // reading from child
 		if (access(request.getTargetResource().c_str(), X_OK) != 0)
 		{
-			std::cerr << "Error: access CGI" << std::endl;
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(500, "Cannot access CGI file");
 			return ;
 		}
 		if (pipe(fd1) == -1)
 		{
-			std::cerr << "Error: Pipe" << std::endl;
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(500, "Piping failed");
 			return ;
@@ -507,7 +494,6 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 		{
 			close(fd1[0]);
 			close(fd1[1]);
-			std::cerr << "Error: Pipe" << std::endl;
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(500, "Piping failed");
 			return ;
@@ -521,7 +507,6 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 				close(fd1[1]);
 				close(fd2[0]);
 				close(fd2[1]);
-				std::cerr << "Error: Fork" << std::endl;
 				response.setCgiStatus(CGI_ERROR);
 				response.updateStatus(500, "Forking failed");
 				return ;
@@ -549,7 +534,6 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 				{
 					delete env[i];
 				}
-				std::cerr << "Failed to execute: " << ex[0] << std::endl;
 				kill(getpid(), SIGINT);
 				exit (1);
 			}
@@ -598,7 +582,6 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 		}
 		else
 		{
-			//std::cerr << CLRE "write fail or nothing was written" RESET << std::endl;
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(502, "CGI failure");
 			return ;
@@ -629,7 +612,6 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 		}
 		else if (r < 0)
 		{
-			//std::cerr << CLRE "read fail or nothing was read" RESET << std::endl;
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(502, "CGI failure");
 			response.getCgiBody().clear();
@@ -637,7 +619,6 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 		}
 		if (response.getCgiBody().size() > MAX_FILE_SIZE)
 		{
-			//std::cerr << CLRE "CGI response too large" RESET << std::endl;
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(502, "CGI response too large");
 			response.getCgiBody().clear();
@@ -810,7 +791,7 @@ void	ServerMaster::listenForConnections(void)
 			Logger::setActiveClient(i);
 			if (FD_ISSET(i, &readFds) || (this->_clients.count(i) && this->_clients.find(i)->second.bufferUnchecked)) // finds a socket with data to read
 			{
-				Logger::safeLog(DEBUG, SERVER, "Active client fd: ", itoa(i));
+				//Logger::safeLog(DEBUG, SERVER, "Active client fd: ", itoa(i));
 				if (this->_servers.count(i)) // indicates that the server socket is ready to read which means that a client is attempting to connect
 					acceptConnection(i);
 				else if (this->_clients.count(i))
@@ -852,7 +833,7 @@ void	ServerMaster::listenForConnections(void)
 							}
 							if (client.request.requestComplete)
 							{
-								Logger::safeLog(DEBUG, REQUEST, "Changing to send() mode on socket ", itoa(i));
+								//Logger::safeLog(DEBUG, REQUEST, "Changing to send() mode on socket ", itoa(i));
 								removeFdFromSet(this->_readFds, i);
 								addFdToSet(this->_writeFds, i);
 								break ;
@@ -865,7 +846,7 @@ void	ServerMaster::listenForConnections(void)
 								client.request.response.setStatusLineAndDetails(e.getStatusLine(), e.getStatusDetails());
 								client.request.setConnectionStatus(CLOSE);
 							}
-							Logger::safeLog(DEBUG, RESPONSE, "Changing to send() mode on socket ", itoa(i));
+							//Logger::safeLog(DEBUG, RESPONSE, "Changing to send() mode on socket ", itoa(i));
 							removeFdFromSet(this->_readFds, i);
 							addFdToSet(this->_writeFds, i);
 							break ;
@@ -913,7 +894,8 @@ void	ServerMaster::listenForConnections(void)
 					if (cgi_status < CGI_COMPLETE)
 						continue ;
 				}
-				if (client.request.getRequestLine().method == "POST"
+				if (!client.request.getLocation().getIsCgi()
+					&& client.request.getRequestLine().method == "POST"
 					&& (client.request.response.getStatusLine().statusCode == 200)
 					&& !(client.request.getLocation().getIsRedirect()))
 				{
@@ -968,7 +950,7 @@ void	ServerMaster::listenForConnections(void)
 				else
 				{
 					//Logger::safeLog(DEBUG, RESPONSE, "Bytes sent in response: ", itoa(sendResult));
-					Logger::safeLog(DEBUG, RESPONSE, "Changing to recv() mode on socket ", itoa(i));
+					//Logger::safeLog(DEBUG, RESPONSE, "Changing to recv() mode on socket ", itoa(i));
 					if (client.getReceivedData().size() > 0) // ensures we get back to reading the buffer without needing to go through select()
 						this->_clients.find(i)->second.bufferUnchecked = true;
 					removeFdFromSet(this->_writeFds, i);
