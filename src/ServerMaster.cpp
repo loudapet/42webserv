@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/14 10:57:16 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/18 19:06:55 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ void	ServerMaster::runWebserv(const std::string &configFile)
 
 	if (configFile.size() < 5 || configFile.substr(configFile.size() - 5) != ".conf")
 		throw(std::runtime_error("Provided config file '" + configFile + "' doesn't have a .conf extension."));
-	fileIsValidAndAccessible(configFile, "Config file");
+	fileIsValidAndAccessible(configFile, "Config");
 	file.open(configFile.c_str());
 	if (!(file >> c)) // check if the file is empty by trying to read a character from it
 		throw(std::runtime_error("Provided config file '" + configFile + "' is empty."));
@@ -808,6 +808,8 @@ void	ServerMaster::listenForConnections(void)
 								client.incrementRequestID();
 								Logger::setActiveRequestID(client.getRequestID());
 								client.separateValidHeader(); // separates the header from the body, header is stored in dataToParse, body in receivedData
+								Logger::safeLog(DEBUG, REQUEST, "Header:\n" + convertOctetsToString(client.getReceivedHeader()), "");
+								Logger::safeLog(DEBUG, REQUEST, "Body:\n" + convertOctetsToString(client.getReceivedData()), "");
 								parserPair = client.request.parseHeader(client.getReceivedHeader());
 								selectServerRules(parserPair, i); // resolve ServerConfig to HttpRequest
 								client.clearReceivedHeader(); // clears request line and header fields

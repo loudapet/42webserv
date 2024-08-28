@@ -32,7 +32,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	bool						allowMethodsInConfig;
 	bool						returnInConfig;
 	std::vector<std::string>	allowMethodsLine;
-	std::string 				validMethodsArray[] = {"GET", "POST", "DELETE"};
+	std::string 				validMethodsArray[] = {"GET", "HEAD", "POST", "DELETE"};
 	std::set<std::string> 		validMethods(validMethodsArray, validMethodsArray + sizeof(validMethodsArray) / sizeof(validMethodsArray[0]));
 	
 	initServerConfig();
@@ -434,18 +434,15 @@ void	ServerConfig::completeLocations(void)
 	for (size_t i = 0; i < this->_locations.size(); i++)
 	{
 	// add server root if none defined
-		if (!this->_locations[i].getIsCgi()) // not CGI
-		{
-			if (this->_locations[i].getRoot().empty())
-				this->_locations[i].setRoot(this->_root);
-			if (this->_locations[i].getIndex().empty())
-				this->_locations[i].setIndex(this->_index);
-			if (this->_locations[i].getRequestBodySizeLimit() == -1)
-				this->_locations[i].setRequestBodySizeLimit(this->_requestBodySizeLimit);
-			// what if difference between server and location scope directives - e.g. autoindex off in server but off in this->_locations[i]
-			if (this->_locations[i].getAutoindex() == -1)
-				this->_locations[i].setAutoindex(this->_autoindex);
-		}
+		if (this->_locations[i].getRoot().empty())
+			this->_locations[i].setRoot(this->_root);
+		if (this->_locations[i].getIndex().empty())
+			this->_locations[i].setIndex(this->_index);
+		if (this->_locations[i].getRequestBodySizeLimit() == -1)
+			this->_locations[i].setRequestBodySizeLimit(this->_requestBodySizeLimit);
+		// what if difference between server and location scope directives - e.g. autoindex off in server but off in this->_locations[i]
+		if (this->_locations[i].getAutoindex() == -1)
+			this->_locations[i].setAutoindex(this->_autoindex);
 		for (std::map<unsigned short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
 		{
 			if (this->_locations[i].getErrorPages().find(it->first) == this->_locations[i].getErrorPages().end())

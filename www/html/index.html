@@ -3,6 +3,18 @@
 <html>
 <head>
 	<link rel="stylesheet" href="menu.css">
+    <script>
+        window.onload = function() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "../cgi/manageSession.py", true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                    console.log(xhr.responseText);
+                }
+            };
+            xhr.send();
+        };
+    </script>
 </head>
 <body>
 
@@ -41,6 +53,12 @@
 		<p><a href="/nested/index.html/baloon/balloon.html">Balloon</a></p>
 	</div>
 </div>
-
+<div class="dropdown">
+    <button class="dropbtn">Account</button>
+    <div class="dropdown-content">
+        <p><a href="../cgi/manageSession.py?action=account">Account</a></p>
+        <p><a href="../cgi/manageSession.py?action=dashboard">Dashboard</a></p>
+    </div>
+</div>
 </body>
 </html>
