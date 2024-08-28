@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 10:04:19 by okraus           ###   ########.fr       */
+/*   Updated: 2024/08/28 10:15:49 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -180,36 +180,35 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 			if (!(this->headerFields.insert(std::make_pair(it->first, it->second)).second))  // overwrite with CGI values if exists
 				this->headerFields[it->first] = it->second;
 	}
-	if (this->statusLine.statusCode != 204)
+	if (request.getRequestLine().httpVersion == "1.0")
+	{
+		this->statusLine.httpVersion = "HTTP/1.0";
+		if (this->headerFields.find("transfer-encoding: ") != this->headerFields.end()) // this will ensure compliance with 1.0, but will likely invalidate the response client-side
+			this->headerFields.erase(this->headerFields.find("transfer-encoding: "));
+	}
+	if (this->statusLine.statusCode != 204 && this->statusLine.statusCode != 304 && request.getRequestLine().method != "HEAD")
 		this->headerFields.insert(std::make_pair("content-length: ", itoa(this->responseBody.size())));
-	//this->headerFields["content-length: "] = itoa(this->responseBody.size());
 	this->headerFields.insert(std::make_pair("date: ", getIMFFixdate()));
-	//this->headerFields["date: "] = getIMFFixdate();
-	if (this->headerFields.find("content-type: ") == this->headerFields.end() && this->statusLine.statusCode != 204)
+	if (this->headerFields.find("content-type: ") == this->headerFields.end() 
+		&& this->statusLine.statusCode != 204 && this->statusLine.statusCode != 304
+		&& request.getRequestLine().method != "HEAD")
 		this->headerFields.insert(std::make_pair("content-type: ", "application/octet-stream"));
-		//this->headerFields["content-type: "] = "application/octet-stream";
 	if (request.getConnectionStatus() == CLOSE)
 		this->headerFields.insert(std::make_pair("connection: ", "close"));
-		//this->headerFields["connection: "] = "close";
 	else
 	{
 		this->headerFields.insert(std::make_pair("connection: ", "keep-alive"));
-		//this->headerFields["connection: "] = "keep-alive";
 		this->headerFields.insert(std::make_pair("keep-alive: ", std::string("timeout=" + itoa(CONNECTION_TIMEOUT))));
-		//this->headerFields["keep-alive: "] = std::string("timeout=" + itoa(CONNECTION_TIMEOUT));
 	}
-	if (this->statusLine.statusCode >= 300 && this->statusLine.statusCode <= 308)
+if (this->statusLine.statusCode >= 300 && this->statusLine.statusCode <= 308)
 	{
 		if (this->statusDetails == "Trying to access a directory")
-			this->headerFields.insert(std::make_pair("location : ", request.getAbsolutePath() + "/"));
-			//this->headerFields["location: "] = request.getAbsolutePath() + "/";
+			this->headerFields.insert(std::make_pair("location: ", request.getAbsolutePath() + "/"));
+		else if (request.getLocation().getReturnURLOrBody().size() > 0 
+			&& *request.getLocation().getReturnURLOrBody().begin() == '/')	// if starts with slash, prepend scheme + host:port
+			this->headerFields.insert(std::make_pair("location: ", std::string("http://") + request.getLocation().getServerName() + ":8002" + request.getLocation().getReturnURLOrBody()));
 		else
-			this->headerFields.insert(std::make_pair("location : ", request.getLocation().getReturnURLOrBody()));
-			//this->headerFields["location: "] = request.getLocation().getReturnURLOrBody();
-		if (request.getLocation().getReturnURLOrBody().size() > 0 
-			&& *request.getLocation().getReturnURLOrBody().begin() == '/')	// if starts with slash, append scheme + host:port
-			this->headerFields.insert(std::make_pair("location : ", std::string("http://") + request.getLocation().getServerName() + ":8002" + request.getLocation().getReturnURLOrBody()));
-			//this->headerFields["location: "] = std::string("http://") + request.getLocation().getServerName() + ":8002" + request.getLocation().getReturnURLOrBody();
+			this->headerFields.insert(std::make_pair("location: ", request.getLocation().getReturnURLOrBody()));
 		// if starts with http(s), append the rest without http(s)
 		// if starts with http(s)://host:port, append path
 	}
@@ -223,13 +222,13 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 			if (++it != request.getAllowedMethods().end())
 				methods.append(", ");
 		}
-		this->headerFields.insert(std::make_pair("allow : ", methods));
+		this->headerFields.insert(std::make_pair("allow: ", methods));
 		//this->headerFields["allow: "] = methods;
 	}
 	if (this->statusLine.statusCode == 426)
 	{
 		this->headerFields["connection: "].append(", Upgrade");
-		this->headerFields.insert(std::make_pair("upgrade : ", "HTTP/1.1"));
+		this->headerFields.insert(std::make_pair("upgrade: ", "HTTP/1.1"));
 		//this->headerFields["upgrade: "] = "HTTP/1.1";
 	}
 	for (stringmap_t::iterator it = this->headerFields.begin() ; it != this->headerFields.end() ; it++)
@@ -448,7 +447,7 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 	if (request.getHasExpect())
 	{
 		Logger::safeLog(INFO, RESPONSE, "100 Continue", this->statusDetails);
-		return (convertStringToOctets("HTTP/1.1 100 Continue"));
+		return (convertStringToOctets("HTTP/1.1 100 Continue\r\n\r\n"));
 	}
 	else
 	{
@@ -461,23 +460,51 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 			this->codeDict[this->statusLine.statusCode] = "Undefined";
 		this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
 
-		if (!this->cgiStatus)
+		if (!this->cgiStatus && (request.getRequestLine().method == "GET" || request.getRequestLine().method == "HEAD"))
 		{
-			if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory())
+			if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory() && !request.getLocation().getIsRedirect())
 				request.response.readDirectoryListing(request.getTargetResource());
-			else if (this->statusLine.statusCode == 200)
+			else if (this->statusLine.statusCode == 200 && !request.getLocation().getIsRedirect())
 				request.response.readRequestedFile(request.getTargetResource(), request.getLocation().getMimeTypes().getMimeTypesDictInv());
 			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
 				request.response.readReturnDirective(request.getLocation());
-			else
+			else if (this->statusLine.statusCode != 204 & this->statusLine.statusCode != 304) // this is in place so we don't read the error page for no reason
+				request.response.readErrorPage(request.getLocation());
+		}
+		else if (!this->cgiStatus && request.getRequestLine().method == "POST")
+		{
+			if (this->statusLine.statusCode == 200 && !request.getLocation().getIsRedirect())
+			{
+				this->statusLine.statusCode = 201;
+				this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
+				// additionally: location header + location in body + create the file
+			}
+			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
+				request.response.readReturnDirective(request.getLocation());
+			else if (this->statusLine.statusCode != 204 && this->statusLine.statusCode != 304) // this is in place so we don't read the error page for no reason
+				request.response.readErrorPage(request.getLocation());
+		}
+		else if (!this->cgiStatus && request.getRequestLine().method == "DELETE")
+		{
+			if (this->statusLine.statusCode == 200 && !request.getLocation().getIsRedirect())
+			{
+				this->statusLine.statusCode = 204;
+				this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
+				// additionally: delete the file
+			}
+			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
+				request.response.readReturnDirective(request.getLocation());
+			else if (this->statusLine.statusCode != 204 && this->statusLine.statusCode != 304) // this is in place so we don't read the error page for no reason
 				request.response.readErrorPage(request.getLocation());
 		}
 		else
 		{
 			this->responseBody.clear();
 			this->responseBody = this->cgiBody;
+			if (this->cgiStatus == CGI_ERROR)
+				request.response.readErrorPage(request.getLocation());
 		}
-		if (this->statusLine.statusCode == 204)
+		if (this->statusLine.statusCode == 204 || this->statusLine.statusCode == 304 || request.getRequestLine().method == "HEAD")
 			this->responseBody.clear();
 		request.response.buildResponseHeaders(request);
 		request.response.buildCompleteResponse();
