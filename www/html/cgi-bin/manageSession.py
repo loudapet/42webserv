@@ -184,8 +184,17 @@ user_sessions = Session()
 user_sessions.clean_expired_sessions()
 
 # Retrieve cookies and form data
-cookie = SimpleCookie(os.environ.get("HTTP_COOKIE"))
-session_id = cookie.get('SID')
+cookie = SimpleCookie()
+receivedCookieString = os.environ.get('HTTP_COOKIE', '')
+cookiesList = receivedCookieString.split(';')
+for cookieInstance in cookiesList:
+	cookie.load(cookieInstance.strip())
+
+if 'SID' in cookie:
+	session_id = cookie.get('SID')
+else:
+	session_id = None
+
 form = cgi.FieldStorage()
 username = form.getvalue("username")
 password = form.getvalue("password")
@@ -199,8 +208,14 @@ if session_id:
 		user_sessions.delete_session(session_id)
 		printLogoutPage()
 	elif action == "logout":
-		# If action is logout, delete session and show logout page
+		# If action is logout, delete session, delete cookie and show logout page
 		user_sessions.delete_session(session_id)
+		# Delete the SID cookie by setting its expiration date to a time in the past
+		expired_cookie = SimpleCookie()
+		expired_cookie['SID'] = ''
+		expired_cookie['SID']['expires'] = 'Thu, 01 Jan 1970 00:00:00 GMT'
+		expired_cookie['SID']['path'] = '/'  # Ensure the path matches the original cookie
+		print(expired_cookie.output())
 		printLogoutPage()
 	elif action == "account":
 		# If user is already logged in and clicks on the Account dropdown, show a message indicating that and direct to Dashboard

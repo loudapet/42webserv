@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/28 13:16:22 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 16:57:00 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -814,8 +814,6 @@ void	ServerMaster::listenForConnections(void)
 								client.incrementRequestID();
 								Logger::setActiveRequestID(client.getRequestID());
 								client.separateValidHeader(); // separates the header from the body, header is stored in dataToParse, body in receivedData
-								Logger::safeLog(DEBUG, REQUEST, "Header:\n" + convertOctetsToString(client.getReceivedHeader()), "");
-								Logger::safeLog(DEBUG, REQUEST, "Body:\n" + convertOctetsToString(client.getReceivedData()), "");
 								parserPair = client.request.parseHeader(client.getReceivedHeader());
 								selectServerRules(parserPair, i); // resolve ServerConfig to HttpRequest
 								client.clearReceivedHeader(); // clears request line and header fields
