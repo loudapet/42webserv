@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 11:06:15 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 11:22:56 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -653,6 +653,8 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 			dirPath = this->targetResource.substr(0, this->targetResource.find_last_of("/"));
 		else
 			dirPath = ".";
+		if (access(dirPath.c_str(), F_OK) < 0)
+			this->response.updateStatus(403, "Path does not exist");
 		if (access(dirPath.c_str(), W_OK) < 0)
 			this->response.updateStatus(403, "Path is not writable");
 

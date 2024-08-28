@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/28 11:00:05 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 11:37:00 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -738,7 +738,7 @@ void	ft_post(ServerMaster &sm, Client &client)
 	if (response.getPostStatus() == NOPOST)
 	{
 		int fd;
-		fd = open(request.getTargetResource().c_str(), O_WRONLY | O_CREAT | O_TRUNC);
+		fd = open(request.getTargetResource().c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
 		if (fd < 0)
 		{
 			response.setPostStatus(POST_ERROR);
@@ -769,7 +769,7 @@ void	ft_post(ServerMaster &sm, Client &client)
 		}
 		else if (!wsize)
 		{
-			response.updateStatus(201, request.getTargetResource().c_str());
+			//response.updateStatus(201, request.getTargetResource().c_str());
 			response.setPostStatus(POST_COMPLETE);
 			return ;
 		}
@@ -878,7 +878,8 @@ void	ServerMaster::listenForConnections(void)
 				// CGI TBA - add conditions for it, othwerwise send normal response
 				Client	&client = this->_clients.find(i)->second;
 				if (client.request.getLocation().getIsCgi() && !client.request.getHasExpect() 
-					&& (client.request.response.getStatusLine().statusCode >= 200 && client.request.response.getStatusLine().statusCode <= 299))
+					&& (client.request.response.getStatusLine().statusCode >= 200 && client.request.response.getStatusLine().statusCode <= 299)
+					&& !(client.request.getLocation().getIsRedirect()))
 				{
 					int old_cgi_status = client.request.response.getCgiStatus();
 					ft_cgi(*this, client);
@@ -913,7 +914,8 @@ void	ServerMaster::listenForConnections(void)
 						continue ;
 				}
 				if (client.request.getRequestLine().method == "POST"
-					&& (client.request.response.getStatusLine().statusCode == 200))
+					&& (client.request.response.getStatusLine().statusCode == 200)
+					&& !(client.request.getLocation().getIsRedirect()))
 				{
 					int old_post_status = client.request.response.getPostStatus();
 					ft_post(*this, client);
@@ -925,7 +927,7 @@ void	ServerMaster::listenForConnections(void)
 					if (post_status == POST_STARTED)
 					{
 						addFdToSet(this->_writeFds, client.request.response.getWfd());
-						response.setPostStatus(POST_WRITING);
+						client.request.response.setPostStatus(POST_WRITING);
 						continue ;
 					}
 					else if (post_status == POST_WRITING)
@@ -933,7 +935,7 @@ void	ServerMaster::listenForConnections(void)
 					else if (old_post_status== POST_WRITING && post_status != POST_WRITING)
 					{
 						close(client.request.response.getWfd());
-						removeFdToSet(this->_writeFds, client.request.response.getWfd());
+						removeFdFromSet(this->_writeFds, client.request.response.getWfd());
 					}
 				}
 				if (!client.request.response.getMessageTooLongForOneSend())

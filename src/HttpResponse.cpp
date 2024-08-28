@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 10:15:49 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/28 11:37:28 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -200,7 +200,7 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 		this->headerFields.insert(std::make_pair("connection: ", "keep-alive"));
 		this->headerFields.insert(std::make_pair("keep-alive: ", std::string("timeout=" + itoa(CONNECTION_TIMEOUT))));
 	}
-if (this->statusLine.statusCode >= 300 && this->statusLine.statusCode <= 308)
+	if (this->statusLine.statusCode >= 300 && this->statusLine.statusCode <= 308)
 	{
 		if (this->statusDetails == "Trying to access a directory")
 			this->headerFields.insert(std::make_pair("location: ", request.getAbsolutePath() + "/"));
@@ -212,6 +212,8 @@ if (this->statusLine.statusCode >= 300 && this->statusLine.statusCode <= 308)
 		// if starts with http(s), append the rest without http(s)
 		// if starts with http(s)://host:port, append path
 	}
+	else if (this->statusLine.statusCode == 201)
+		this->headerFields.insert(std::make_pair("location: ", request.getRequestLine().requestTarget.absolutePath));
 	if (this->statusLine.statusCode == 405)
 	{
 		std::string	methods;
@@ -473,11 +475,11 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 		}
 		else if (!this->cgiStatus && request.getRequestLine().method == "POST")
 		{
+			// location header in prepareHeaders, status update here, if creation failed, 500 was raised
 			if (this->statusLine.statusCode == 200 && !request.getLocation().getIsRedirect())
 			{
 				this->statusLine.statusCode = 201;
 				this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
-				// additionally: location header + location in body + create the file
 			}
 			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
 				request.response.readReturnDirective(request.getLocation());
@@ -509,7 +511,8 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 		request.response.buildResponseHeaders(request);
 		request.response.buildCompleteResponse();
 		octets_t message = request.response.getCompleteResponse();
-		Logger::safeLog(INFO, RESPONSE, itoa(this->statusLine.statusCode) + " ", this->statusDetails);
+		Logger::safeLog(INFO, RESPONSE, itoa(this->statusLine.statusCode) + " ", 
+			this->statusLine.reasonPhrase + (this->statusDetails.size() ? ": " + this->statusDetails : ""));
 		return (message);
 	}
 }
