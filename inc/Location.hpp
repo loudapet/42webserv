@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:27 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/05 14:59:24 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/29 22:28:58 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,6 +43,7 @@ class Location
 		const std::string							&getServerName(void) const;
 		const Mime									&getMimeTypes(void) const;
 		unsigned short								getPort(void) const;
+		const std::pair<std::string, std::string>	&getCgiExec(void) const; // first = extension, second = full or relative path to cgi executable
 
 		void	setPath(const std::string &path);
 		void	setRoot(const std::string &root);
@@ -77,6 +78,7 @@ class Location
 		std::string								_serverName; // hostname or IP address for CGI
 		Mime 									_mimeTypes;
 		unsigned short							_port;
+		std::pair<std::string, std::string>		_cgiExec;
 };
 
 std::ostream &operator << (std::ostream &o, Location const &instance);

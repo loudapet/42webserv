@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/28 10:52:28 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/29 22:26:39 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,7 @@ Location::Location(void)
 	this->_serverName = "";
 	this->_mimeTypes = Mime();
 	this->_port = 0;
+	this->_cgiExec = std::make_pair("", "");
 }
 
 Location::Location(const ServerConfig &serverConfig)
@@ -46,6 +47,7 @@ Location::Location(const ServerConfig &serverConfig)
 	this->_serverName = serverConfig.getPrimaryServerName();
 	this->_mimeTypes = Mime();
 	this->_port = serverConfig.getPort();
+	this->_cgiExec = std::make_pair("", "");
 }
 
 Location::Location(std::string locationPath, std::vector<std::string> locationBlockElements)
@@ -54,10 +56,13 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 	bool						autoindexInConfig;
 	bool						allowMethodsInConfig;
 	bool						isCgiInConfig;
+	bool						returnInConfig;
+	bool						cgiExecInConfig;
 	std::vector<std::string>	allowMethodsLine;
 	std::string 				validMethodsArray[] = {"GET", "HEAD", "POST", "DELETE"};
 	std::set<std::string> 		validMethods(validMethodsArray, validMethodsArray + sizeof(validMethodsArray) / sizeof(validMethodsArray[0]));
 	std::vector<std::string>	errorPageLine; // to validate error page lines
+	std::vector<std::string>	cgiExecLine; // to validate cgi_exec extension and path
 	std::istringstream			iss; // convert error code to short
 
 	initLocation();
@@ -65,6 +70,8 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 	autoindexInConfig = false;
 	allowMethodsInConfig = false;
 	isCgiInConfig = false;
+	returnInConfig = false;
+	cgiExecInConfig = false;
 	this->_path = locationPath;
 	for (size_t i = 0; i < locationBlockElements.size(); i++)
 	{
@@ -119,20 +126,26 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 		else if (locationBlockElements[i] == "return" && (i + 2) < locationBlockElements.size()
 			&& locationBlockElements[i + 1].find_first_of(";") == std::string::npos && validateElement(locationBlockElements[i + 2]))
 		{
+			if (returnInConfig)
+				throw(std::runtime_error("Config parser: Duplicate return directive."));
 			// source: https://nginx.org/en/docs/http/ngx_http_rewrite_module.html#return
 			this->_returnCode = validateReturnCode(locationBlockElements[i + 1]);
 			this->_returnURLOrBody = locationBlockElements[i + 2];		
 			this->_isRedirect = true;
+			returnInConfig = true;
 			i += 2;						
 		}
 		else if (locationBlockElements[i] == "return" && (i + 1) < locationBlockElements.size()
 			&& validateElement(locationBlockElements[i + 1]))
 		{
+			if (returnInConfig)
+				throw(std::runtime_error("Config parser: Duplicate return directive."));
 			this->_returnCode = 302;
 			this->_returnURLOrBody = locationBlockElements[i + 1];
 			if (this->_returnURLOrBody.substr(0, 7) != "http://" && this->_returnURLOrBody.substr(0, 8) != "https://")
 				throw(std::runtime_error("Config parser: Invalid URL in return directive. In this format, the directive is assumed to represent 'return [URL];' and the [URL] needs to start with 'http://' or 'https://'."));
 			this->_isRedirect = true;
+			returnInConfig = true;
 			i++;
 		}
 		else if (locationBlockElements[i] == "error_page")
@@ -141,6 +154,26 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 			validateErrorPagesLine(errorPageLine);
 			i += errorPageLine.size() - 1;
 			errorPageLine.clear();
+		}
+		else if (locationBlockElements[i] == "cgi_exec" && (i + 2) < locationBlockElements.size())
+		{
+			if (cgiExecInConfig)
+				throw(std::runtime_error("Config parser: Duplicate cgi_return directive."));
+			cgiExecLine = extractVectorUntilSemicolon(locationBlockElements, i);
+			if (cgiExecLine.size() != 3)
+				throw(std::runtime_error("Config parser: Invalid format of ccgi_exec directive. Expected format: 'cgi_exec [extension] [full or relative path to the executable]'"));
+			validateElement(cgiExecLine[2]);
+			if (cgiExecLine[1][0] != '.')
+				throw(std::runtime_error("Config parser: CGI extension is invalid. It needs to start with a '.'"));
+			if (access(cgiExecLine[2].c_str(), F_OK) < 0)
+				throw(std::runtime_error("Config parser: CGI relative path '" + cgiExecLine[2] + "' is invalid."));
+			if (access(cgiExecLine[2].c_str(), R_OK) < 0)
+				throw(std::runtime_error("Config parser: CGI at '" + cgiExecLine[2] + "' is not accessible."));
+			if (access(cgiExecLine[2].c_str(), X_OK) < 0)
+				throw(std::runtime_error("Config parser: CGI at '" + cgiExecLine[2] + "' is not executable."));
+			this->_cgiExec = std::make_pair(cgiExecLine[1], cgiExecLine[2]);
+			cgiExecInConfig = true;
+			i += 2;						
 		}
 		else if (locationBlockElements[i] != "{" && locationBlockElements[i] != "}")
 			throw (std::runtime_error("Config parser: Invalid directive in a location block."));
@@ -164,6 +197,7 @@ Location::Location(const Location& copy)
 	this->_serverName = copy._serverName;
 	this->_mimeTypes = copy._mimeTypes;
 	this->_port = copy._port;
+	this->_cgiExec = copy._cgiExec;
 }
 
 Location &Location::operator = (const Location &src)
@@ -184,6 +218,7 @@ Location &Location::operator = (const Location &src)
 		this->_serverName = src._serverName;
 		this->_mimeTypes = src._mimeTypes;
 		this->_port = src._port;
+		this->_cgiExec = src._cgiExec;
 	}
 	return (*this);
 }
@@ -251,7 +286,7 @@ const std::map<unsigned short, std::string>	&Location::getErrorPages(void) const
 
 const std::string   &Location::getServerName(void) const
 {
-    return (this->_serverName);
+	return (this->_serverName);
 }
 
 const Mime	&Location::getMimeTypes(void) const
@@ -262,6 +297,11 @@ const Mime	&Location::getMimeTypes(void) const
 unsigned short	Location::getPort(void) const
 {
 	return (this->_port);
+}
+
+const std::pair<std::string, std::string>	&Location::getCgiExec(void) const
+{
+	return (this->_cgiExec);
 }
 
 void	Location::setPath(const std::string &path)
@@ -345,6 +385,7 @@ void	Location::initLocation(void)
 	this->_serverName = "";
 	this->_mimeTypes = Mime();
 	this->_port = 0;
+	this->_cgiExec = std::make_pair("", "");
 }
 		
 void	Location::validateErrorPagesLine(std::vector<std::string> &errorPageLine)
@@ -392,6 +433,7 @@ std::ostream &operator << (std::ostream &o, Location const &instance)
 		<< "isCgi: " << instance.getIsCgi() << '\n'
 		<< "return: " << instance.getReturnCode() << " " << instance.getReturnURLOrBody() << '\n'
 		<< "port: " << instance.getPort() << '\n'
+		<< "cgi_exec: " << instance.getCgiExec().first << " " << instance.getCgiExec().second << '\n'
 		<< "error pages: ";
 	if (errorPages.size() > 0)
 		o << "\n";
