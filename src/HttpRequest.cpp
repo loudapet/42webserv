@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 17:12:36 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/29 11:11:32 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -638,7 +638,7 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 					this->targetIsDirectory = true;
 				}
 				else
-					this->response.updateStatus(403, "Autoindexing is not allowed");
+					this->response.updateStatus(404, "Autoindexing is not allowed");
 			}
 		}
 	}
@@ -798,7 +798,8 @@ void	HttpRequest::validateHeader(const Location& location)
 	this->requestBodySizeLimit = location.getRequestBodySizeLimit();
 
 	if (std::find(allowedMethods.begin(), allowedMethods.end(), this->requestLine.method) == allowedMethods.end())
-		this->response.updateStatus(405, "Method Not Allowed");
+		throw(ResponseException(405, "Method not allowed"));
+		//this->response.updateStatus(405, "Method Not Allowed");
 	this->validateConnectionOption();
 	this->validateResourceAccess(location);
 	this->validateContentType(location);
@@ -833,11 +834,16 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 		for (octets_t::iterator	it = bufferedBody.begin() ; it != bufferedBody.end() ; it = bufferedBody.begin())
 		{
 			octets_t::iterator	newline = std::find(bufferedBody.begin(), bufferedBody.end(), '\n');
+			if (newline == bufferedBody.end())
+				return (bytesRead);
 			octets_t			chunkSizeLine(bufferedBody.begin(), newline);
 			size_t				tempBytesRead = chunkSizeLine.size() + 1;
 			octets_t::iterator	semicolon = std::find(chunkSizeLine.begin(), chunkSizeLine.end(), ';');
 			octets_t			chunkSizeOct(chunkSizeLine.begin(), semicolon); // ignore chunk-extension
+			//std::cout << "1: " << bufferedBody << std::endl;
 			bufferedBody.erase(bufferedBody.begin(), newline + 1); // move to the beginning of the chunk
+			//std::cout << "2: " << bufferedBody << std::endl;
+			//std::cout << "------------------------------" << std::endl;
 			if (chunkSizeOct.size() > 0 && !isxdigit(chunkSizeOct[0]))
 				throw (ResponseException(400, "Invalid chunk size value")); // anything else than a hexdigit at the start isn't allowed
 			if (std::count(chunkSizeOct.begin(), chunkSizeOct.end(), '\0') > 0)
@@ -849,6 +855,7 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 			errno = 0;
 			size_t chunkSize = strtoul(chunkSizeStr.c_str(), NULL, 16);
 			int	error = errno;
+			//std::cout << BLUE << chunkSizeStr << " " << error << RESET << std::endl;
 			if (error || this->requestBody.size() + chunkSize > static_cast<size_t>(this->requestBodySizeLimit) || chunkSize > INT_MAX)
 				throw (ResponseException(413, "Payload too large"));
 
@@ -871,6 +878,7 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 					return (bytesRead);
 				}
 				else
+					//break ;
 					throw (ResponseException(400, "Invalid delimitation of message body end"));
 			}
 			else if (chunkSize + 1 > bufferedBody.size()) // + 1 for newline (should be there as a proper delimiter)

@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 17:09:10 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/29 10:06:58 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -518,7 +518,7 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 				request.response.readRequestedFile(request.getTargetResource(), request.getLocation().getMimeTypes().getMimeTypesDictInv());
 			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
 				request.response.readReturnDirective(request.getLocation());
-			else if (this->statusLine.statusCode != 204 & this->statusLine.statusCode != 304) // this is in place so we don't read the error page for no reason
+			else if (this->statusLine.statusCode != 204 && this->statusLine.statusCode != 304) // this is in place so we don't read the error page for no reason
 				request.response.readErrorPage(request.getLocation());
 		}
 		else if (!this->cgiStatus && request.getRequestLine().method == "POST")

@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/07/24 15:20:55 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/29 10:32:46 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -209,17 +209,27 @@ void Client::separateValidHeader(void)
 {
 	std::string sequences[] = {"\r\n\n", "\n\n", "\n\r\n", "\r\n\r\n"};
 	std::vector<unsigned char>::iterator endOfSequence;
+	std::vector<unsigned char>::iterator endOfClosestSequence;
 	std::vector<unsigned char>::iterator sequenceEnd;
+	size_t	distance = INT_MAX;
+	size_t	tempDistance = 0;
+	int		closestSequence = 0;
 
 	for (int i = 0; i < 4; ++i)
 	{
 		endOfSequence = std::search(this->_receivedData.begin(), this->_receivedData.end(), sequences[i].begin(), sequences[i].end());
 		if (endOfSequence != this->_receivedData.end())
 		{
-			sequenceEnd = endOfSequence + sequences[i].size();
-			break;
+			tempDistance = std::distance(this->_receivedData.begin(), endOfSequence);
+			if (tempDistance < distance)
+			{
+				distance = tempDistance;
+				closestSequence = i;
+				endOfClosestSequence = endOfSequence;
+			}
 		}
 	}
+	sequenceEnd = endOfClosestSequence + sequences[closestSequence].size();
 // we can be sure that the sequence will be found since this function is called only once hasValidHeaderEnd returns true
 //	if (endOfSequence == this->_receivedData.end())
 //		return (false);

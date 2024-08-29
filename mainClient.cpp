@@ -20,7 +20,7 @@ int main(void)
 	struct sockaddr_in serverAddr;
 
 	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(8002); // Port number of the server
+	serverAddr.sin_port = htons(8003); // Port number of the server
 	serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1"); // IP address of the server
 
 	// Connect to the server
@@ -31,39 +31,7 @@ int main(void)
 		return (1);
 	}
 	// Send data to the server
-	const char	*message = "\n\r\n\nGET http://localhost/cgitest/test1.cgi/upload/additional/pa%2eth/and?query=42 HTTP/1.1\r\n"
-							"Host: s\r\n"
-							"User-Agent: Mozilla/5.0\n"
-							"Accept: text/html, */*\r\n"
-							"Accept-Language: en-us\n"
-							"Accept-Charset: \tISO-8859-1,utf-8\n"
-							"Connection: keep-alive , idk\r\n"
-							"Keep-Alive: max=100, timeout=30\n"
-							"Content-Length: 11\n"
-							"Content-Type: application/sth ; hello\n"
-							// "Expect: 100-continue\n\n"
-							// "Transfer-Encoding: chunked\n"
-							"\n"
-							"1234567890a"
-							"GET /lmao HTTP/1.1\r\n"
-							"Host: localhost\r\n"
-							"User-Agent: Mozilla/5.0\n"
-							"Accept: text/html, */*\r\n"
-							"Expect: 100-continue\n";
-	const char *message1 = "Accept-Language: en-us\n"
-							"Accept-Charset: \tISO-8859-1,utf-8\n"
-							"Connection: keep-alive , \r\n"
-							"Keep-Alive: max=100,timeout=30\n"
-							"Transfer-Encoding: chunked\n"
-							"t: €h\n"
-							"\r\n"
-							"8;\n"
-							"Chromi\r\n\n"
-							"12\r\n"
-							"Developers Network\r\n"
-							"0\r\n"
-							"\r\n"
-							"GET /../file_in_docs.html HTTP/1.1\r\n"
+	const char	*message = "GET / HTTP/1.1\r\n"
 							"Host: localhost\r\n"
 							"User-Agent: Mozilla/5.0\n"
 							"Accept: text/html, */*\r\n"
@@ -72,15 +40,17 @@ int main(void)
 							"Connection: keep-alive , \r\n"
 							"Keep-Alive: max=100,timeout=30\n"
 							"Transfer-Encoding: chunked\n"
-							"t: €h\n"
+							"t: €h\n" // \n\r\n, \r\n\r\n
 							"\r\n"
-							"8;\n"
-							"Chromium\r\n"
-							"12\r\n"
+							"7\n"
+							"Chromi\n\n"
+							"7\r"
+							"\nMozilla\r\n"
+							"1";
+	const char *message1 = "2\r\n"
 							"Developers Network\r\n"
 							"0\r\n"
-							"\r\n"
-							;
+							"\r\n";
 	if (send(clientSocket, message, strlen(message), 0) == -1)
 	{
 		std::cerr << "Error: Failed to send data\n";
