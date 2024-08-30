@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/29 19:51:58 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/30 11:18:20 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -471,14 +471,15 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 	HttpResponse&	response = request.response;
 	int				wpid;
 	// status code for CGI needs to be properly updated, I think?
-	if (response.getCgiStatus() == NOCGI && request.getLocation().getIsCgi())
+	if (response.getCgiStatus() == NOCGI && (request.getLocation().getIsCgi() || request.getIsCgiExec()))
 		response.setCgiStatus(CGI_STARTED);
 	else if (response.getCgiStatus() == CGI_STARTED)
 	{
 		int	pid;
 		int	fd1[2]; // writing to child
 		int	fd2[2]; // reading from child
-		if (access(request.getTargetResource().c_str(), X_OK) != 0)
+		if ((request.getLocation().getIsCgi() && access(request.getTargetResource().c_str(), X_OK) != 0)
+			|| (request.getIsCgiExec() && access(request.getLocation().getCgiExec().second.c_str(), X_OK) != 0))
 		{
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(500, "Cannot access CGI file");
@@ -528,7 +529,24 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 				ex[0] = (char *)request.getTargetResource().c_str();
 				ex[1] = NULL;
 				char **av = &ex[0];
-				execve(request.getTargetResource().c_str(), av, env);
+				std::cerr << "EXECUTING CGI" << std::endl;
+				if (request.getIsCgiExec())
+				{
+					std::cerr << request.getLocation().getCgiExec().second.c_str() << std::endl;
+					std::cerr << access(request.getLocation().getCgiExec().second.c_str(), X_OK) << std::endl;
+					execve(request.getLocation().getCgiExec().second.c_str(), av, env);
+					std::cerr << "E2BIG" << E2BIG << std::endl;
+					std::cerr << "EACCES" << EACCES << std::endl;
+					std::cerr << "EAGAIN" << EAGAIN << std::endl;
+					std::cerr << EFAULT << std::endl;
+					std::cerr << EINVAL << std::endl;
+					std::cerr << EIO << std::endl;
+				}
+				else
+				{
+					std::cerr << request.getTargetResource().c_str() << std::endl;
+					execve(request.getTargetResource().c_str(), av, env);
+				}
 				//clean exit later, get pid is not legal, maybe a better way to do it?
 				for (int i = 0; env[i]; i++)
 				{
@@ -556,7 +574,7 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 	}
 	else if (response.getCgiStatus() == CGI_WRITING)
 	{
-		size_t			w = 0;
+		ssize_t			w = 0;
 		size_t			wsize;
 		//std::string body(request.getRequestBody().begin(), request.getRequestBody().end());
 		unsigned char	wbuffer[CGI_BUFFER_SIZE];
@@ -569,6 +587,7 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 		{
 			std::copy(request.getRequestBody().begin(), request.getRequestBody().begin() + wsize, wbuffer);
 			w = write(response.getWfd(), wbuffer, wsize);
+			std::cout << "cgi written: " << w << std::endl;
 		}
 		if (w > 0)
 		{
@@ -590,7 +609,7 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 	else if (response.getCgiStatus() == CGI_READING)
 	{
 		int	status;
-		int	r;
+		ssize_t	r;
 		uint8_t	buffer[CGI_BUFFER_SIZE];
 		// read needs to be in select somehow
 		//what is read is sent?
@@ -601,6 +620,7 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 			return ;
 		wpid = waitpid(response.getCgiPid(), &status, WNOHANG);
 		r = read(response.getRfd(), buffer, CGI_BUFFER_SIZE);
+		std::cout << "cgi read: " << r << std::endl;
 		if (r > 0)
 		{
 			// octets_t message;
@@ -857,14 +877,17 @@ void	ServerMaster::listenForConnections(void)
 			else if (FD_ISSET(i, &writeFds) && this->_clients.count(i))
 			{
 				// CGI TBA - add conditions for it, othwerwise send normal response
+				
 				Client	&client = this->_clients.find(i)->second;
-				if (client.request.getLocation().getIsCgi() && !client.request.getHasExpect() 
+				if ((client.request.getLocation().getIsCgi() || client.request.getIsCgiExec()) && !client.request.getHasExpect() 
 					&& (client.request.response.getStatusLine().statusCode >= 200 && client.request.response.getStatusLine().statusCode <= 299)
 					&& !(client.request.getLocation().getIsRedirect()))
 				{
+					std::cout << "CGI loop" << std::endl;
 					int old_cgi_status = client.request.response.getCgiStatus();
 					ft_cgi(*this, client);
 					int cgi_status = client.request.response.getCgiStatus();
+					std::cout << cgi_status << std::endl;
 					if (old_cgi_status == CGI_STARTED && cgi_status == CGI_WRITING)
 					{
 						addFdToSet(this->_readFds, client.request.response.getRfd());

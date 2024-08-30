@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 09:58:39 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/30 09:44:46 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -102,6 +102,7 @@ class HttpRequest
 		bool					isRedirect;
 		bool					hasExpect;
 		bool					silentErrorRaised;
+		bool					isCgiExec;
 		size_t					contentLength;
 		Location				location;
 		void					parseRequestLine(std::string requestLine);
@@ -147,6 +148,7 @@ class HttpRequest
 		const int&						getRequestID() const;
 		void							resetRequestObject(void);
 		bool							getHasExpect() const;
+		bool							getIsCgiExec() const;
 		void							disableHasExpect();
 };
 
