@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/18 19:02:54 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/30 12:46:10 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -138,12 +138,13 @@ std::vector<std::string>	extractVectorUntilSemicolon(const std::vector<std::stri
 	std::vector<std::string>	extractedVector;
 
 	size_t j = 0;
-	while (mainVector[pos + j].find(';') == std::string::npos && pos + j < mainVector.size())
+	while (pos + j < mainVector.size() && mainVector[pos + j].find(';') == std::string::npos)
 	{
 		extractedVector.push_back(mainVector[pos + j]);
 		j++;
 	}
-	extractedVector.push_back(mainVector[pos + j]);
+	if (pos + j < mainVector.size())
+		extractedVector.push_back(mainVector[pos + j]);
 	return (extractedVector);
 }
 
