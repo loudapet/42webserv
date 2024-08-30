@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/29 22:26:39 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/30 08:59:10 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -161,7 +161,7 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 				throw(std::runtime_error("Config parser: Duplicate cgi_return directive."));
 			cgiExecLine = extractVectorUntilSemicolon(locationBlockElements, i);
 			if (cgiExecLine.size() != 3)
-				throw(std::runtime_error("Config parser: Invalid format of ccgi_exec directive. Expected format: 'cgi_exec [extension] [full or relative path to the executable]'"));
+				throw(std::runtime_error("Config parser: Invalid format of cgi_exec directive. Expected format: 'cgi_exec [extension] [full or relative path to the executable]'"));
 			validateElement(cgiExecLine[2]);
 			if (cgiExecLine[1][0] != '.')
 				throw(std::runtime_error("Config parser: CGI extension is invalid. It needs to start with a '.'"));
