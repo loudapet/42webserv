@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/30 16:57:05 by okraus           ###   ########.fr       */
+/*   Updated: 2024/08/30 17:43:04 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -567,19 +567,19 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 				std::cerr << "EXECUTING CGI" << std::endl;
 				if (request.getIsCgiExec())
 				{
-					std::cerr << request.getLocation().getCgiExec().second.c_str() << std::endl;
-					std::cerr << access(request.getLocation().getCgiExec().second.c_str(), X_OK) << std::endl;
+					// std::cerr << request.getLocation().getCgiExec().second.c_str() << std::endl;
+					// std::cerr << access(request.getLocation().getCgiExec().second.c_str(), X_OK) << std::endl;
 					execve(request.getLocation().getCgiExec().second.c_str(), av, env);
-					std::cerr << "E2BIG" << E2BIG << std::endl;
-					std::cerr << "EACCES" << EACCES << std::endl;
-					std::cerr << "EAGAIN" << EAGAIN << std::endl;
-					std::cerr << EFAULT << std::endl;
-					std::cerr << EINVAL << std::endl;
-					std::cerr << EIO << std::endl;
+					// std::cerr << "E2BIG" << E2BIG << std::endl;
+					// std::cerr << "EACCES" << EACCES << std::endl;
+					// std::cerr << "EAGAIN" << EAGAIN << std::endl;
+					// std::cerr << EFAULT << std::endl;
+					// std::cerr << EINVAL << std::endl;
+					// std::cerr << EIO << std::endl;
 				}
 				else
 				{
-					std::cerr << request.getTargetResource().c_str() << std::endl;
+					// std::cerr << request.getTargetResource().c_str() << std::endl;
 					execve(request.getTargetResource().c_str(), av, env);
 				}
 				//clean exit later, get pid is not legal, maybe a better way to do it?
