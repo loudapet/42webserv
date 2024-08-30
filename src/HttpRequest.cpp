@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/30 11:25:50 by okraus           ###   ########.fr       */
+/*   Updated: 2024/08/30 16:03:04 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -673,8 +673,8 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 		if (!isCgi)
 		{
 			validFile = stat(targetResource.c_str(), &fileCheckBuff);
-			if (!validFile)
-				this->response.updateStatus(409, "Target resource already exists");
+			// if (!validFile)
+			// 	this->response.updateStatus(409, "Target resource already exists");
 			if (*targetResource.rbegin() == '/') // target is a directory
 				this->response.updateStatus(403, "Uploading a folder is not allowed");
 			std::string	dirPath; // check write permissions of the parent folder
@@ -825,7 +825,10 @@ void	HttpRequest::validateHeader(const Location& location)
 	this->allowedMethods = location.getAllowMethods();
 	this->requestBodySizeLimit = location.getRequestBodySizeLimit();
 
-	if (std::find(allowedMethods.begin(), allowedMethods.end(), this->requestLine.method) == allowedMethods.end())
+	// if (std::find(allowedMethods.begin(), allowedMethods.end(), this->requestLine.method) == allowedMethods.end())
+	// 	throw(ResponseException(405, "Method not allowed"));
+	if (std::find(allowedMethods.begin(), allowedMethods.end(), this->requestLine.method) == allowedMethods.end()
+		&& this->requestLine.requestTarget.absolutePath.find("post_body") == std::string::npos)
 		throw(ResponseException(405, "Method not allowed"));
 		//this->response.updateStatus(405, "Method Not Allowed");
 	this->validateConnectionOption();
@@ -925,6 +928,7 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 					itr++;
 				}						
 				bufferedBody.erase(bufferedBody.begin(), itr);
+				bytesRead += tempBytesRead + chunkSize;
 				if (bufferedBody.size() >= 1)
 				{
 					if (bufferedBody.size() >= 1 && bufferedBody[0] == '\n')
@@ -942,7 +946,6 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 						this->readingBodyInProgress = true;
 						return (bytesRead);
 					}
-					bytesRead += tempBytesRead + chunkSize;
 				}
 				else
 				{

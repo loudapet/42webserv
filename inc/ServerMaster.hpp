@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:17:04 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/30 11:03:39 by okraus           ###   ########.fr       */
+/*   Updated: 2024/08/30 14:17:23 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,8 +17,8 @@
 # include "ServerConfig.hpp"
 # include "Client.hpp"
 # include "HttpRequest.hpp"
-# define MAX_FILE_SIZE 100000
-# define CGI_BUFFER_SIZE 8092
+# define MAX_FILE_SIZE 1000000000
+# define CGI_BUFFER_SIZE 65536
 # define POST_BUFFER_SIZE 8092
 
 class ServerMaster

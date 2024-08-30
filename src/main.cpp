@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 10:01:22 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/30 10:58:44 by okraus           ###   ########.fr       */
+/*   Updated: 2024/08/30 11:49:56 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,7 @@ int	main(int argc, char **argv)
 	(void) argv;
 	
 	signal(SIGINT, handleSignals);
-	signal(SIGPIPE, handleSignals);
+	signal(SIGPIPE, SIG_IGN);
 	if (argc == 1 || argc == 2)
 	{
 		try

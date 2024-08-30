@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/30 11:18:20 by okraus           ###   ########.fr       */
+/*   Updated: 2024/08/30 16:57:05 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,10 +76,7 @@ ServerMaster::~ServerMaster(void)
 		it2 = this->_servers.begin();
 	}
 	if (!g_runWebserv)
-	{
-		std::cout << std::endl;
-		Logger::log(WARNING, SERVER, "Received a terminating signal. Closed all connections and exiting.\n", "");
-	}
+		Logger::log(WARNING, SERVER, "\nReceived a terminating signal. Closed all connections and exiting.\n", "");
 }
 
 void	ServerMaster::removeCommentsAndEmptyLines(void)
@@ -361,6 +358,13 @@ static std::string	upper(std::string str)
 	return (str);
 }
 
+static std::string	httpUpper(std::string str)
+{
+	for (std::string::iterator c = str.begin(); str.end() != c; ++c)
+		*c = *c == '-' ?  '_' : toupper(*c);
+	return ("HTTP_" + str);
+}
+
 static std::string	lower(std::string str)
 {
 	for (std::string::iterator c = str.begin(); str.end() != c; ++c)
@@ -400,19 +404,28 @@ static void	get_env(Client	&client, char **env)
 		
 	for (stringmap_t::const_iterator it = request.getHeaderFields().begin(); it != request.getHeaderFields().end(); it++)
 		envstrings[upper(it->first)] = it->second;
+	for (stringmap_t::const_iterator it = request.getHeaderFields().begin(); it != request.getHeaderFields().end(); it++)
+		envstrings[httpUpper(it->first)] = it->second;
+	//envstrings["HTTP_X_SECRET_HEADER_FOR_TEST"] = "1";
 	// if (envstrings.find("AUTH_SCHEME") != envstrings.end())	//NOT SUPPORTED
 	// 	envstrings["AUTH_TYPE"] = envstrings.find("AUTH_SCHEME");
-	if (request.getHeaderFields().find("cookie") != request.getHeaderFields().end())
-		envstrings["HTTP_COOKIE"] = request.getHeaderFields().find("cookie")->second;
+	// if (request.getHeaderFields().find("cookie") != request.getHeaderFields().end())
+	// 	envstrings["HTTP_COOKIE"] = request.getHeaderFields().find("cookie")->second;
 	if (request.getRequestBody().size()) //message
 		envstrings["CONTENT_LENGTH"] = itoa(request.getRequestBody().size());
-	if (request.getHeaderFields().find("content-type") != request.getHeaderFields().end()) //Content type
-		envstrings["CONTENT_TYPE"] = request.getHeaderFields().find("content-type")->second;
+	// if (request.getHeaderFields().find("content-type") != request.getHeaderFields().end()) //Content type
+	// 	envstrings["CONTENT_TYPE"] = request.getHeaderFields().find("content-type")->second;
 	envstrings["GATEWAY_INTERFACE"] = "CGI/1.1";
 	if (request.getCgiPathInfo().size())
 	{
 		envstrings["PATH_INFO"] = request.getCgiPathInfo();
 		envstrings["PATH_TRANSLATED"] = getPathTranslated(client);
+	}
+	else
+	{
+		envstrings["PATH_INFO"] = "/" + request.getTargetResource();
+		envstrings["REQUEST_URI"] = "/" + request.getTargetResource();
+		envstrings["PATH_TRANSLATED"] = "/" + request.getTargetResource();
 	}
 	envstrings["QUERY_STRING"] = request.getRequestLine().requestTarget.query.size() > 1 ? request.getRequestLine().requestTarget.query.substr(1, request.getRequestLine().requestTarget.query.size() - 1) : std::string("");
 	envstrings["REMOTE_ADDR"] = inet_ntoa(client.getClientAddr().sin_addr);
@@ -421,13 +434,14 @@ static void	get_env(Client	&client, char **env)
 	// envstrings["REMOTE_USER=???"] = "";	// NOT SUPPORTED
 	envstrings["REQUEST_METHOD"] = request.getRequestLine().method;
 	envstrings["SCRIPT_NAME"] = request.getTargetResource(); //from path
+	//envstrings["SCRIPT_NAME"] = "/directory/youpi.bla";
 	envstrings["SERVER_NAME"] = request.getLocation().getServerName();
 	//ServerConfig value??
 	envstrings["SERVER_PORT"] = itoa(client.getServerConfig().getPort());
 	envstrings["SERVER_PROTOCOL"] = "HTTP/" + request.getRequestLine().httpVersion;
 	envstrings["SERVER_SOFTWARE"] = "webserv/nginx-but-better";
-	if (request.getHeaderFields().find("user-agent") != request.getHeaderFields().end())
-		envstrings["HTTP_USER_AGENT"] = request.getHeaderFields().find("user-agent")->second;
+	// if (request.getHeaderFields().find("user-agent") != request.getHeaderFields().end())
+	// 	envstrings["HTTP_USER_AGENT"] = request.getHeaderFields().find("user-agent")->second;
 	envstrings["REMOTE_PORT"] = itoa(client.getClientAddr().sin_port);
 	envstrings["HTTPS"] = "off"; // maybe not needed
 	for (stringmap_t::iterator it = envstrings.begin(); it != envstrings.end(); it++)
@@ -499,6 +513,27 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 			response.updateStatus(500, "Piping failed");
 			return ;
 		}
+		//fcntl(fd1[0], )
+		if (fcntl(fd1[0], F_SETFL, O_NONBLOCK) < 0) // so that the pipes don't block each other in nested while on recv
+		{
+			response.setCgiStatus(CGI_ERROR);
+			response.updateStatus(500, "FCNTL failed");
+		}
+		if (fcntl(fd1[1], F_SETFL, O_NONBLOCK) < 0) // so that the pipes don't block each other in nested while on recv
+		{
+			response.setCgiStatus(CGI_ERROR);
+			response.updateStatus(500, "FCNTL failed");
+		}
+		if (fcntl(fd2[0], F_SETFL, O_NONBLOCK) < 0) // so that the pipes don't block each other in nested while on recv
+		{
+			response.setCgiStatus(CGI_ERROR);
+			response.updateStatus(500, "FCNTL failed");
+		}
+		if (fcntl(fd2[1], F_SETFL, O_NONBLOCK) < 0) // so that the pipes don't block each other in nested while on recv
+		{
+			response.setCgiStatus(CGI_ERROR);
+			response.updateStatus(500, "FCNTL failed");
+		}
 		else
 		{
 			pid = fork();
@@ -557,7 +592,7 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 			}
 			else
 			{
-				response.setCgiStatus(CGI_WRITING);
+				response.setCgiStatus(CGI_READING);
 				response.setCgiPid(pid);
 				response.setWfd(fd1[1]);
 				response.setRfd(fd2[0]);
@@ -572,43 +607,47 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 			}
 		}
 	}
-	else if (response.getCgiStatus() == CGI_WRITING)
+	else if (response.getCgiStatus() == CGI_READING)
 	{
 		ssize_t			w = 0;
 		size_t			wsize;
 		//std::string body(request.getRequestBody().begin(), request.getRequestBody().end());
 		unsigned char	wbuffer[CGI_BUFFER_SIZE];
-		if (!sm.fdIsSetWrite(response.getWfd()))
-			return ;
-		wsize = request.getRequestBody().size();
-		if (wsize > CGI_BUFFER_SIZE)
-			wsize = CGI_BUFFER_SIZE;
-		if (wsize)
-		{
-			std::copy(request.getRequestBody().begin(), request.getRequestBody().begin() + wsize, wbuffer);
-			w = write(response.getWfd(), wbuffer, wsize);
-			std::cout << "cgi written: " << w << std::endl;
-		}
-		if (w > 0)
-		{
-			request.getRequestBody().erase(request.getRequestBody().begin(), request.getRequestBody().begin() + w);
-			return ;
-		}
-		else if (!wsize)
-		{
-			response.setCgiStatus(CGI_READING);
-			return ;
-		}
-		else
-		{
-			response.setCgiStatus(CGI_ERROR);
-			response.updateStatus(502, "CGI failure");
-			return ;
-		}
-	}
-	else if (response.getCgiStatus() == CGI_READING)
-	{
 		int	status;
+		wpid = waitpid(response.getCgiPid(), &status, WNOHANG);
+		if (sm.fdIsSetWrite(response.getWfd()))
+		{
+			// std::cout << "cgi writing: " << std::endl;
+			wsize = request.getRequestBody().size();
+			if (wsize > CGI_BUFFER_SIZE)
+				wsize = CGI_BUFFER_SIZE;
+			if (wsize)
+			{
+				std::copy(request.getRequestBody().begin(), request.getRequestBody().begin() + wsize, wbuffer);
+				w = write(response.getWfd(), wbuffer, wsize);
+				// std::cout << "cgi written: " << w << std::endl;
+			}
+			if (w > 0)
+			{
+				request.getRequestBody().erase(request.getRequestBody().begin(), request.getRequestBody().begin() + w);
+				return ;
+			}
+			// else if (!wsize)
+			// {
+			// 	response.setCgiStatus(CGI_READING);
+			// 	return ;
+			// }
+			// else
+			// {
+			// 	response.setCgiStatus(CGI_ERROR);
+			// 	response.updateStatus(502, "CGI failure");
+			// 	return ;
+			// }
+		}
+	// }
+	// else if (response.getCgiStatus() == CGI_READING)
+	// {
+		
 		ssize_t	r;
 		uint8_t	buffer[CGI_BUFFER_SIZE];
 		// read needs to be in select somehow
@@ -616,36 +655,41 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 		// close when read finished (<= 0)
 		// fork and wait ? Make it non blocking
 		// waitpid WNOHANG? flag for waiting for a response?
-		if (!sm.fdIsSetRead(response.getRfd()))
-			return ;
-		wpid = waitpid(response.getCgiPid(), &status, WNOHANG);
-		r = read(response.getRfd(), buffer, CGI_BUFFER_SIZE);
-		std::cout << "cgi read: " << r << std::endl;
-		if (r > 0)
+		if (sm.fdIsSetRead(response.getRfd()))
 		{
-			// octets_t message;
-			for (int i = 0; i < r; i++)
+			// std::cout << "cgi reading: " << std::endl;
+			r = read(response.getRfd(), buffer, CGI_BUFFER_SIZE);
+			// std::cout << "cgi read: " << r << std::endl;
+			if (r > 0)
 			{
-				//there might be a better way
-				response.getCgiBody().push_back(buffer[i]);
+				// octets_t message;
+				for (int i = 0; i < r; i++)
+				{
+					//there might be a better way
+					response.getCgiBody().push_back(buffer[i]);
+				}
+			}
+			// else if (r < 0)
+			// {
+			// 	response.setCgiStatus(CGI_ERROR);
+			// 	response.updateStatus(502, "CGI failure");
+			// 	response.getCgiBody().clear();
+			// 	return ;
+			// }
+			if (response.getCgiBody().size() > MAX_FILE_SIZE)
+			{
+				response.setCgiStatus(CGI_ERROR);
+				response.updateStatus(502, "CGI response too large");
+				response.getCgiBody().clear();
+				return ;
 			}
 		}
-		else if (r < 0)
-		{
-			response.setCgiStatus(CGI_ERROR);
-			response.updateStatus(502, "CGI failure");
-			response.getCgiBody().clear();
-			return ;
-		}
-		if (response.getCgiBody().size() > MAX_FILE_SIZE)
-		{
-			response.setCgiStatus(CGI_ERROR);
-			response.updateStatus(502, "CGI response too large");
-			response.getCgiBody().clear();
-			return ;
-		}
+		// std::cout << "wpid0 " << wpid << std::endl;
 		if (wpid == response.getCgiPid())
 		{
+			// std::cout << "wpid " << wpid << std::endl;
+			// std::cout << WIFEXITED(status) << std::endl;
+			// std::cout << WEXITSTATUS(status) << std::endl;
 			if (WIFEXITED(status) && !WEXITSTATUS(status))
 			{
 				std::string			line;
@@ -853,7 +897,8 @@ void	ServerMaster::listenForConnections(void)
 							}
 							if (client.request.requestComplete)
 							{
-								//Logger::safeLog(DEBUG, REQUEST, "Changing to send() mode on socket ", itoa(i));
+								Logger::safeLog(DEBUG, REQUEST, "Request body size: ", itoa(client.request.getRequestBody().size()));
+								//std::cout << client.request.getRequestBody() << std::endl;
 								removeFdFromSet(this->_readFds, i);
 								addFdToSet(this->_writeFds, i);
 								break ;
@@ -883,41 +928,47 @@ void	ServerMaster::listenForConnections(void)
 					&& (client.request.response.getStatusLine().statusCode >= 200 && client.request.response.getStatusLine().statusCode <= 299)
 					&& !(client.request.getLocation().getIsRedirect()))
 				{
-					std::cout << "CGI loop" << std::endl;
+					// std::cout << "CGI loop" << std::endl;
+					// std::cout << "CGI loop" << client.request.getLocation().getIsCgi() << std::endl;
+					// std::cout << "CGI loop" << client.request.getLocation().getPath() << std::endl;
+					// std::cout << "CGI loop" << client.request.getIsCgiExec() << std::endl;
 					int old_cgi_status = client.request.response.getCgiStatus();
 					ft_cgi(*this, client);
 					int cgi_status = client.request.response.getCgiStatus();
-					std::cout << cgi_status << std::endl;
-					if (old_cgi_status == CGI_STARTED && cgi_status == CGI_WRITING)
+					// std::cout << cgi_status << std::endl;
+					if (old_cgi_status == CGI_STARTED && cgi_status == CGI_READING)
 					{
 						addFdToSet(this->_readFds, client.request.response.getRfd());
 						addFdToSet(this->_writeFds, client.request.response.getWfd());
 					}
-					else if (old_cgi_status == CGI_WRITING && cgi_status == CGI_READING)
-					{
-						close(client.request.response.getWfd());
-						removeFdFromSet(this->_writeFds, client.request.response.getWfd());
-						client.request.response.setWfd(0);
-					}
-					else if (old_cgi_status == CGI_WRITING && cgi_status == CGI_ERROR)
-					{
-						close(client.request.response.getWfd());
-						close(client.request.response.getRfd());
-						removeFdFromSet(this->_writeFds, client.request.response.getWfd());
-						removeFdFromSet(this->_readFds, client.request.response.getRfd());
-						client.request.response.setWfd(0);
-						client.request.response.setRfd(0);
-					}
+					// else if (old_cgi_status == CGI_WRITING && cgi_status == CGI_READING)
+					// {
+					// 	close(client.request.response.getWfd());
+					// 	removeFdFromSet(this->_writeFds, client.request.response.getWfd());
+					// 	client.request.response.setWfd(0);
+					// }
+					// else if (old_cgi_status == CGI_READING && cgi_status == CGI_ERROR)
+					// {
+					// 	close(client.request.response.getWfd());
+					// 	close(client.request.response.getRfd());
+					// 	removeFdFromSet(this->_writeFds, client.request.response.getWfd());
+					// 	removeFdFromSet(this->_readFds, client.request.response.getRfd());
+					// 	client.request.response.setWfd(0);
+					// 	client.request.response.setRfd(0);
+					// }
 					else if (old_cgi_status == CGI_READING && cgi_status != CGI_READING)
 					{
+						close(client.request.response.getWfd());
 						close(client.request.response.getRfd());
+						removeFdFromSet(this->_writeFds, client.request.response.getWfd());
 						removeFdFromSet(this->_readFds, client.request.response.getRfd());
+						client.request.response.setWfd(0);
 						client.request.response.setRfd(0);
 					}
 					if (cgi_status < CGI_COMPLETE)
 						continue ;
 				}
-				if (!client.request.getLocation().getIsCgi()
+				else if (!client.request.getLocation().getIsCgi()
 					&& client.request.getRequestLine().method == "POST"
 					&& (client.request.response.getStatusLine().statusCode == 200)
 					&& !(client.request.getLocation().getIsRedirect()))
@@ -960,6 +1011,7 @@ void	ServerMaster::listenForConnections(void)
 				for (size_t i = 0; i < buffLen; i++)
 					buff[i] = message[i];
 				sendResult = send(i, buff, buffLen, 0);
+				client.updateTimeLastMessage();
 				if (sendResult == -1)
 				{
 					Logger::safeLog(WARNING, RESPONSE, "send() failed, ", "closing connection.");

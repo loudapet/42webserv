@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/30 09:20:18 by okraus           ###   ########.fr       */
+/*   Updated: 2024/08/30 16:36:40 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,11 +71,16 @@ octets_t	convertStringToOctets(std::string str);
 std::string convertOctetsToString(const octets_t& octets);
 
 # define PORT_SERVER 8000
-# define CONNECTION_TIMEOUT 120
-# define VALID_HEADER_TIMEOUT 230
+# define CONNECTION_TIMEOUT 999
+# define VALID_HEADER_TIMEOUT 999
 //# define CLIENT_MESSAGE_BUFF 4096 // 4 KB
 //# define CLIENT_MESSAGE_BUFF 8196 // 8 KB
-# define CLIENT_MESSAGE_BUFF 8196000 // 8 KB
+# define CLIENT_MESSAGE_BUFF 65536 // 8 KB
+//199475712 1
+//185057998 2
+//176349646 3
+//170050254 4
+//166281934 4
 //# define CLIENT_MESSAGE_BUFF 65536 // 64 KB
 # define REQUEST_BODY_SIZE_LIMIT 1024 * 1024 * 1024 // 1 MB
 
