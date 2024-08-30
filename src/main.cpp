@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 10:01:22 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/28 18:37:27 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/29 19:51:15 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 
 bool g_runWebserv = true;
 
-static void	handleSigint(int sigNum)
+static void	handleSignals(int sigNum)
 {
 	(void) sigNum;
 	g_runWebserv = false;
@@ -28,8 +28,8 @@ int	main(int argc, char **argv)
 
 	(void) argv;
 	
-	signal(SIGINT, handleSigint);
-	signal(SIGPIPE, handleSigint);
+	signal(SIGINT, handleSignals);
+	signal(SIGPIPE, handleSignals);
 	if (argc == 1 || argc == 2)
 	{
 		try

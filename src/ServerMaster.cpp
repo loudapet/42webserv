@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/28 17:04:31 by plouda           ###   ########.fr       */
+/*   Updated: 2024/08/29 19:51:58 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,7 +78,7 @@ ServerMaster::~ServerMaster(void)
 	if (!g_runWebserv)
 	{
 		std::cout << std::endl;
-		Logger::log(WARNING, SERVER, "Received SIGINT. Closed all connections and exiting.\n", "");
+		Logger::log(WARNING, SERVER, "Received a terminating signal. Closed all connections and exiting.\n", "");
 	}
 }
 
