@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/30 12:52:42 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/30 13:46:47 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,7 +59,7 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 	bool						returnInConfig;
 	bool						cgiExecInConfig;
 	std::vector<std::string>	allowMethodsLine;
-	std::string 				validMethodsArray[] = {"GET", "HEAD", "POST", "DELETE"};
+	std::string 				validMethodsArray[] = {"GET", "HEAD", "POST", "PUT", "DELETE"};
 	std::set<std::string> 		validMethods(validMethodsArray, validMethodsArray + sizeof(validMethodsArray) / sizeof(validMethodsArray[0]));
 	std::vector<std::string>	errorPageLine; // to validate error page lines
 	std::vector<std::string>	cgiExecLine; // to validate cgi_exec extension and path
