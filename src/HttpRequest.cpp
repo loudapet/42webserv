@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/30 16:03:04 by okraus           ###   ########.fr       */
+/*   Updated: 2024/09/01 17:36:11 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -655,17 +655,11 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 	}
 	else if (!this->isRedirect && !isCgi && this->requestLine.method == "POST")
 	{
-		std::cout << "cgi 000" << std::endl;
-		std::cout << this->targetResource << std::endl;
-		std::cout << location.getPath() << std::endl;
-		std::cout << location.getCgiExec().first << std::endl;
 		if (location.getCgiExec().first.size())
 		{
 			//test if is Cgi
-			std::cout << "cgi 00" << std::endl;
 			if (hasEnding (this->targetResource, location.getCgiExec().first))
 			{
-				std::cout << "cgi 0" << std::endl;
 				isCgi = true;
 				this->isCgiExec = true;
 			}
