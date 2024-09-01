@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/29 11:11:32 by plouda           ###   ########.fr       */
+/*   Updated: 2024/09/01 21:39:51 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -92,9 +92,9 @@ HttpRequest::~HttpRequest()
 
 void	HttpRequest::parseMethod(std::string& token)
 {
-	if (token == "GET" || token == "POST" || token == "DELETE" || token == "HEAD" )
+	if (token == "GET" || token == "POST" || token == "DELETE" || token == "HEAD" || token == "PUT" )
 		this->requestLine.method = token;
-	else if (token == "PUT" || token == "CONNECT" || token == "OPTIONS" || token == "PATCH" || token == "TRACE")
+	else if (token == "CONNECT" || token == "OPTIONS" || token == "PATCH" || token == "TRACE")
 		this->response.updateStatus(501, "Method not supported");
 }
 
@@ -642,7 +642,7 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 			}
 		}
 	}
-	else if (!this->isRedirect && !isCgi && this->requestLine.method == "POST")
+	else if (!this->isRedirect && !isCgi && (this->requestLine.method == "POST" || this->requestLine.method == "PUT"))
 	{
 		validFile = stat(targetResource.c_str(), &fileCheckBuff);
 		if (!validFile)
@@ -764,7 +764,7 @@ void	HttpRequest::validateMessageFraming(void)
 	}
 	else
 	{
-		if (this->requestLine.method == "POST")
+		if (this->requestLine.method == "POST" || this->requestLine.method == "PUT")
 			throw (ResponseException(400, "Invalid framing - required Content-Length or TE"));
 	}
 }
