@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/30 17:43:04 by okraus           ###   ########.fr       */
+/*   Updated: 2024/09/01 11:43:30 by okraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -400,12 +400,13 @@ static void	get_env(Client	&client, char **env)
 	stringmap_t		envstrings;
 	int				e = 0;
 
-	if (request.getCgiPathInfo().size())
+	// if (request.getCgiPathInfo().size())
 		
 	for (stringmap_t::const_iterator it = request.getHeaderFields().begin(); it != request.getHeaderFields().end(); it++)
-		envstrings[upper(it->first)] = it->second;
-	for (stringmap_t::const_iterator it = request.getHeaderFields().begin(); it != request.getHeaderFields().end(); it++)
+	{
 		envstrings[httpUpper(it->first)] = it->second;
+		envstrings[upper(it->first)] = it->second;
+	}
 	//envstrings["HTTP_X_SECRET_HEADER_FOR_TEST"] = "1";
 	// if (envstrings.find("AUTH_SCHEME") != envstrings.end())	//NOT SUPPORTED
 	// 	envstrings["AUTH_TYPE"] = envstrings.find("AUTH_SCHEME");
