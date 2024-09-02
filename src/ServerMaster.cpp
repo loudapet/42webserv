@@ -6,7 +6,7 @@
 /*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/09/01 17:07:01 by okraus           ###   ########.fr       */
+/*   Updated: 2024/09/01 21:44:08 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -836,8 +836,8 @@ void	ServerMaster::listenForConnections(void)
 					if (cgi_status < CGI_COMPLETE)
 						continue ;
 				}
-				else if (!client.request.getLocation().getIsCgi()
-					&& client.request.getRequestLine().method == "POST"
+				if (!client.request.getLocation().getIsCgi()
+					&& (client.request.getRequestLine().method == "POST" || client.request.getRequestLine().method == "PUT") 
 					&& (client.request.response.getStatusLine().statusCode == 200)
 					&& !(client.request.getLocation().getIsRedirect()))
 				{
