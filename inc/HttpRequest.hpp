@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 11:03:10 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 09:58:39 by plouda           ###   ########.fr       */
+/*   Updated: 2024/09/01 21:37:48 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,7 +73,7 @@ typedef struct RequestTarget
 
 typedef struct RequestLine
 {
-	std::string			method; // GET, POST, DELETE
+	std::string			method; // GET, HEAD, POST, PUT, DELETE
 	request_target_t	requestTarget; // origin-form / absolute form
 	std::string 		httpVersion; // DIGIT "." DIGIT
 } requestLine_t;

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/30 08:59:10 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/08/30 13:46:47 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,7 +59,7 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 	bool						returnInConfig;
 	bool						cgiExecInConfig;
 	std::vector<std::string>	allowMethodsLine;
-	std::string 				validMethodsArray[] = {"GET", "HEAD", "POST", "DELETE"};
+	std::string 				validMethodsArray[] = {"GET", "HEAD", "POST", "PUT", "DELETE"};
 	std::set<std::string> 		validMethods(validMethodsArray, validMethodsArray + sizeof(validMethodsArray) / sizeof(validMethodsArray[0]));
 	std::vector<std::string>	errorPageLine; // to validate error page lines
 	std::vector<std::string>	cgiExecLine; // to validate cgi_exec extension and path
@@ -159,19 +159,19 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 		{
 			if (cgiExecInConfig)
 				throw(std::runtime_error("Config parser: Duplicate cgi_return directive."));
-			cgiExecLine = extractVectorUntilSemicolon(locationBlockElements, i);
-			if (cgiExecLine.size() != 3)
+			cgiExecLine = extractVectorUntilSemicolon(locationBlockElements, i + 1);
+			validateElement(cgiExecLine.back());
+			if (cgiExecLine.size() != 2)
 				throw(std::runtime_error("Config parser: Invalid format of cgi_exec directive. Expected format: 'cgi_exec [extension] [full or relative path to the executable]'"));
-			validateElement(cgiExecLine[2]);
-			if (cgiExecLine[1][0] != '.')
+			if (cgiExecLine[0][0] != '.')
 				throw(std::runtime_error("Config parser: CGI extension is invalid. It needs to start with a '.'"));
-			if (access(cgiExecLine[2].c_str(), F_OK) < 0)
+			if (access(cgiExecLine[1].c_str(), F_OK) < 0)
 				throw(std::runtime_error("Config parser: CGI relative path '" + cgiExecLine[2] + "' is invalid."));
-			if (access(cgiExecLine[2].c_str(), R_OK) < 0)
+			if (access(cgiExecLine[1].c_str(), R_OK) < 0)
 				throw(std::runtime_error("Config parser: CGI at '" + cgiExecLine[2] + "' is not accessible."));
-			if (access(cgiExecLine[2].c_str(), X_OK) < 0)
+			if (access(cgiExecLine[1].c_str(), X_OK) < 0)
 				throw(std::runtime_error("Config parser: CGI at '" + cgiExecLine[2] + "' is not executable."));
-			this->_cgiExec = std::make_pair(cgiExecLine[1], cgiExecLine[2]);
+			this->_cgiExec = std::make_pair(cgiExecLine[0], cgiExecLine[1]);
 			cgiExecInConfig = true;
 			i += 2;						
 		}

@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/29 19:51:58 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/09/01 21:44:08 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -895,7 +895,7 @@ void	ServerMaster::listenForConnections(void)
 						continue ;
 				}
 				if (!client.request.getLocation().getIsCgi()
-					&& client.request.getRequestLine().method == "POST"
+					&& (client.request.getRequestLine().method == "POST" || client.request.getRequestLine().method == "PUT") 
 					&& (client.request.response.getStatusLine().statusCode == 200)
 					&& !(client.request.getLocation().getIsRedirect()))
 				{
