@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/29 10:32:46 by plouda           ###   ########.fr       */
+/*   Updated: 2024/09/02 13:43:06 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -200,7 +200,7 @@ bool Client::hasValidHeaderEnd(void)
 			return (true);
 		}
 	}
-	if (this->_receivedData.size() > CLIENT_MESSAGE_BUFF * 2)
+	if (this->_receivedData.size() > REQUEST_HEADER_BUFF)
 		throw(ResponseException(413, "Request header too large"));
 	return (false);
 }
