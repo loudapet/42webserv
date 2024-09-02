@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 10:01:22 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/30 11:49:56 by okraus           ###   ########.fr       */
+/*   Updated: 2024/09/02 09:37:20 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,6 +43,7 @@ int	main(int argc, char **argv)
 		catch(const std::exception& e)
 		{
 			Logger::log(ERROR, SERVER, e.what(), "");
+			return (1);
 		}
 	}
 	else
