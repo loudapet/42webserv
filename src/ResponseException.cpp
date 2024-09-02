@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ResponseException.cpp                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/18 14:11:51 by plouda            #+#    #+#             */
-/*   Updated: 2024/07/22 17:36:56 by plouda           ###   ########.fr       */
+/*   Updated: 2024/09/02 14:59:59 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,6 @@ ResponseException::ResponseException(unsigned short status, std::string details)
 	this->_statusLine.statusCode = status;
 	this->_statusLine.reasonPhrase = "";
 	this->_details = details;
-	//Logger::safeLog(INFO, RESPONSE, itoa(this->_statusLine.statusCode) + " ", this->_details);
 }
 
 const char*	ResponseException::what() const throw()

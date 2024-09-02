@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/10 12:02:35 by aulicna           #+#    #+#             */
-/*   Updated: 2024/09/02 13:42:17 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/09/02 14:29:28 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,13 +96,7 @@ void						logSockets(int socket, std::string action);
 std::string					trim(const std::string& str);
 std::vector<std::string>	splitQuotedString(const std::string& str, char sep);
 std::vector<std::string>	splitBlock(std::string &block);
-
-/* inline std::ostream &operator << (std::ostream &o, std::vector<std::string> &stringVectorToPrint)
-{
-	for (size_t i = 0; i < stringVectorToPrint.size(); i++)
-		o << stringVectorToPrint[i] << std::endl;
-	return (o);
-} */
+void						removeDoubleSlash(std::string& str);
 
 inline std::ostream &operator << (std::ostream &o, const std::vector<std::string> &stringVectorToPrint)
 {

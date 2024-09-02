@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ResponseException.hpp                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/18 14:10:47 by plouda            #+#    #+#             */
-/*   Updated: 2024/06/21 10:30:44 by plouda           ###   ########.fr       */
+/*   Updated: 2024/09/02 13:47:24 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@ class ResponseException : public std::invalid_argument
 	public:
 		ResponseException(unsigned short status, std::string details);
 		const char*		what() const throw();
-		virtual ~ResponseException() throw() {}; // no idea why, but it won't compile otherwise
+		virtual ~ResponseException() throw() {};
 		
 		const statusLine_t&	getStatusLine() const;
 		const std::string&	getStatusDetails() const;

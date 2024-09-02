@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/31 17:11:10 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/30 13:46:47 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/09/02 14:17:15 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,7 +84,7 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 		else if (locationBlockElements[i] == "index" && (i + 1) < locationBlockElements.size())
 		{
 			this->_index = validateIndex(this->_index, locationBlockElements, i + 1, "location");
-			i += this->_index.size(); // not -1 bcs there is the directive name to skip too
+			i += this->_index.size();
 		}
 		else if (locationBlockElements[i] == "client_max_body_size" && (i + 1) < locationBlockElements.size()
 			&& validateElement(locationBlockElements[i + 1]))
@@ -113,7 +113,7 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 				if (!this->_allowMethods.insert(allowMethodsLine[i]).second)
 					throw(std::runtime_error("Config parser: Duplicate method '" + allowMethodsLine[i] + "'."));
 			}
-			i += allowMethodsLine.size(); // not -1 bcs there is the directive to skip too
+			i += allowMethodsLine.size();
 			allowMethodsLine.clear();
 		}
 		else if (locationBlockElements[i] == "cgi" && (i + 1) < locationBlockElements.size()
@@ -128,7 +128,6 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 		{
 			if (returnInConfig)
 				throw(std::runtime_error("Config parser: Duplicate return directive."));
-			// source: https://nginx.org/en/docs/http/ngx_http_rewrite_module.html#return
 			this->_returnCode = validateReturnCode(locationBlockElements[i + 1]);
 			this->_returnURLOrBody = locationBlockElements[i + 2];		
 			this->_isRedirect = true;
@@ -178,7 +177,6 @@ Location::Location(std::string locationPath, std::vector<std::string> locationBl
 		else if (locationBlockElements[i] != "{" && locationBlockElements[i] != "}")
 			throw (std::runtime_error("Config parser: Invalid directive in a location block."));
 	}
-	// the location will be completed back in ServerConfig loop over the serverScopeElements as access to the server values is needed
 }
 
 Location::Location(const Location& copy)

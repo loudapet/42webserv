@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/15 11:11:16 by aulicna           #+#    #+#             */
-/*   Updated: 2024/09/02 13:43:06 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/09/02 13:48:44 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -230,9 +230,6 @@ void Client::separateValidHeader(void)
 		}
 	}
 	sequenceEnd = endOfClosestSequence + sequences[closestSequence].size();
-// we can be sure that the sequence will be found since this function is called only once hasValidHeaderEnd returns true
-//	if (endOfSequence == this->_receivedData.end())
-//		return (false);
 	this->_receivedHeader.insert(this->_receivedHeader.end(), this->_receivedData.begin(), sequenceEnd);
 	this->_receivedData.erase(this->_receivedData.begin(), sequenceEnd);
 }

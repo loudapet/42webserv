@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/09/02 13:02:49 by plouda           ###   ########.fr       */
+/*   Updated: 2024/09/02 14:32:11 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -155,7 +155,6 @@ void HttpResponse::updateStatus(unsigned short code, const char* details)
 	{
 		this->statusLine.statusCode = code;
 		this->statusDetails = details;
-		//Logger::safeLog(INFO, REQUEST, itoa(this->statusLine.statusCode) + " ", this->statusDetails);
 	}
 	this->statusLocked = true;
 }
@@ -207,12 +206,10 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 		if (this->statusDetails == "Trying to access a directory")
 			this->headerFields.insert(std::make_pair("location: ", request.getAbsolutePath() + "/"));
 		else if (request.getLocation().getReturnURLOrBody().size() > 0 
-			&& *request.getLocation().getReturnURLOrBody().begin() == '/')	// if starts with slash, prepend scheme + host:port
+			&& *request.getLocation().getReturnURLOrBody().begin() == '/')
 			this->headerFields.insert(std::make_pair("location: ", std::string("http://") + request.getLocation().getServerName() + ":" + itoa(request.getLocation().getPort()) + request.getLocation().getReturnURLOrBody()));
 		else
 			this->headerFields.insert(std::make_pair("location: ", request.getLocation().getReturnURLOrBody()));
-		// if starts with http(s), append the rest without http(s)
-		// if starts with http(s)://host:port, append path
 	}
 	else if (this->statusLine.statusCode == 201)
 		this->headerFields.insert(std::make_pair("location: ", request.getRequestLine().requestTarget.absolutePath));
@@ -227,26 +224,21 @@ void	HttpResponse::buildResponseHeaders(const HttpRequest& request)
 				methods.append(", ");
 		}
 		this->headerFields.insert(std::make_pair("allow: ", methods));
-		//this->headerFields["allow: "] = methods;
 	}
 	if (this->statusLine.statusCode == 426)
 	{
 		this->headerFields["connection: "].append(", Upgrade");
 		this->headerFields.insert(std::make_pair("upgrade: ", "HTTP/1.1"));
-		//this->headerFields["upgrade: "] = "HTTP/1.1";
 	}
 	for (stringmap_t::iterator it = this->headerFields.begin() ; it != this->headerFields.end() ; it++)
 		it->second.append(CRLF);
-	// if (this->cgiStatus)
-	// 	for (stringmap_t::iterator it = this->cgiHeaderFields.begin(); it != this->cgiHeaderFields.end(); it++)
-	// 		if (!(this->headerFields.insert(std::make_pair(it->first, it->second)).second))  // overwrite with CGI values if exists
-	// 			this->headerFields[it->first] = it->second;
 }
 
 void	HttpResponse::readErrorPage(const Location &location)
 {
 	const std::map<unsigned short, std::string> &errorPages = location.getErrorPages();
 	std::ifstream											errorPageFile;
+	std::string												errorPageFullPath;
 	std::stringstream										buff;
 	std::map<unsigned short, std::string>::const_iterator	it;
 	std::stringstream										ss;
@@ -255,21 +247,26 @@ void	HttpResponse::readErrorPage(const Location &location)
 	it = errorPages.find(this->statusLine.statusCode);
 	if (it != errorPages.end())
 	{
-		errorPageFile.open(it->second.c_str());
+		errorPageFullPath = location.getRoot() + it->second;
+		removeDoubleSlash(errorPageFullPath);
+		errorPageFile.open(errorPageFullPath.c_str());
 		if (errorPageFile)
 		{
 			buff << errorPageFile.rdbuf();
 			this->responseBody = convertStringToOctets(buff.str());
+			errorPageFile.close();
 		}
-		errorPageFile.close();
 	}
-	ss << "<html>\r\n"
-	   << "<head><title>" << this->statusLine.statusCode << " " << this->statusLine.reasonPhrase << "</title></head>\r\n"
-	   << "<body>\r\n"
-	   << "<center><h1>" << this->statusLine.statusCode << " " << this->statusLine.reasonPhrase << "</h1></center>\r\n"
-	   << "<center><h2>" << this->statusDetails << "</h2></center>\r\n"
-	   << "</html>\r\n";
-	this->responseBody = convertStringToOctets(ss.str());
+	else
+	{
+		ss << "<html>\r\n"
+		<< "<head><title>" << this->statusLine.statusCode << " " << this->statusLine.reasonPhrase << "</title></head>\r\n"
+		<< "<body>\r\n"
+		<< "<center><h1>" << this->statusLine.statusCode << " " << this->statusLine.reasonPhrase << "</h1></center>\r\n"
+		<< "<center><h2>" << this->statusDetails << "</h2></center>\r\n"
+		<< "</html>\r\n";
+	   this->responseBody = convertStringToOctets(ss.str());
+	}
 }
 
 void HttpResponse::readRequestedFile(const std::string &targetResource, const stringmap_t& mimeExtensions)
@@ -279,10 +276,10 @@ void HttpResponse::readRequestedFile(const std::string &targetResource, const st
 	octets_t		contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
 	std::string		extension;
 
-    std::string::size_type lastDotPos = targetResource.rfind('.');
-    std::string::size_type lastSlashPos = targetResource.rfind('/');
-    if (lastDotPos != std::string::npos && (lastSlashPos == std::string::npos || lastDotPos > lastSlashPos))
-        extension = targetResource.substr(lastDotPos + 1);
+	std::string::size_type lastDotPos = targetResource.rfind('.');
+	std::string::size_type lastSlashPos = targetResource.rfind('/');
+	if (lastDotPos != std::string::npos && (lastSlashPos == std::string::npos || lastDotPos > lastSlashPos))
+		extension = targetResource.substr(lastDotPos + 1);
 	else
 		extension = "";
 	it = mimeExtensions.find(extension);
@@ -596,9 +593,6 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 			if (this->cgiStatus == CGI_ERROR)
 				request.response.readErrorPage(request.getLocation());
 		}
-		//std::cout << this->cgiBody << std::endl;
-		// std::cout << request.getRequestLine().requestTarget.absolutePath << std::endl;
-		// std::cout << request.getRequestLine().requestTarget.query << std::endl;
 		if (this->statusLine.statusCode == 204 || this->statusLine.statusCode == 304 || request.getRequestLine().method == "HEAD")
 			this->responseBody.clear();
 		request.response.buildResponseHeaders(request);
@@ -606,7 +600,6 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 		octets_t message = request.response.getCompleteResponse();
 		Logger::safeLog(INFO, RESPONSE, itoa(this->statusLine.statusCode) + " ", 
 			this->statusLine.reasonPhrase + (this->statusDetails.size() ? ": " + this->statusDetails : ""));
-		// std::cout << this->headerFields << std::endl;
 		return (message);
 	}
 }

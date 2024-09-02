@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/02 18:05:06 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/30 12:46:10 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/09/02 15:04:19 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -105,7 +105,6 @@ std::vector<std::string>	validateIndex(const std::vector<std::string> &index, co
 {
 	std::vector<std::string>	newIndex;
 
-	// source: https://nginx.org/en/docs/http/ngx_http_index_module.html
 	if (!(index.size() == 0))
 		throw (std::runtime_error("Config parser: Duplicate index directive in a " + exceptionMessage + " scope."));
 	newIndex = extractVectorUntilSemicolon(scopeElements, pos);
@@ -154,24 +153,12 @@ void	fileIsValidAndAccessible(const std::string &path, const std::string &fileNa
 		throw(std::runtime_error("Config parser: " + fileName + " file at '" + path + "' is an invalid file."));
 	if (access(path.c_str(), R_OK) < 0)
 		throw(std::runtime_error("Config parser: " + fileName + " file at '" + path + "' is not accessible."));
-//	struct stat buffer;
-//
-//	// Check if file exists
-//	if (stat(path.c_str(), &buffer) != 0)
-//		throw(std::runtime_error("Config parser: " + exceptionScope + " file at '" + path + "' is an invalid file."));
-//
-//	// Check if file is readable
-//	if (!(buffer.st_mode & S_IRUSR))
-//		throw(std::runtime_error("Config parser: " + exceptionScope + " file at '" + path + "' is not accessible."));
 }
 
 std::string	dirIsValidAndAccessible(const std::string &path, const std::string &accessMessage, const std::string &dirOrFileMessage)
 {
 	int			fileCheck;
 	struct stat	fileCheckBuff;
-
-	// Cannot access root path of a location/scope.
-	// Root path of a location/scope is not a directory.
 
 	fileCheck = stat(path.c_str(), &fileCheckBuff);
 	if (fileCheck != 0)
@@ -201,7 +188,7 @@ std::string	resolveDotSegments(std::string path, ServerSection flag)
 			if (output.size() > 1)
 				output.pop();
 			else if (flag == CONFIG)
-				throw(std::invalid_argument("Config parser: Path above root.")); // will be caught in main
+				throw(std::invalid_argument("Config parser: Path above root.")); // will be caught in try catch in main
 			else
 				throw(ResponseException(400, "Invalid relative path segment"));
 		}
@@ -263,7 +250,6 @@ std::string	trim(const std::string& str)
 	return (str.substr(strBegin, strRange));
 }
 
-// upgrade to handle backslashes and quotes as literals
 std::vector<std::string>	splitQuotedString(const std::string& str, char sep)
 {
 	if (std::count(str.begin(), str.end(), '\"') % 2)
@@ -313,4 +299,11 @@ std::vector<std::string>	splitBlock(std::string &block)
 		start = end + 1;
 	}
 	return (blockElements);
+}
+
+void	removeDoubleSlash(std::string& str)
+{
+	size_t pos;
+	while ((pos = str.find("//")) != std::string::npos)
+		str.erase(pos, 1);
 }

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/09/02 13:21:45 by plouda           ###   ########.fr       */
+/*   Updated: 2024/09/02 15:11:34 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -301,56 +301,6 @@ const Location matchLocation(const std::string &absolutePath, const ServerConfig
 	return (locations[bestMatchIndex]);
 }
 
-// https://www.rfc-editor.org/rfc/rfc3875#section-4.1
-// "AUTH_TYPE"			//not needed? https://www.rfc-editor.org/rfc/rfc2617
-// "CONTENT_LENGTH"		//The server MUST set this meta-variable if and only if the request is
-						// accompanied by a message-body entity.  The CONTENT_LENGTH value must
-						// reflect the length of the message-body after the server has removed
-						// any transfer-codings or content-codings.
-// "CONTENT_TYPE"		The server MUST set this meta-variable if an HTTP Content-Type field
-						// is present in the client request header.  If the server receives a
-						// request with an attached entity but no Content-Type header field, it
-						// MAY attempt to determine the correct content type, otherwise it
-						// should omit this meta-variable.
-// "GATEWAY_INTERFACE"	//GATEWAY_INTERFACE = "CGI" "/" 1*digit "." 1*digit (1.1)
-// "PATH_INFO"			The PATH_INFO variable specifies a path to be interpreted by the CGI
-						// script.  It identifies the resource or sub-resource to be returned by
-						// the CGI script, and is derived from the portion of the URI path
-						// hierarchy following the part that identifies the script itself.
-// "PATH_TRANSLATED"	http://somehost.com/cgi-bin/somescript/this%2eis%2epath%3binfo
-// 							/this.is.the.path;info
-// 						http://somehost.com/this.is.the.path%3binfo
-// 							/usr/local/www/htdocs/this.is.the.path;info
-// "QUERY_STRING"		The server MUST set this variable; if the Script-URI does not include
-						// a query component, the QUERY_STRING MUST be defined as an empty
-						// string ("").
-// "REMOTE_ADDR"		//IPv.4
-// "REMOTE_HOST"		The server SHOULD set this variable.  If the hostname is not
-						// available for performance reasons or otherwise, the server MAY
-						// substitute the REMOTE_ADDR value.
-// "REMOTE_IDENT"		// not needed?
-// "REMOTE_USER"		// not needed?
-// "REQUEST_METHOD"		// GET POST HEAD + PUT DELETE token
-// "SCRIPT_NAME"		The SCRIPT_NAME variable MUST be set to a URI path (not URL-encoded)
-						// which could identify the CGI script
-// "SERVER_NAME"		// localhost?
-// "SERVER_PORT"		//8081
-// "SERVER_PROTOCOL"	"HTTP" "/" 1*digit "." 1*digit (1.1)
-// "SERVER_SOFTWARE"	The SERVER_SOFTWARE meta-variable MUST be set to the name and version
-						// of the information server software making the CGI request (and
-						// running the gateway).  It SHOULD be the same as the server
-						// description reported to the client, if any.
-
-// static std::string	to_string(size_t num)
-// {
-// 	std::stringstream	ss;
-
-// 	ss << num;
-// 	return (ss.str());
-// }
-
-// 7.2 META VARIABLES??? Go through getHeaderFields map? // except existing vatiables
-
 static std::string	upper(std::string str)
 {
 	for (std::string::iterator c = str.begin(); str.end() != c; ++c)
@@ -385,7 +335,7 @@ static std::string	getPathTranslated(Client &client)
 	path_translated = url;
 	url.erase(0, path.length());
 	if (root.size() && *root.rbegin() == '/')
-		root.erase(--(root.rbegin().base())); //WTH??? https://stackoverflow.com/questions/1830158/how-to-call-erase-with-a-reverse-iterator
+		root.erase(--(root.rbegin().base()));
 	if (url.size() && *url.begin() == '/')
 		url.erase((url.begin()));
 	path_translated = root + "/" + url;
@@ -428,7 +378,7 @@ static void	get_env(Client	&client, char **env)
 	envstrings["SERVER_PROTOCOL"] = "HTTP/" + request.getRequestLine().httpVersion;
 	envstrings["SERVER_SOFTWARE"] = "webserv/nginx-but-better";
 	envstrings["REMOTE_PORT"] = itoa(client.getClientAddr().sin_port);
-	envstrings["HTTPS"] = "off"; // maybe not needed
+	envstrings["HTTPS"] = "off"; 
 	for (stringmap_t::iterator it = envstrings.begin(); it != envstrings.end(); it++)
 	{
 		str = it->first + "=" + it->second;
@@ -446,7 +396,7 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 	HttpRequest&	request = client.request;
 	HttpResponse&	response = request.response;
 	int				wpid;
-	// status code for CGI needs to be properly updated, I think?
+	
 	if (response.getCgiStatus() == NOCGI && (request.getLocation().getIsCgi() || request.getIsCgiExec()))
 		response.setCgiStatus(CGI_STARTED);
 	else if (response.getCgiStatus() == CGI_STARTED)
@@ -513,7 +463,6 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 			else if (pid == 0)
 			{
 				//child
-				//some shenanigans to get execve working
 				if (dup2 (fd1[0], STDIN_FILENO) < 0)
 				{
 					close (fd1[0]);
@@ -539,7 +488,6 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 				ex[0] = (char *)request.getTargetResource().c_str();
 				ex[1] = NULL;
 				char **av = &ex[0];
-				// std::cerr << "EXECUTING CGI" << std::endl;
 				if (request.getIsCgiExec())
 					execve(request.getLocation().getCgiExec().second.c_str(), av, env);
 				else
@@ -577,7 +525,7 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 			{
 				std::copy(request.getRequestBody().begin(), request.getRequestBody().begin() + wsize, wbuffer);
 				w = write(response.getWfd(), wbuffer, wsize);
-				Logger::safeLog(DEBUG, REQUEST, "CGI written:", itoa(w));
+				// Logger::safeLog(DEBUG, REQUEST, "CGI written:", itoa(w));
 			}
 			if (w > 0)
 			{
@@ -592,7 +540,7 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 			r = read(response.getRfd(), buffer, CGI_BUFFER_SIZE);
 			if (r > 0)
 			{
-				Logger::safeLog(DEBUG, REQUEST, "CGI read:", itoa(r));
+				// Logger::safeLog(DEBUG, REQUEST, "CGI read:", itoa(r));
 				for (int i = 0; i < r; i++)
 				{
 					response.getCgiBody().push_back(buffer[i]);
@@ -706,7 +654,6 @@ void	ft_post(ServerMaster &sm, Client &client)
 		}
 		else if (!wsize)
 		{
-			//response.updateStatus(201, request.getTargetResource().c_str());
 			response.setPostStatus(POST_COMPLETE);
 			return ;
 		}
@@ -736,7 +683,7 @@ void	ServerMaster::listenForConnections(void)
 		readFds = this->_readFds; // copy whole fds master list in the fds list for select (only listener socket in the first run)
 		writeFds = this->_writeFds;
 		if (select(this->_fdMax + 1, &readFds, &writeFds, NULL, &selectTimer) == -1)
-		{ // QUESTION: is this errno according to subject?
+		{
 			if (errno == EINTR) // prevents throwing an exception due to select being interrupted by SIGINT
 				return ;
 			throw(std::runtime_error("Select failed. + " + std::string(strerror(errno))));
@@ -747,7 +694,6 @@ void	ServerMaster::listenForConnections(void)
 			Logger::setActiveClient(i);
 			if (FD_ISSET(i, &readFds) || (this->_clients.count(i) && this->_clients.find(i)->second.bufferUnchecked)) // finds a socket with data to read
 			{
-				//Logger::safeLog(DEBUG, SERVER, "Active client fd: ", itoa(i));
 				if (this->_servers.count(i)) // indicates that the server socket is ready to read which means that a client is attempting to connect
 					acceptConnection(i);
 				else if (this->_clients.count(i))
@@ -756,7 +702,7 @@ void	ServerMaster::listenForConnections(void)
 						handleDataFromClient(i);
 					this->_clients.find(i)->second.bufferUnchecked = false;
 					size_t	bytesToDelete = 0;
-					if (this->_clients.find(i) == this->_clients.end()) // temp fix for a closed client
+					if (this->_clients.find(i) == this->_clients.end())
 						continue;
 					Client	&client = this->_clients.find(i)->second;
 					while (client.getReceivedData().size() > 0 && this->_clients.find(i) != this->_clients.end()) // won't go back to select until it processes all the data in the buffer
@@ -769,18 +715,15 @@ void	ServerMaster::listenForConnections(void)
 							{
 								client.incrementRequestID();
 								Logger::setActiveRequestID(client.getRequestID());
-								client.separateValidHeader(); // separates the header from the body, header is stored in dataToParse, body in receivedData
+								client.separateValidHeader(); // separates the header from the body, header is stored in receivedHeader, body in receivedData
 								parserPair = client.request.parseHeader(client.getReceivedHeader());
 								selectServerRules(parserPair, i); // resolve ServerConfig to HttpRequest
 								client.clearReceivedHeader(); // clears request line and header fields
-
-								// match location
 								const ServerConfig &serverConfig = client.getServerConfig();
 								Logger::safeLog(INFO, REQUEST, "Authority: ", parserPair.first + ":" + itoa(client.getServerConfig().getPort()));
 								client.request.validateHeader(matchLocation(client.request.getAbsolutePath(), serverConfig, parserPair.first));
 								client.request.readingBodyInProgress = true;
 							}
-							//Logger::log(DEBUG, std::string("\nBody:\n") + std::string(client.getReceivedData().begin(), client.getReceivedData().end()), "");
 							if (client.request.readingBodyInProgress) // processing request body
 							{
 								bytesToDelete = client.request.readRequestBody(client.getReceivedData());									
@@ -791,7 +734,6 @@ void	ServerMaster::listenForConnections(void)
 							if (client.request.requestComplete)
 							{
 								Logger::safeLog(DEBUG, REQUEST, "Request body size: ", itoa(client.request.getRequestBody().size()));
-								//std::cout << client.request.getRequestBody() << std::endl;
 								removeFdFromSet(this->_readFds, i);
 								addFdToSet(this->_writeFds, i);
 								break ;
@@ -804,7 +746,6 @@ void	ServerMaster::listenForConnections(void)
 								client.request.response.setStatusLineAndDetails(e.getStatusLine(), e.getStatusDetails());
 								client.request.setConnectionStatus(CLOSE);
 							}
-							//Logger::safeLog(DEBUG, RESPONSE, "Changing to send() mode on socket ", itoa(i));
 							removeFdFromSet(this->_readFds, i);
 							addFdToSet(this->_writeFds, i);
 							break ;
@@ -848,10 +789,6 @@ void	ServerMaster::listenForConnections(void)
 					int old_post_status = client.request.response.getPostStatus();
 					ft_post(*this, client);
 					int post_status = client.request.response.getPostStatus();
-					// # define POST_STARTED 1
-					// # define POST_WRITING 2
-					// # define POST_COMPLETE 8
-					// # define POST_ERROR 256
 					if (post_status == POST_STARTED)
 					{
 						addFdToSet(this->_writeFds, client.request.response.getWfd());
@@ -895,8 +832,6 @@ void	ServerMaster::listenForConnections(void)
 					client.request.response.eraseRangeMessage(0, buffLen);
 				else
 				{
-					//Logger::safeLog(DEBUG, RESPONSE, "Bytes sent in response: ", itoa(sendResult));
-					//Logger::safeLog(DEBUG, RESPONSE, "Changing to recv() mode on socket ", itoa(i));
 					if (client.getReceivedData().size() > 0) // ensures we get back to reading the buffer without needing to go through select()
 						this->_clients.find(i)->second.bufferUnchecked = true;
 					removeFdFromSet(this->_writeFds, i);
@@ -953,7 +888,6 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 		iss.str(parserPair.second);
 		if (!(iss >> portReceived) || !iss.eof())
 			throw(ResponseException(421, "Port mismatch"));
-			//throw(std::runtime_error("Server rules: Port number is out of range for unsigned short."));
 	}
 	for (std::map<int, ServerConfig>::const_iterator it = this->_servers.begin(); it != this->_servers.end(); it++)
 	{
@@ -968,7 +902,7 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 	}
 	if (!match)
 		throw(ResponseException(421, "Port mismatch"));
-	if (parserPair.first.empty()) // HPTT/1.0 support
+	if (parserPair.first.empty()) // HTTP/1.0 support
 	{
 		this->_clients.find(clientSocket)->second.setServerConfig(this->_servers.find(fdServerConfig)->second);
 		return ;
@@ -1019,7 +953,6 @@ void	ServerMaster::acceptConnection(int serverSocket)
 	if (getsockname(clientSocket, (struct sockaddr *)&serverAddr, &lenClientAddr) == -1)
 		throw(std::runtime_error("Getsockname failed."));
 	newClient.setPortConnectedOn(ntohs(serverAddr.sin_port));
-	//Logger::safeLog(INFO, SERVER, "Client connected to server port: ", itoa(newClient.getPortConnectedOn()));
 	newClient.updateTimeLastMessage();
 	newClient.updateTimeLastValidHeaderEnd();
 	addFdToSet(this->_readFds, clientSocket);
@@ -1044,7 +977,6 @@ void	ServerMaster::handleDataFromClient(const int clientSocket)
 	
 	memset(recvBuf, 0, sizeof(recvBuf)); // clear the receive buffer
 	Client &clientToHandle = this->_clients.find(clientSocket)->second; // reference to the client object
-	//if (((bytesReceived = recv(clientSocket, recvBuf, sizeof(recvBuf), 0)) <= 0) && clientToHandle.getReceivedData().size() == 0)
 	if ((bytesReceived = recv(clientSocket, recvBuf, sizeof(recvBuf), 0)) <= 0)
 	{
 		if (bytesReceived == 0) // if the client has closed the connection

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/09/02 12:58:07 by plouda           ###   ########.fr       */
+/*   Updated: 2024/09/02 13:45:54 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -105,8 +105,6 @@ class HttpResponse
 		void					setRfd(int fd);
 		void					setFileExists();
 		const bool&				getFileExists();
-		// void					setCgiHeaderFields;
-		// void					setCgiBody;
 };
 
 #endif  // HTTPRESPONSE_HPP

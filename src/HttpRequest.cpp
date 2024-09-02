@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/09/02 13:26:04 by plouda           ###   ########.fr       */
+/*   Updated: 2024/09/02 14:29:06 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,7 +47,6 @@ HttpRequest::HttpRequest()
 	this->connectionStatus = KEEP_ALIVE;
 	this->hasExpect = false;
 	this->silentErrorRaised = false;
-	//this->requestID = 0;
 	return ;
 }
 
@@ -80,7 +79,6 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& refObj)
 		targetIsDirectory = refObj.targetIsDirectory;
 		hasExpect = refObj.hasExpect;
 		silentErrorRaised = refObj.silentErrorRaised;
-		//requestID = refObj.requestID;
 	}
 	return (*this);
 }
@@ -357,10 +355,6 @@ void	HttpRequest::parseFieldSection(std::vector<std::string>& fields)
 		throw(ResponseException(400, "Missing Host header field"));
 }
 
-//host header field needs additional checks
-// 1/ host from header needs to be parsed and percent-encoding has to be resolved (the latter is not specified by RFC but it's a nice-to-have feature)
-// 2/ that does not need ot be done if there already is a host under requestLine.authority - but it should probably still be checked for invalid characters and separators
-// 3/ identify comma-separated hosts (or automatically consider them as a singleton field)
 stringpair_t	HttpRequest::resolveHost(void)
 {
 	stringpair_t			authority("","");
@@ -475,23 +469,18 @@ void	HttpRequest::validateContentType(const Location &location)
 	stringmap_t::iterator											contentType;
 	std::string														contentTypeValue;
 	std::map< std::string, std::set<std::string> >					mimeTypesDict;
-	// struct stat														statBuff;
 
 	contentType = this->headerFields.find("content-type");
 	mimeTypesDict = location.getMimeTypes().getMimeTypesDict();
-	// if (stat((this->targetResource).c_str(), &statBuff) != 0)
-	// 	throw (ResponseException(500, "Internal Server Error"));
 	if (contentType != this->headerFields.end()) // content-type found in headerFields
 	{
-	// validate content-type header field
+		// validate content-type header field
 		contentTypeValue = splitQuotedString(contentType->second, ';')[0];
 		contentTypeValue = trim(contentTypeValue);
 		std::transform(contentTypeValue.begin(), contentTypeValue.end(), contentTypeValue.begin(), tolower); // case-insensitive
 		Logger::safeLog(DEBUG, REQUEST, "Content type: ", contentTypeValue);
 	    if (mimeTypesDict.find(contentTypeValue) == mimeTypesDict.end()) // content-type not found in mimeTypesDict
 		{
-			return ;
-			//Check again!!!
 			this->response.updateStatus(415, "Intended file type not supported");
 			return ;
 		}
@@ -511,11 +500,9 @@ void	HttpRequest::validateConnectionOption(void)
 	std::vector<std::string>::iterator	option;
 	std::vector<std::string>::iterator	param;
 	size_t								invalidCharPos;
-	//std::vector<std::string>			paramValues;
+	
 	if (connection != this->headerFields.end())
 	{
-		// if (std::count(connection->second.begin(), connection->second.end(), ';') > 1)
-		// 	throw (ResponseException(400, "Invalid semicolons in Connection header field"));
 		values = splitQuotedString(connection->second, ',');
 		for (option = values.begin(); option != values.end(); option++)
 		{
@@ -559,13 +546,6 @@ void	HttpRequest::validateConnectionOption(void)
 	Logger::safeLog(DEBUG, REQUEST, "Indicated connection: ", (this->connectionStatus ? "keep-alive" : "close"));
 }
 
-static void	removeDoubleSlash(std::string& str)
-{
-	size_t pos;
-	while ((pos = str.find("//")) != std::string::npos)
-		str.erase(pos, 1);
-}
-
 static bool hasEnding (std::string const &fullString, std::string const &ending) {
 	if (fullString.length() >= ending.length()) {
 		return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
@@ -591,7 +571,7 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 	this->targetResource.replace(pos, path.length(), root);
 	this->allowedDirListing = location.getAutoindex();
 	removeDoubleSlash(this->targetResource);
-	if (!this->isRedirect && !isCgi && (this->requestLine.method == "GET" || this->requestLine.method == "HEAD")) //&& this->requestLine.method == "GET"
+	if (!this->isRedirect && !isCgi && (this->requestLine.method == "GET" || this->requestLine.method == "HEAD"))
 	{
 		validFile = stat(targetResource.c_str(), &fileCheckBuff);
 		if (validFile < 0)
@@ -599,7 +579,7 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 		if (*targetResource.rbegin() != '/')
 		{
 			if (S_ISDIR(fileCheckBuff.st_mode)) // redirect to the existing folder
-				this->response.updateStatus(308, "Trying to access a directory"); // DO NOT CHANGE THE STRING! (connected to prepareHeaders in Http::Response)
+				this->response.updateStatus(308, "Trying to access a directory");
 			else  // if it's a normal file, check access
 			{
 				if (access(targetResource.c_str(), R_OK) < 0)
@@ -643,7 +623,7 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 	{
 		if (location.getCgiExec().first.size())
 		{
-			//test if is Cgi
+			//test if is cgi_exec
 			if (hasEnding (this->targetResource, location.getCgiExec().first))
 			{
 				isCgi = true;
@@ -653,8 +633,6 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 		if (!isCgi)
 		{
 			validFile = stat(targetResource.c_str(), &fileCheckBuff);
-			// if (!validFile)
-			// 	this->response.updateStatus(409, "Target resource already exists");
 			if (*targetResource.rbegin() == '/') // target is a directory
 				this->response.updateStatus(403, "Uploading a folder is not allowed");
 			std::string	dirPath; // check write permissions of the parent folder
@@ -678,8 +656,6 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 			dirPath = this->targetResource + "..";
 		else if (this->targetResource.find_last_of("/") != std::string::npos)
 			dirPath = this->targetResource.substr(0, this->targetResource.find_last_of("/"));
-		// else
-		// 	dirPath = ".";
 		if (access(dirPath.c_str(), W_OK | X_OK) < 0)
 			this->response.updateStatus(403, "Insufficient path permissions");
 	}
@@ -747,20 +723,20 @@ void	HttpRequest::validateMessageFraming(void)
 		for (std::vector<std::string>::iterator it = values.begin(); it != values.end(); it++)
 		{
 			*it = trim(*it);
-			std::string type = splitQuotedString(*it, ';')[0]; // get rid of parameters
+			std::string type = splitQuotedString(*it, ';')[0];
 			if (type != "chunked" && type != "identity" && type != "")
 				throw (ResponseException(501, "Unknown transfer-encoding"));
 			this->messageFraming = TRANSFER_ENCODING;
 		}
 	}
-	else if (contentLength != this->headerFields.end()) // needs reviewing
+	else if (contentLength != this->headerFields.end())
 	{
 		if (contentLength->second.find_first_not_of(DIGITS) != std::string::npos)
 			throw (ResponseException(400, "Invalid Content-Length value"));
 		errno = 0;
 		long bodySize = strtol(contentLength->second.c_str(), NULL, 10);
 		int	error = errno;
-		if (error == ERANGE || bodySize > INT_MAX) // update to max_body_size
+		if (error == ERANGE || bodySize > this->getLocation().getRequestBodySizeLimit())
 			throw (ResponseException(413, "Content-Length is too big"));
 		this->contentLength = bodySize;
 		this->messageFraming = CONTENT_LENGTH;
@@ -788,11 +764,6 @@ void	HttpRequest::manageExpectations(void)
 	}
 }
 
-/*
-1) method check based on string comparison once the server block rules are matched, also needs 405 Method Not Allowed if applicable
-2) merge paths and check access to URI based on allowed methods
-Q: what happens if methods in config are not valid?
-*/
 void	HttpRequest::validateHeader(const Location& location)
 {
 	this->location = location;
@@ -800,21 +771,16 @@ void	HttpRequest::validateHeader(const Location& location)
 	this->allowedMethods = location.getAllowMethods();
 	this->requestBodySizeLimit = location.getRequestBodySizeLimit();
 
-	// if (std::find(allowedMethods.begin(), allowedMethods.end(), this->requestLine.method) == allowedMethods.end())
-	// 	throw(ResponseException(405, "Method not allowed"));
 	if (std::find(allowedMethods.begin(), allowedMethods.end(), this->requestLine.method) == allowedMethods.end()
 		&& this->requestLine.requestTarget.absolutePath.find("post_body") == std::string::npos)
 		throw(ResponseException(405, "Method not allowed"));
-		//this->response.updateStatus(405, "Method Not Allowed");
 	this->validateConnectionOption();
 	this->validateResourceAccess(location);
-	this->validateContentType(location);
 	this->validateMessageFraming();
 	if (this->requestLine.httpVersion == "1.1")
 		this->manageExpectations();
 }
 
-// also should check for valid characters in extension(?)
 size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 {
 	size_t	bytesRead = 0;
@@ -846,10 +812,8 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 			size_t				tempBytesRead = chunkSizeLine.size() + 1;
 			octets_t::iterator	semicolon = std::find(chunkSizeLine.begin(), chunkSizeLine.end(), ';');
 			octets_t			chunkSizeOct(chunkSizeLine.begin(), semicolon); // ignore chunk-extension
-			//std::cout << "1: " << bufferedBody << std::endl;
+
 			bufferedBody.erase(bufferedBody.begin(), newline + 1); // move to the beginning of the chunk
-			//std::cout << "2: " << bufferedBody << std::endl;
-			//std::cout << "------------------------------" << std::endl;
 			if (chunkSizeOct.size() > 0 && !isxdigit(chunkSizeOct[0]))
 				throw (ResponseException(400, "Invalid chunk size value")); // anything else than a hexdigit at the start isn't allowed
 			if (std::count(chunkSizeOct.begin(), chunkSizeOct.end(), '\0') > 0)
@@ -861,7 +825,6 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 			errno = 0;
 			size_t chunkSize = strtoul(chunkSizeStr.c_str(), NULL, 16);
 			int	error = errno;
-			//std::cout << BLUE << chunkSizeStr << " " << error << RESET << std::endl;
 			if (error || this->requestBody.size() + chunkSize > static_cast<size_t>(this->requestBodySizeLimit) || chunkSize > INT_MAX)
 				throw (ResponseException(413, "Payload too large"));
 
@@ -884,12 +847,9 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 					return (bytesRead);
 				}
 				else
-					//break ;
-					//should throw
 					return (bytesRead);
-					//throw (ResponseException(400, "Invalid delimitation of message body end"));
 			}
-			else if (chunkSize + 1 > bufferedBody.size()) // + 1 for newline (should be there as a proper delimiter)
+			else if (chunkSize + 1 > bufferedBody.size())
 			{
 				this->readingBodyInProgress = true;
 				return (bytesRead);
@@ -998,11 +958,6 @@ const bool&	HttpRequest::getTargetIsDirectory() const
 	return (this->targetIsDirectory);
 }
 
-// const int &HttpRequest::getRequestID() const
-// {
-// 	return (this->requestID);
-// }
-
 bool HttpRequest::getHasExpect() const
 {
     return (this->hasExpect);
@@ -1104,5 +1059,4 @@ void	HttpRequest::resetRequestObject(void)
 	this->hasExpect = newRequest.hasExpect;
 	this->location = newRequest.location;
 	this->silentErrorRaised = newRequest.silentErrorRaised;
-	//this->requestID = newRequest.requestID;
 }

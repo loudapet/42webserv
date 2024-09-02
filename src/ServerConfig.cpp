@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerConfig.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/30 13:47:54 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/30 13:48:00 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/09/02 15:03:17 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,6 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	allowMethodsInConfig = false;
 	returnInConfig = false;
 	serverBlockElements = splitBlock(serverBlock);
-	// add check for minimal number of elements for the config to be valid
 	for (size_t i = 0; i < serverBlockElements.size(); i++)
 	{
 		if (!inLocationBlock)
@@ -70,12 +69,11 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 				validateElement(this->_serverNames.back());
 				if (this->_serverNames.size() > 0)
 					this->_primaryServerName = this->_serverNames[0];
-				i += this->_serverNames.size(); // not -1 bcs there is the directive name to skip too
+				i += this->_serverNames.size();
 			}
 			else if (serverBlockElements[i] == "host" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
 			{
-				// QUESTION: detect addresses that will fail sock binding?
 				if (this->_host != 0)
 					throw (std::runtime_error("Config parser: Duplicate host directive."));
 				if (serverBlockElements[i + 1] == "localhost")
@@ -94,12 +92,11 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 			else if (serverBlockElements[i] == "index" && (i + 1) < serverBlockElements.size())
 			{
 				this->_index = validateIndex(this->_index, serverBlockElements, i + 1, "server");
-				i += this->_index.size(); // not -1 bcs there is the directive name to skip too
+				i += this->_index.size();
 			}
 			else if (serverBlockElements[i] == "client_max_body_size" && (i + 1) < serverBlockElements.size()
 				&& validateElement(serverBlockElements[i + 1]))
 			{
-				// source: https://docs.nginx.com/nginx-management-suite/acm/how-to/policies/request-body-size-limit/
 				this->_requestBodySizeLimit = validateRequestBodySizeLimit(rbslInConfig, serverBlockElements[i + 1], "server"); 
 				rbslInConfig = true;
 				i++;
@@ -123,7 +120,6 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 			{
 				if (returnInConfig)
 					throw(std::runtime_error("Config parser: Duplicate return directive."));
-				// source: https://nginx.org/en/docs/http/ngx_http_rewrite_module.html#return
 				this->_returnCode = validateReturnCode(serverBlockElements[i + 1]);
 				this->_returnURLOrBody = serverBlockElements[i + 2];		
 				this->_isRedirect = true;
@@ -180,7 +176,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 					if (!this->_allowMethods.insert(allowMethodsLine[i]).second)
 						throw(std::runtime_error("Config parser: Duplicate method '" + allowMethodsLine[i] + "'."));
 				}
-				i += allowMethodsLine.size(); // not -1 bcs there is the directive to skip too
+				i += allowMethodsLine.size();
 				allowMethodsLine.clear();
 			}
 			else if (serverBlockElements[i] == "mime_types" && (i + 1) < serverBlockElements.size()
@@ -201,7 +197,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	}
 	// set empty values
 	if (this->_port == 0)
-		this->_port = 8002; // If the directive is not present then either *:80 is used if nginx runs with the superuser privileges, or *:8000 otherwise.
+		this->_port = 8002;
 	if (this->_root.empty())
 		this->_root = "./";
 	if (this->_host == 0)
@@ -424,14 +420,12 @@ void	ServerConfig::completeLocations(void)
 	
 	for (size_t i = 0; i < this->_locations.size(); i++)
 	{
-	// add server root if none defined
 		if (this->_locations[i].getRoot().empty())
 			this->_locations[i].setRoot(this->_root);
 		if (this->_locations[i].getIndex().empty())
 			this->_locations[i].setIndex(this->_index);
 		if (this->_locations[i].getRequestBodySizeLimit() == -1)
 			this->_locations[i].setRequestBodySizeLimit(this->_requestBodySizeLimit);
-		// what if difference between server and location scope directives - e.g. autoindex off in server but off in this->_locations[i]
 		if (this->_locations[i].getAutoindex() == -1)
 			this->_locations[i].setAutoindex(this->_autoindex);
 		for (std::map<unsigned short, std::string>::const_iterator it = this->_errorPages.begin(); it != this->_errorPages.end(); it++)
@@ -458,18 +452,13 @@ void	ServerConfig::validateLocations(void)
 	{
 		resolveDotSegments(this->_locations[i].getPath(), CONFIG);
 		resolveDotSegments(this->_locations[i].getRoot(), CONFIG);
-		// validate location
-		if (!this->_locations[i].getIsCgi()) // not CGI
+		if (!this->_locations[i].getIsCgi())
 		{
-			// simple check for path validity, the rest of the path will be checked later with root and index file
 			if (this->_locations[i].getPath()[0] != '/')
 				throw(std::runtime_error("Config parser: Invalid location path."));
 			if (!this->_locations[i].getIsRedirect())
 			{
-				// validate index (and path)
 				for (size_t j = 0; j < this->_locations[i].getIndex().size(); j++)
-					// Originally, the access was checked for root+path+/+index because that's what NGINX does. The subject asks us to replace the path with the root, so the path is left out of the check.
-					//fileIsValidAndAccessible(resolveDotSegments(this->_locations[i].getRoot() + "/" + this->_locations[i].getIndex()[j], CONFIG), "Index");
 					resolveDotSegments(this->_locations[i].getRoot() + "/" + this->_locations[i].getIndex()[j], CONFIG);
 			}
 		}
