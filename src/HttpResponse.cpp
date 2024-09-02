@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/09/01 21:40:31 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/09/02 08:30:58 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -343,7 +343,10 @@ void	HttpResponse::readDirectoryListing(const std::string& targetResource)
 		std::string	path = targetResource + dir->d_name;
 		struct stat	fileCheckBuff;
 		if (stat(path.c_str(), &fileCheckBuff) < 0)
-			std::cout << errno << " "<< path << std::endl;
+		{
+			Logger::safeLog(DEBUG, RESPONSE, "Autoindexing failed due to failed system call", "");
+			throw(std::exception());
+		}
 		#ifdef __APPLE__
 			tm *curr_tm = std::gmtime(&(fileCheckBuff.st_mtimespec.tv_sec));
 		#endif
@@ -501,14 +504,11 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 	}
 	else
 	{
-		Logger::safeLog(INFO, RESPONSE, "Response status code a : ", itoa(this->statusLine.statusCode));
 		if (this->cgiStatus)
 		{
 			for (stringmap_t::iterator it = this->cgiHeaderFields.begin(); it != this->cgiHeaderFields.end(); it++)
 				if (it->first == "status: ")
 					this->statusLine.statusCode = atoi(it->second.c_str());
-			Logger::safeLog(INFO, RESPONSE, "Response status code b : ", itoa(this->statusLine.statusCode));
-			//this->statusLine.statusCode = 200;
 		}
 		if (codeDict.find(this->statusLine.statusCode) == codeDict.end())
 			this->codeDict[this->statusLine.statusCode] = "Undefined";
@@ -517,7 +517,19 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 		if (!this->cgiStatus && (request.getRequestLine().method == "GET" || request.getRequestLine().method == "HEAD"))
 		{
 			if (this->statusLine.statusCode == 200 && request.getTargetIsDirectory() && !request.getLocation().getIsRedirect())
-				request.response.readDirectoryListing(request.getTargetResource());
+			{
+				try
+				{
+					request.response.readDirectoryListing(request.getTargetResource());
+				}
+				catch(const std::exception& e)
+				{
+					this->statusLine.statusCode = 500;
+					this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
+					this->statusDetails = "Failed to index the directory";
+					request.response.readErrorPage(request.getLocation());
+				}
+			}
 			else if (this->statusLine.statusCode == 200 && !request.getLocation().getIsRedirect())
 				request.response.readRequestedFile(request.getTargetResource(), request.getLocation().getMimeTypes().getMimeTypesDictInv());
 			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))

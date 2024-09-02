@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: okraus <okraus@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/09/01 21:44:08 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/09/02 08:18:16 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -676,7 +676,7 @@ void	ft_post(ServerMaster &sm, Client &client)
 		if (fd < 0)
 		{
 			response.setPostStatus(POST_ERROR);
-			response.updateStatus(500, "POST failure, could not open file");
+			response.updateStatus(500, "Upload failure, could not open file");
 		}
 		response.setWfd(fd);
 		response.setPostStatus(POST_STARTED);
@@ -710,7 +710,7 @@ void	ft_post(ServerMaster &sm, Client &client)
 		else
 		{
 			response.setPostStatus(POST_ERROR);
-			response.updateStatus(500, "POST failure");
+			response.updateStatus(500, "Upload failure");
 			return ;
 		}
 	}
