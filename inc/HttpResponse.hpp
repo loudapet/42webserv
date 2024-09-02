@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/28 12:39:15 by plouda           ###   ########.fr       */
+/*   Updated: 2024/09/02 12:58:07 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,6 +60,7 @@ class HttpResponse
 		int				cgi_pid; //pid of cgi process
 		stringmap_t		cgiHeaderFields;
 		octets_t		cgiBody;
+		bool			fileExists;
 
 		void				readRequestedFile(const std::string& targetResource, const stringmap_t& mimeExtensions);
 		void				readErrorPage(const Location &location);
@@ -102,6 +103,8 @@ class HttpResponse
 		void					setCgiPid(int pid);
 		void					setWfd(int fd);
 		void					setRfd(int fd);
+		void					setFileExists();
+		const bool&				getFileExists();
 		// void					setCgiHeaderFields;
 		// void					setCgiBody;
 };

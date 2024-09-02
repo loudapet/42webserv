@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/09/01 21:39:51 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/09/02 13:26:04 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,7 +96,7 @@ void	HttpRequest::parseMethod(std::string& token)
 	if (token == "GET" || token == "POST" || token == "DELETE" || token == "HEAD" || token == "PUT" )
 		this->requestLine.method = token;
 	else if (token == "CONNECT" || token == "OPTIONS" || token == "PATCH" || token == "TRACE")
-		this->response.updateStatus(501, "Method not supported");
+		throw (ResponseException(501, "Method not supported"));
 }
 
 void resolvePercentEncoding(std::string& path, size_t& pos)
@@ -467,7 +467,6 @@ stringpair_t	HttpRequest::parseHeader(octets_t header)
 		throw (ResponseException(400, "Improperly terminated header-field section"));
 	this->parseFieldSection(splitLines);
 	authority = this->resolveHost();
-	Logger::safeLog(INFO, REQUEST, "Authority: ", authority.first + ":" + authority.second);
 	return (authority);
 }
 
@@ -565,19 +564,6 @@ static void	removeDoubleSlash(std::string& str)
 	size_t pos;
 	while ((pos = str.find("//")) != std::string::npos)
 		str.erase(pos, 1);
-}
-
-bool	isSupportedScript(std::string& path)
-{
-	std::string	ext;
-	size_t pos = path.rfind('.');
-	if (pos != std::string::npos)
-	{
-		ext = path.substr(pos + 1, path.length() - pos);
-		if (ext == "py" || ext == "php" || ext == "cgi")
-			return (true);
-	}
-	return (false);
 }
 
 static bool hasEnding (std::string const &fullString, std::string const &ending) {
@@ -720,11 +706,6 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 				if (access(pathToResource.c_str(), X_OK) < 0)
 				{
 					this->response.updateStatus(403, "Not executable");
-					break;
-				}
-				else if (!isSupportedScript(pathToResource))
-				{
-					this->response.updateStatus(404, "CGI script type not supported");
 					break;
 				}
 				else

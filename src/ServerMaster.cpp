@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/09/02 10:01:35 by plouda           ###   ########.fr       */
+/*   Updated: 2024/09/02 13:21:45 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -672,6 +672,9 @@ void	ft_post(ServerMaster &sm, Client &client)
 	if (response.getPostStatus() == NOPOST)
 	{
 		int fd;
+		
+		if (!access(request.getTargetResource().c_str(), F_OK))
+			response.setFileExists();
 		fd = open(request.getTargetResource().c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
 		if (fd < 0)
 		{
@@ -773,6 +776,7 @@ void	ServerMaster::listenForConnections(void)
 
 								// match location
 								const ServerConfig &serverConfig = client.getServerConfig();
+								Logger::safeLog(INFO, REQUEST, "Authority: ", parserPair.first + ":" + itoa(client.getServerConfig().getPort()));
 								client.request.validateHeader(matchLocation(client.request.getAbsolutePath(), serverConfig, parserPair.first));
 								client.request.readingBodyInProgress = true;
 							}
@@ -948,7 +952,8 @@ void ServerMaster::selectServerRules(stringpair_t parserPair, int clientSocket)
 	{
 		iss.str(parserPair.second);
 		if (!(iss >> portReceived) || !iss.eof())
-			throw(std::runtime_error("Server rules: Port number is out of range for unsigned short."));
+			throw(ResponseException(421, "Port mismatch"));
+			//throw(std::runtime_error("Server rules: Port number is out of range for unsigned short."));
 	}
 	for (std::map<int, ServerConfig>::const_iterator it = this->_servers.begin(); it != this->_servers.end(); it++)
 	{

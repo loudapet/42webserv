@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/09/02 08:30:58 by plouda           ###   ########.fr       */
+/*   Updated: 2024/09/02 13:02:49 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,6 +76,7 @@ HttpResponse::HttpResponse()
 	this->rfd = 0;
 	this->cgiHeaderFields = stringmap_t();
 	this->cgiBody = octets_t();
+	this->fileExists = false;
 	return ;
 }
 
@@ -117,6 +118,7 @@ HttpResponse& HttpResponse::operator=(const HttpResponse& refObj)
 		rfd = refObj.rfd;
 		cgiHeaderFields = refObj.cgiHeaderFields;
 		cgiBody = refObj.cgiBody;
+		fileExists = refObj.fileExists;
 	}
 	return (*this);
 }
@@ -537,12 +539,26 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 			else if (this->statusLine.statusCode != 204 && this->statusLine.statusCode != 304) // this is in place so we don't read the error page for no reason
 				request.response.readErrorPage(request.getLocation());
 		}
-		else if (!this->cgiStatus && (request.getRequestLine().method == "POST" || request.getRequestLine().method == "PUT"))
+		else if (!this->cgiStatus && request.getRequestLine().method == "POST")
 		{
 			// location header in prepareHeaders, status update here, if creation failed, 500 was raised
 			if (this->statusLine.statusCode == 200 && !request.getLocation().getIsRedirect())
 			{
 				this->statusLine.statusCode = 201;
+				this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
+			}
+			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
+				request.response.readReturnDirective(request.getLocation());
+			else if (this->statusLine.statusCode != 204 && this->statusLine.statusCode != 304) // this is in place so we don't read the error page for no reason
+				request.response.readErrorPage(request.getLocation());
+		}
+		else if (!this->cgiStatus && request.getRequestLine().method == "PUT")
+		{
+			// location header in prepareHeaders, status update here, if creation failed, 500 was raised
+			if (this->statusLine.statusCode == 200 && !request.getLocation().getIsRedirect())
+			{
+				if (!this->fileExists)
+					this->statusLine.statusCode = 201;
 				this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
 			}
 			else if (request.getLocation().getIsRedirect() && (this->statusLine.statusCode < 300 || this->statusLine.statusCode > 308))
@@ -686,4 +702,14 @@ void	HttpResponse::setWfd(int fd)
 void	HttpResponse::setRfd(int fd)
 {
 	this->rfd = fd;
+}
+
+void HttpResponse::setFileExists()
+{
+	this->fileExists = true;
+}
+
+const bool	&HttpResponse::getFileExists()
+{
+	return (this->fileExists);
 }
