@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/09/02 08:30:58 by plouda           ###   ########.fr       */
+/*   Updated: 2024/09/02 10:23:04 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -537,7 +537,7 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 			else if (this->statusLine.statusCode != 204 && this->statusLine.statusCode != 304) // this is in place so we don't read the error page for no reason
 				request.response.readErrorPage(request.getLocation());
 		}
-		else if (!this->cgiStatus && (request.getRequestLine().method == "POST" || request.getRequestLine().method == "PUT"))
+		else if (!this->cgiStatus && request.getRequestLine().method == "POST")
 		{
 			// location header in prepareHeaders, status update here, if creation failed, 500 was raised
 			if (this->statusLine.statusCode == 200 && !request.getLocation().getIsRedirect())

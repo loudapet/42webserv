@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerMaster.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/09/02 10:01:35 by plouda           ###   ########.fr       */
+/*   Updated: 2024/09/02 10:23:22 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -330,7 +330,7 @@ const Location matchLocation(const std::string &absolutePath, const ServerConfig
 						// substitute the REMOTE_ADDR value.
 // "REMOTE_IDENT"		// not needed?
 // "REMOTE_USER"		// not needed?
-// "REQUEST_METHOD"		// GET POST HEAD + PUT DELETE token
+// "REQUEST_METHOD"		// GET POST HEAD + DELETE token
 // "SCRIPT_NAME"		The SCRIPT_NAME variable MUST be set to a URI path (not URL-encoded)
 						// which could identify the CGI script
 // "SERVER_NAME"		// localhost?
@@ -837,7 +837,7 @@ void	ServerMaster::listenForConnections(void)
 						continue ;
 				}
 				if (!client.request.getLocation().getIsCgi()
-					&& (client.request.getRequestLine().method == "POST" || client.request.getRequestLine().method == "PUT") 
+					&& client.request.getRequestLine().method == "POST"
 					&& (client.request.response.getStatusLine().statusCode == 200)
 					&& !(client.request.getLocation().getIsRedirect()))
 				{

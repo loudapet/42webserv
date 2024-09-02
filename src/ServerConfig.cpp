@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerConfig.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/30 13:47:54 by aulicna           #+#    #+#             */
-/*   Updated: 2024/08/30 13:48:00 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/09/02 10:23:28 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,7 @@ ServerConfig::ServerConfig(std::string &serverBlock)
 	bool						allowMethodsInConfig;
 	bool						returnInConfig;
 	std::vector<std::string>	allowMethodsLine;
-	std::string 				validMethodsArray[] = {"GET", "HEAD", "POST", "PUT", "DELETE"};
+	std::string 				validMethodsArray[] = {"GET", "HEAD", "POST", "DELETE"};
 	std::set<std::string> 		validMethods(validMethodsArray, validMethodsArray + sizeof(validMethodsArray) / sizeof(validMethodsArray[0]));
 	
 	initServerConfig();

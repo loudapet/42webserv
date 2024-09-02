@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 09:56:07 by plouda            #+#    #+#             */
-/*   Updated: 2024/09/01 21:39:51 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/09/02 10:22:55 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -93,9 +93,9 @@ HttpRequest::~HttpRequest()
 
 void	HttpRequest::parseMethod(std::string& token)
 {
-	if (token == "GET" || token == "POST" || token == "DELETE" || token == "HEAD" || token == "PUT" )
+	if (token == "GET" || token == "POST" || token == "DELETE" || token == "HEAD")
 		this->requestLine.method = token;
-	else if (token == "CONNECT" || token == "OPTIONS" || token == "PATCH" || token == "TRACE")
+	else if (token == "PUT" || token == "CONNECT" || token == "OPTIONS" || token == "PATCH" || token == "TRACE")
 		this->response.updateStatus(501, "Method not supported");
 }
 
@@ -653,7 +653,7 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 			}
 		}
 	}
-	else if (!this->isRedirect && !isCgi && (this->requestLine.method == "POST" || this->requestLine.method == "PUT"))
+	else if (!this->isRedirect && !isCgi && this->requestLine.method == "POST")
 	{
 		if (location.getCgiExec().first.size())
 		{
@@ -786,7 +786,7 @@ void	HttpRequest::validateMessageFraming(void)
 	}
 	else
 	{
-		if (this->requestLine.method == "POST" || this->requestLine.method == "PUT")
+		if (this->requestLine.method == "POST")
 			throw (ResponseException(400, "Invalid framing - required Content-Length or TE"));
 	}
 }
