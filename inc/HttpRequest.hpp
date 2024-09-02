@@ -102,6 +102,7 @@ class HttpRequest
 		bool					isRedirect;
 		bool					hasExpect;
 		bool					silentErrorRaised;
+		bool					isCgiExec;
 		size_t					contentLength;
 		Location				location;
 		void					parseRequestLine(std::string requestLine);
@@ -147,6 +148,7 @@ class HttpRequest
 		const int&						getRequestID() const;
 		void							resetRequestObject(void);
 		bool							getHasExpect() const;
+		bool							getIsCgiExec() const;
 		void							disableHasExpect();
 };
 

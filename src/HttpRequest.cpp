@@ -39,7 +39,7 @@ HttpRequest::HttpRequest()
 	this->contentLength = 0;
 	this->location = defaultLocation;
 	this->targetIsDirectory = false;
-
+	this->isCgiExec = false;
 	this->response = defaultResponse;
 	this->readingBodyInProgress = false;
 	this->requestComplete = false;
@@ -73,6 +73,7 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& refObj)
 		isRedirect = refObj.isRedirect;
 		contentLength = refObj.contentLength;
 		location = refObj.location;
+		isCgiExec = refObj.isCgiExec;
 		response = refObj.response;
 		readingBodyInProgress = refObj.readingBodyInProgress;
 		requestComplete = refObj.requestComplete;
@@ -490,6 +491,8 @@ void	HttpRequest::validateContentType(const Location &location)
 		Logger::safeLog(DEBUG, REQUEST, "Content type: ", contentTypeValue);
 	    if (mimeTypesDict.find(contentTypeValue) == mimeTypesDict.end()) // content-type not found in mimeTypesDict
 		{
+			return ;
+			//Check again!!!
 			this->response.updateStatus(415, "Intended file type not supported");
 			return ;
 		}
@@ -577,6 +580,14 @@ bool	isSupportedScript(std::string& path)
 	return (false);
 }
 
+static bool hasEnding (std::string const &fullString, std::string const &ending) {
+	if (fullString.length() >= ending.length()) {
+		return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+	} else {
+		return false;
+	}
+}
+
 void	HttpRequest::validateResourceAccess(const Location& location)
 {
 	bool		isCgi = location.getIsCgi();
@@ -644,21 +655,32 @@ void	HttpRequest::validateResourceAccess(const Location& location)
 	}
 	else if (!this->isRedirect && !isCgi && (this->requestLine.method == "POST" || this->requestLine.method == "PUT"))
 	{
-		validFile = stat(targetResource.c_str(), &fileCheckBuff);
-		if (!validFile)
-			this->response.updateStatus(409, "Target resource already exists");
-		if (*targetResource.rbegin() == '/') // target is a directory
-			this->response.updateStatus(403, "Uploading a folder is not allowed");
-		std::string	dirPath; // check write permissions of the parent folder
-		if (this->targetResource.find_last_of("/") != std::string::npos)
-			dirPath = this->targetResource.substr(0, this->targetResource.find_last_of("/"));
-		else
-			dirPath = ".";
-		if (access(dirPath.c_str(), F_OK) < 0)
-			this->response.updateStatus(403, "Path does not exist");
-		if (access(dirPath.c_str(), W_OK) < 0)
-			this->response.updateStatus(403, "Path is not writable");
-
+		if (location.getCgiExec().first.size())
+		{
+			//test if is Cgi
+			if (hasEnding (this->targetResource, location.getCgiExec().first))
+			{
+				isCgi = true;
+				this->isCgiExec = true;
+			}
+		}
+		if (!isCgi)
+		{
+			validFile = stat(targetResource.c_str(), &fileCheckBuff);
+			// if (!validFile)
+			// 	this->response.updateStatus(409, "Target resource already exists");
+			if (*targetResource.rbegin() == '/') // target is a directory
+				this->response.updateStatus(403, "Uploading a folder is not allowed");
+			std::string	dirPath; // check write permissions of the parent folder
+			if (this->targetResource.find_last_of("/") != std::string::npos)
+				dirPath = this->targetResource.substr(0, this->targetResource.find_last_of("/"));
+			else
+				dirPath = ".";
+			if (access(dirPath.c_str(), F_OK) < 0)
+				this->response.updateStatus(403, "Path does not exist");
+			if (access(dirPath.c_str(), W_OK) < 0)
+				this->response.updateStatus(403, "Path is not writable");
+		}
 	}
 	else if (!this->isRedirect && !isCgi && this->requestLine.method == "DELETE")
 	{
@@ -797,7 +819,10 @@ void	HttpRequest::validateHeader(const Location& location)
 	this->allowedMethods = location.getAllowMethods();
 	this->requestBodySizeLimit = location.getRequestBodySizeLimit();
 
-	if (std::find(allowedMethods.begin(), allowedMethods.end(), this->requestLine.method) == allowedMethods.end())
+	// if (std::find(allowedMethods.begin(), allowedMethods.end(), this->requestLine.method) == allowedMethods.end())
+	// 	throw(ResponseException(405, "Method not allowed"));
+	if (std::find(allowedMethods.begin(), allowedMethods.end(), this->requestLine.method) == allowedMethods.end()
+		&& this->requestLine.requestTarget.absolutePath.find("post_body") == std::string::npos)
 		throw(ResponseException(405, "Method not allowed"));
 		//this->response.updateStatus(405, "Method Not Allowed");
 	this->validateConnectionOption();
@@ -879,7 +904,9 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 				}
 				else
 					//break ;
-					throw (ResponseException(400, "Invalid delimitation of message body end"));
+					//should throw
+					return (bytesRead);
+					//throw (ResponseException(400, "Invalid delimitation of message body end"));
 			}
 			else if (chunkSize + 1 > bufferedBody.size()) // + 1 for newline (should be there as a proper delimiter)
 			{
@@ -895,6 +922,7 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 					itr++;
 				}						
 				bufferedBody.erase(bufferedBody.begin(), itr);
+				bytesRead += tempBytesRead + chunkSize;
 				if (bufferedBody.size() >= 1)
 				{
 					if (bufferedBody.size() >= 1 && bufferedBody[0] == '\n')
@@ -912,7 +940,6 @@ size_t	HttpRequest::readRequestBody(octets_t bufferedBody)
 						this->readingBodyInProgress = true;
 						return (bytesRead);
 					}
-					bytesRead += tempBytesRead + chunkSize;
 				}
 				else
 				{
@@ -998,6 +1025,11 @@ const bool&	HttpRequest::getTargetIsDirectory() const
 bool HttpRequest::getHasExpect() const
 {
     return (this->hasExpect);
+}
+
+bool HttpRequest::getIsCgiExec() const
+{
+    return (this->isCgiExec);
 }
 
 void	HttpRequest::disableHasExpect()
@@ -1086,6 +1118,7 @@ void	HttpRequest::resetRequestObject(void)
 	this->requestComplete = newRequest.requestComplete;
 	this->readingBodyInProgress = newRequest.readingBodyInProgress;
 	this->response = newResponse;
+	this->isCgiExec = false;
 	this->targetIsDirectory = newRequest.targetIsDirectory;
 	this->hasExpect = newRequest.hasExpect;
 	this->location = newRequest.location;

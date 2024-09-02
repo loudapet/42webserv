@@ -39,6 +39,7 @@ docs/
 *.cgi
 *.dSYM
 sessions/
+YoupiBanane/post_body
 
 # Executables
 parser

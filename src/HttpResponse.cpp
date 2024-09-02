@@ -501,11 +501,15 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 	}
 	else
 	{
-		//Logger::safeLog(INFO, RESPONSE, "Response status code: ", itoa(this->statusLine.statusCode));
+		Logger::safeLog(INFO, RESPONSE, "Response status code a : ", itoa(this->statusLine.statusCode));
 		if (this->cgiStatus)
+		{
 			for (stringmap_t::iterator it = this->cgiHeaderFields.begin(); it != this->cgiHeaderFields.end(); it++)
 				if (it->first == "status: ")
 					this->statusLine.statusCode = atoi(it->second.c_str());
+			Logger::safeLog(INFO, RESPONSE, "Response status code b : ", itoa(this->statusLine.statusCode));
+			//this->statusLine.statusCode = 200;
+		}
 		if (codeDict.find(this->statusLine.statusCode) == codeDict.end())
 			this->codeDict[this->statusLine.statusCode] = "Undefined";
 		this->statusLine.reasonPhrase = this->codeDict[this->statusLine.statusCode];
@@ -564,6 +568,9 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 			if (this->cgiStatus == CGI_ERROR)
 				request.response.readErrorPage(request.getLocation());
 		}
+		//std::cout << this->cgiBody << std::endl;
+		// std::cout << request.getRequestLine().requestTarget.absolutePath << std::endl;
+		// std::cout << request.getRequestLine().requestTarget.query << std::endl;
 		if (this->statusLine.statusCode == 204 || this->statusLine.statusCode == 304 || request.getRequestLine().method == "HEAD")
 			this->responseBody.clear();
 		request.response.buildResponseHeaders(request);
@@ -571,6 +578,7 @@ const octets_t		HttpResponse::prepareResponse(HttpRequest& request)
 		octets_t message = request.response.getCompleteResponse();
 		Logger::safeLog(INFO, RESPONSE, itoa(this->statusLine.statusCode) + " ", 
 			this->statusLine.reasonPhrase + (this->statusDetails.size() ? ": " + this->statusDetails : ""));
+		// std::cout << this->headerFields << std::endl;
 		return (message);
 	}
 }
