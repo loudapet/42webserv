@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:52:29 by plouda            #+#    #+#             */
-/*   Updated: 2024/09/02 14:32:11 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/09/02 16:36:42 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,6 +71,8 @@ HttpResponse::HttpResponse()
 	this->messageTooLongForOneSend = false;
 	this->cgiStatus = 0;
 	this->postStatus = 0;
+	this->getStatus = 0;
+	this->fileSize = 0;
 	this->cgi_pid = 0;
 	this->wfd = 0;
 	this->rfd = 0;
@@ -113,6 +115,8 @@ HttpResponse& HttpResponse::operator=(const HttpResponse& refObj)
 		messageTooLongForOneSend = refObj.messageTooLongForOneSend;
 		cgiStatus = refObj.cgiStatus;
 		postStatus = refObj.postStatus;
+		getStatus = refObj.getStatus;
+		fileSize = refObj.fileSize;
 		cgi_pid = refObj.cgi_pid;
 		wfd = refObj.wfd;
 		rfd = refObj.rfd;
@@ -272,8 +276,6 @@ void	HttpResponse::readErrorPage(const Location &location)
 void HttpResponse::readRequestedFile(const std::string &targetResource, const stringmap_t& mimeExtensions)
 {
 	stringmap_t::const_iterator it;
-	std::ifstream	stream(targetResource.c_str(), std::ios::binary);
-	octets_t		contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
 	std::string		extension;
 
 	std::string::size_type lastDotPos = targetResource.rfind('.');
@@ -287,8 +289,6 @@ void HttpResponse::readRequestedFile(const std::string &targetResource, const st
 		this->headerFields["content-type: "] = it->second;
 	else
 		this->headerFields["content-type: "] = "application/octet-stream";
-	this->responseBody.insert(this->responseBody.end(), contents.begin(), contents.end());
-	stream.close();
 }
 
 void	HttpResponse::buildCompleteResponse(void)
@@ -615,6 +615,11 @@ const octets_t&	HttpResponse::getMessage() const
 
 }
 
+octets_t&	HttpResponse::getResponseBody()
+{
+	return(this->responseBody);
+}
+
 void	HttpResponse::setMessage(const octets_t& message)
 {
 	this->message = message;
@@ -646,6 +651,15 @@ int	HttpResponse::getPostStatus(void)
 	return(this->postStatus);
 }
 
+int	HttpResponse::getGetStatus(void)
+{
+	return(this->getStatus);
+}
+
+size_t	HttpResponse::getFileSize(void)
+{
+	return(this->fileSize);
+}
 
 int	HttpResponse::getCgiPid(void)
 {
@@ -680,6 +694,16 @@ void	HttpResponse::setCgiStatus(int status)
 void	HttpResponse::setPostStatus(int status)
 {
 	this->postStatus = status;
+}
+
+void	HttpResponse::setGetStatus(int status)
+{
+	this->getStatus = status;
+}
+
+void	HttpResponse::setFileSize(size_t size)
+{
+	this->fileSize = size;
 }
 
 void	HttpResponse::setCgiPid(int pid)

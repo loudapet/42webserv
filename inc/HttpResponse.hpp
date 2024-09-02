@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 10:48:46 by plouda            #+#    #+#             */
-/*   Updated: 2024/09/02 13:45:54 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/09/02 15:58:51 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,6 +32,11 @@
 # define POST_WRITING 2
 # define POST_COMPLETE 8
 # define POST_ERROR 256
+# define NOGET 0
+# define GET_STARTED 1
+# define GET_READING 4
+# define GET_COMPLETE 8
+# define GET_ERROR 256
 
 class HttpRequest;
 typedef struct StatusLine
@@ -55,6 +60,8 @@ class HttpResponse
 		bool			messageTooLongForOneSend;
 		int				cgiStatus;
 		int				postStatus;
+		int				getStatus;
+		size_t			fileSize;
 		int				wfd;	//cgi and post pipe fd for write
 		int				rfd;	//cgi pipe fd for read
 		int				cgi_pid; //pid of cgi process
@@ -87,19 +94,24 @@ class HttpResponse
 		void					setStatusCode(unsigned short code);
 		void					updateStatus(unsigned short code, const char* details);
 		const octets_t&			getMessage() const;
+		octets_t&				getResponseBody();
 		void					setMessage(const octets_t& message);
 		void					eraseRangeMessage(size_t start, size_t end);
 		bool					getMessageTooLongForOneSend() const;
 		void					setMessageTooLongForOneSend(bool value);
 		int						getCgiStatus(void);
 		int						getPostStatus(void);
+		int						getGetStatus(void);
 		int						getCgiPid(void);
+		size_t					getFileSize(void);
 		int						getWfd(void);
 		int						getRfd(void);
 		stringmap_t&			getCgiHeaderFields(void);
 		octets_t&				getCgiBody(void);
 		void					setCgiStatus(int status);
 		void					setPostStatus(int status);
+		void					setGetStatus(int status);
+		void					setFileSize(size_t size);
 		void					setCgiPid(int pid);
 		void					setWfd(int fd);
 		void					setRfd(int fd);

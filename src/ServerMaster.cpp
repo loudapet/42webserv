@@ -6,7 +6,7 @@
 /*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/09/02 15:11:34 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/09/02 16:37:11 by aulicna          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -426,23 +426,12 @@ void	ft_cgi(ServerMaster &sm, Client	&client)
 			response.updateStatus(500, "Piping failed");
 			return ;
 		}
-		//fcntl(fd1[0], )
-		if (fcntl(fd1[0], F_SETFL, O_NONBLOCK) < 0) // so that the pipes don't block each other in nested while on recv
-		{
-			response.setCgiStatus(CGI_ERROR);
-			response.updateStatus(500, "FCNTL failed");
-		}
 		if (fcntl(fd1[1], F_SETFL, O_NONBLOCK) < 0) // so that the pipes don't block each other in nested while on recv
 		{
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(500, "FCNTL failed");
 		}
 		if (fcntl(fd2[0], F_SETFL, O_NONBLOCK) < 0) // so that the pipes don't block each other in nested while on recv
-		{
-			response.setCgiStatus(CGI_ERROR);
-			response.updateStatus(500, "FCNTL failed");
-		}
-		if (fcntl(fd2[1], F_SETFL, O_NONBLOCK) < 0) // so that the pipes don't block each other in nested while on recv
 		{
 			response.setCgiStatus(CGI_ERROR);
 			response.updateStatus(500, "FCNTL failed");
@@ -628,6 +617,7 @@ void	ft_post(ServerMaster &sm, Client &client)
 		{
 			response.setPostStatus(POST_ERROR);
 			response.updateStatus(500, "Upload failure, could not open file");
+			return ;
 		}
 		response.setWfd(fd);
 		response.setPostStatus(POST_STARTED);
@@ -660,6 +650,64 @@ void	ft_post(ServerMaster &sm, Client &client)
 		else
 		{
 			response.setPostStatus(POST_ERROR);
+			response.updateStatus(500, "Upload failure");
+			return ;
+		}
+	}
+}
+
+void	ft_get(ServerMaster &sm, Client &client)
+{
+	HttpRequest&	request = client.request;
+	HttpResponse&	response = request.response;
+
+	if (response.getGetStatus() == NOGET)
+	{
+		int fd;
+		struct stat st;
+		
+		stat(request.getTargetResource().c_str(), &st);
+		response.setFileSize(st.st_size);
+		fd = open(request.getTargetResource().c_str(), O_RDONLY);
+		if (fd < 0)
+		{
+			response.setGetStatus(GET_ERROR);
+			response.updateStatus(500, "Read failure, could not open file");
+			return ;
+		}
+		response.setRfd(fd);
+		response.setGetStatus(GET_STARTED);
+	}
+	else if (response.getGetStatus() == GET_READING)
+	{
+		size_t			r = 0;
+		size_t			rsize;
+		unsigned char	rbuffer[GET_BUFFER_SIZE];
+		if (!sm.fdIsSetRead(response.getRfd()))
+			return ;
+		rsize = response.getFileSize() - response.getResponseBody().size();
+		if (rsize > GET_BUFFER_SIZE)
+			rsize = GET_BUFFER_SIZE;
+		if (rsize)
+		{
+			r = read(response.getRfd(), rbuffer, rsize);
+		}
+		if (r > 0)
+		{
+			for (size_t i = 0; i < r; i++)
+			{
+				response.getResponseBody().push_back(rbuffer[i]);
+			}
+			return ;
+		}
+		else if (!rsize)
+		{
+			response.setGetStatus(GET_COMPLETE);
+			return ;
+		}
+		else
+		{
+			response.setGetStatus(GET_ERROR);
 			response.updateStatus(500, "Upload failure");
 			return ;
 		}
@@ -781,7 +829,7 @@ void	ServerMaster::listenForConnections(void)
 					if (cgi_status < CGI_COMPLETE)
 						continue ;
 				}
-				if (!client.request.getLocation().getIsCgi()
+				else if (!client.request.getLocation().getIsCgi()
 					&& (client.request.getRequestLine().method == "POST" || client.request.getRequestLine().method == "PUT") 
 					&& (client.request.response.getStatusLine().statusCode == 200)
 					&& !(client.request.getLocation().getIsRedirect()))
@@ -803,7 +851,30 @@ void	ServerMaster::listenForConnections(void)
 						removeFdFromSet(this->_writeFds, client.request.response.getWfd());
 					}
 				}
-				if (!client.request.response.getMessageTooLongForOneSend())
+				else if (!client.request.getLocation().getIsCgi()
+					&& (client.request.getRequestLine().method == "GET") 
+					&& ((client.request.response.getStatusLine().statusCode == 200))
+					&& !(client.request.getLocation().getIsRedirect())
+					&& !client.request.getTargetIsDirectory())
+				{
+					int old_get_status = client.request.response.getGetStatus();
+					ft_get(*this, client);
+					int get_status = client.request.response.getGetStatus();
+					if (get_status == GET_STARTED)
+					{
+						addFdToSet(this->_readFds, client.request.response.getRfd());
+						client.request.response.setGetStatus(GET_READING);
+						continue ;
+					}
+					else if (get_status == GET_READING)
+						continue ;
+					else if (old_get_status== GET_READING && get_status != GET_READING)
+					{
+						close(client.request.response.getRfd());
+						removeFdFromSet(this->_readFds, client.request.response.getRfd());
+					}
+				}
+				if (!client.request.response.getMessageTooLongForOneSend()) // ensures prepareResponse runs only once even though the message could be sent in chunks
 					client.request.response.setMessage(client.request.response.prepareResponse(client.request));
 				octets_t message = client.request.response.getMessage();
 				size_t messageLen = message.size();
