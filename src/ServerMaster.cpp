@@ -6,7 +6,7 @@
 /*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/29 12:16:57 by aulicna           #+#    #+#             */
-/*   Updated: 2024/09/02 08:18:16 by plouda           ###   ########.fr       */
+/*   Updated: 2024/09/02 10:01:35 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,7 +76,7 @@ ServerMaster::~ServerMaster(void)
 		it2 = this->_servers.begin();
 	}
 	if (!g_runWebserv)
-		Logger::log(WARNING, SERVER, "\nReceived a terminating signal. Closed all connections and exiting.\n", "");
+		Logger::log(WARNING, SERVER, "Received a terminating signal. Closed all connections and exiting.\n", "");
 }
 
 void	ServerMaster::removeCommentsAndEmptyLines(void)

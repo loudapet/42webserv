@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Logger.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aulicna <aulicna@student.42prague.com>     +#+  +:+       +#+        */
+/*   By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/18 15:03:44 by plouda            #+#    #+#             */
-/*   Updated: 2024/08/05 13:28:23 by aulicna          ###   ########.fr       */
+/*   Updated: 2024/09/02 10:02:44 by plouda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,7 @@ enum LogLevel Logger::_logLevel = INFO;
 std::string			Logger::_logBuffer = "";
 const std::vector<std::string> 	Logger::_levelArray = initLogLevels();
 const std::string 	Logger::_clrArray[5] = {GREY, GREEN, YELLOW, ORANGE, RED};
-int					Logger::_outputFd = STDOUT_FILENO;
+int					Logger::_outputFd = STDERR_FILENO;
 bool				Logger::readyToWrite = false;
 int					Logger::_activeClient = 0;
 int					Logger::_activeRequestID = 0;
@@ -81,10 +81,10 @@ void	Logger::log(enum LogLevel level, enum ServerSection cat, std::string messag
 		{
 			std::string	logLine;
 			logLine = Logger::getCurrentLogTime() + " <" + _levelArray[level] + "> " + message + details;
-			if (Logger::_outputFd == STDOUT_FILENO)
-				std::cout << _clrArray[level] << logLine << RESET << std::endl;
+			if (Logger::_outputFd == STDERR_FILENO)
+				std::cerr << _clrArray[level] << logLine << RESET << std::endl;
 			else
-				write(Logger::_outputFd, logLine.c_str(), logLine.size());
+				write(Logger::_outputFd, (logLine + '\n').c_str(), logLine.size() + 1);
 		}
 	}
 }
@@ -102,7 +102,7 @@ void	Logger::safeLog(enum LogLevel level, enum ServerSection cat, std::string me
 				logLine = Logger::getCurrentLogTime() + " <" + _levelArray[level] + "> [C_ID:" + itoa(activeID->second) + "][" + itoa(Logger::_activeRequestID) + "] "+ message + details;
 			else
 				logLine = Logger::getCurrentLogTime() + " <" + _levelArray[level] + "> " + message + details;
-			if (Logger::_outputFd == STDOUT_FILENO)
+			if (Logger::_outputFd == STDERR_FILENO)
 				Logger::_logBuffer.append(_clrArray[level] + logLine + RESET + '\n');
 			else
 				Logger::_logBuffer.append(logLine + '\n');
