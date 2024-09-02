@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: plouda <plouda@student.42prague.com>       +#+  +:+       +#+         #
+#    By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/16 10:28:25 by plouda            #+#    #+#              #
-#    Updated: 2024/07/22 15:49:28 by plouda           ###   ########.fr        #
+#    Updated: 2024/09/02 16:39:03 by aulicna          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -28,8 +28,8 @@ OBJS = $(addprefix $(BUILD_DIR)/, $(SRCS))
 OBJS := $(OBJS:%.cpp=%.o)
 SRCS := $(addprefix $(SRCS_DIR)/, $(SRCS))
 
-SRCS_CLIENT = mainClient.cpp
-OBJS_CLIENT = $(SRCS_CLIENT:%.cpp=%.o)
+#SRCS_CLIENT = mainClient.cpp
+#OBJS_CLIENT = $(SRCS_CLIENT:%.cpp=%.o)
 
 COMP = c++ -g -Wall -Wextra -Werror -std=c++98
 SANITIZER := $(if $(shell test -f /usr/local/lib/liblsan.dylib),,-llsan)
@@ -39,7 +39,7 @@ YELLOW		=	$(shell printf "\033[1;33m")
 CYAN		=	$(shell printf "\033[1;36m")
 RESET		=	$(shell printf "\033[0m")
 
-all: $(NAME) client #cgi
+all: $(NAME) #client #cgi
 
 $(NAME): $(OBJS)
 	@echo "$(YELLOW)Initiating compilation of '${NAME}'$(RESET)"
@@ -53,10 +53,10 @@ san: $(OBJS)
 	@$(COMP) $(OBJS) -o ${NAME} ${SANITIZER}
 	@echo "$(GREEN)Compilation of '${NAME}' successful.$(RESET)"
 
-client: $(OBJS_CLIENT)
-	@echo "$(CYAN)Compiling client..$(RESET)"
-	@$(COMP) $(OBJS_CLIENT) -o client
-	@echo "$(GREEN)Compilation of 'client' successful.$(RESET)"
+#client: $(OBJS_CLIENT)
+#	@echo "$(CYAN)Compiling client..$(RESET)"
+#	@$(COMP) $(OBJS_CLIENT) -o client
+#	@echo "$(GREEN)Compilation of 'client' successful.$(RESET)"
 
 # cgi: ./www/html/cgi-bin/test_cgi1.cpp
 # 	@echo "$(CYAN)Compiling cgi...$(RESET)"
@@ -79,10 +79,10 @@ clean:
 
 fclean: clean
 	@rm -f $(NAME)
-	@rm -f client
+#	@rm -f client
 #	rm -f ./www/html/cgi-bin/test1.cgi
 	@echo "$(YELLOW)Executable '${NAME}' successfully removed.$(RESET)"
-	@echo "$(YELLOW)Executable 'client' successfully removed.$(RESET)"
+#	@echo "$(YELLOW)Executable 'client' successfully removed.$(RESET)"
 #	@echo "$(YELLOW)Executable 'test1.cgi' successfully removed.$(RESET)"
 
 re: fclean all
