@@ -30,3 +30,19 @@
 *.exe
 *.out
 *.app
+
+# Custom
+obj/
+.vscode/settings.json
+/cgi-bin/
+docs/
+*.cgi
+*.dSYM
+sessions/
+YoupiBanane/post_body
+
+# Executables
+parser
+client
+webserver
+client.dSYM

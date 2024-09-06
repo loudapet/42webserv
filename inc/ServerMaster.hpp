@@ -1,0 +1,67 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   ServerMaster.hpp                                   :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: aulicna <aulicna@student.42.fr>            +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2024/05/29 12:17:04 by aulicna           #+#    #+#             */
+/*   Updated: 2024/09/02 15:37:37 by aulicna          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#ifndef SERVERMASTER_HPP
+# define SERVERMASTER_HPP
+
+# include "webserv.hpp"
+# include "ServerConfig.hpp"
+# include "Client.hpp"
+# include "HttpRequest.hpp"
+# define MAX_FILE_SIZE 1000000000
+# define CGI_BUFFER_SIZE 65536
+# define POST_BUFFER_SIZE 8092
+# define GET_BUFFER_SIZE 8092
+
+class ServerMaster
+{
+	public:
+		ServerMaster(void);
+		~ServerMaster(void);
+
+		void	runWebserv(const std::string &configFile);
+		bool	fdIsSetWrite(int fd) const;
+		bool	fdIsSetRead(int fd) const;
+		static void	incrementConnectionCounter();
+		static int	getConnectionCounter();
+
+	private:
+		void	removeCommentsAndEmptyLines(void);
+		void	detectServerBlocks(void);
+		void	printServerBlocks(void) const;
+
+		void	prepareServersToListen(void);
+		void	listenForConnections(void);
+		void	acceptConnection(int serverSocket);
+		void	handleDataFromClient(const int clientSocket);
+		
+		void	checkForTimeout(void);
+		void	selectServerRules(stringpair_t parserPair, int clientSocket);
+		void	closeConnection(const int clientSocket);
+
+		void	addFdToSet(fd_set &set, int fd);
+		void	removeFdFromSet(fd_set &set, int fd);
+
+
+		std::string					_configContent;
+		std::vector<std::string>	_serverBlocks;
+		std::vector<ServerConfig>	_serverConfigs;
+		std::map<int, ServerConfig>	_servers;
+		std::map<int, Client>		_clients;
+
+		static int				_connectionCounter;
+		int						_fdMax; // maximum fd number
+		fd_set					_readFds; // master fds list
+		fd_set					_writeFds;
+};
+
+#endif

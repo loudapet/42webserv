@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+	div.container
+	{
+		display: flex;              /* establish flex container */
+		flex-direction: column;     /* stack flex items vertically */
+		justify-content: center;    /* center items vertically, in this case */
+		align-items: center;        /* center items horizontally, in this case */
+		height: 600px;
+		/*border: 1px solid black;*/
+	}
+
+	div.balloon
+	{
+		width: 200px;
+		height: 200px;
+		margin: auto;
+		padding: 0px;
+		top: 30%;
+		left: 400px;
+		border: 2px solid #000;
+		background-color: red;
+		border-radius: 50%;
+	}
+</style>
+<script>
+	let clicks = 333333;
+	let	size;
+	const colors = ["red", "green", "blue"];
+	window.onload = function() {
+		document.getElementById("balloon").onclick = function() {click()};
+		
+		function click() {
+			size = document.getElementById("balloon").getBoundingClientRect().width;
+			size -= 4;
+			console.log(size);
+			size += 10;
+			clicks += 1;
+			if (size > 420)
+				size = 200;
+			document.getElementById('balloon').style.width = size.toString() + "px";
+			document.getElementById('balloon').style.height = size.toString() + "px";;
+			document.getElementById('balloon').style.background = colors[clicks % 3];
+		}
+
+		document.getElementById("balloon").onmouseleave = function() {leave()};
+		
+		function leave() {
+			size = document.getElementById("balloon").getBoundingClientRect().width;
+			size -= 4;
+			console.log(size);
+			size -= 5;
+			clicks -= 1;
+			if (size < 200)
+				size = 200;
+			document.getElementById('balloon').style.width = size.toString() + "px";
+			document.getElementById('balloon').style.height = size.toString() + "px";
+			document.getElementById('balloon').style.background = colors[clicks % 3];
+		}
+	}
+	</script>
+</head>
+<body>
+	<div class="container">
+		<div class="balloon" id="balloon">
+		</div>
+	</div>
+</body>
+</html>

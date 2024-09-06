@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Calculator</title>
+	<script>
+		function digitsOnly(str) {
+			if (!str)
+				return false;
+			if (!'+123456789'.includes(str.charAt(0)) && str.length > 1)
+				return false;
+			if ('0123456789'.includes(str.charAt(0)) && str.length == 1)
+				return true;
+			for (let i = 1; i < str.length; i++) {
+				if (!'0123456789'.includes(str.charAt(i)))
+					return false;
+			}
+			if (str.length == 1)
+				return false;
+			return true;
+		}
+
+		function calculate() {
+			var res;
+			var check;
+			var str1 = document.getElementById("first").value;
+			var num1 = parseInt(str1, 10);
+			var str2 = document.getElementById("second").value;
+			var num2 = parseInt(str2, 10);
+			var sel = document.getElementById("fallDown");
+			var selection = sel.options[sel.selectedIndex].value;
+			if (digitsOnly(str1) && digitsOnly(str2))
+			{
+				if (selection == "addition") {
+					res = parseFloat(num1) + parseFloat(num2);
+					alert(res);
+					console.log(res);
+				}
+				else if (selection == "subtraction") {
+					res = parseFloat(num1) - parseFloat(num2);
+					alert(res);
+					console.log(res);
+				}
+				else if (selection == "multiplication") {
+					res = parseFloat(num1) * parseFloat(num2);
+					alert(res);
+					console.log(res);
+				}
+				else if (selection == "division") {
+					if (num2 == 0)
+					{
+						alert("It’s over 9000!");
+						console.log("It’s over 9000!");
+					}
+					else
+					{
+						res = parseFloat(num1) / parseFloat(num2);
+						alert(res);
+						console.log(res);
+					}
+				}
+				else if (selection == "modulo") {
+					if (num2 == 0)
+					{
+						alert("It’s over 9000!");
+						console.log("It’s over 9000!");
+					}
+					else
+					{
+						res = parseFloat(num1) % parseFloat(num2);
+						alert(res);
+						console.log(res);
+					}
+				}
+				else {
+					alert("Error :(");
+					console.log("Error :(");
+				}
+			}
+			else {
+				alert("Error :(");
+				console.log("Error :(");
+			}
+		}
+		setTimeout(reminder, 30000);
+		function reminder() {
+			alert("Please, use me...");
+		}
+	</script>
+</head>
+<body>
+	<div class="container">
+		<p>Calculator:</p>
+		<input type="text" id="first" />
+		<select id="fallDown">
+			<option>Choose</option>
+			<option value="addition" id="addition">+</option>
+			<option value="subtraction" id="subtraction">-</option>
+			<option value="multiplication" id="multiplication">*</option>
+			<option value="division" id="division">/</option>
+			<option value="modulo" id="modulo">%</option>
+		</select>
+		<input type="text" id="second" />
+		<input type="submit" value="Try Me!" onclick="calculate()">
+	</div>
+</body>
+</html>

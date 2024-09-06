@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Cookie test page</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			background-color: #333;
+		}
+
+		form {
+			width: 420px;
+			margin: 0 auto;
+			padding: 42px;
+			background-color: #666;
+			color: #ccc;
+			border: 1px solid #ccc;
+			border-radius: 15px;
+			box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+		}
+
+		h1 {
+			color: indigo;
+		}
+
+		h3 {
+			color: navy;
+		}
+
+		input[type="submit"] {
+			background-color: #048;
+			color: #ccc;
+			border: none;
+			padding: 10px 20px;
+			border-radius: 5px;
+			cursor: pointer;
+		}
+
+		input[type="submit"]:hover {
+			background-color: #024;
+			color: #aaa;
+		}
+	</style>
+</head>
+<body>
+	<form action="../cgi/setCookie.py" method="get" enctype="multipart/form-data" accept-charset="UTF-8">
+		<h1>42webserv</h1>
+		<p>
+			Key: <input type="text" name="key" pattern="[a-zA-Z0-9]+" required><br>
+			Value: <input type="text" name="value" pattern="[a-zA-Z0-9]+" required><br>
+		</p>
+		<input type="submit" value="Set cookie">
+	</form>
+	<form target="_blank" action="../cgi/getCookie.py" method="get" enctype="multipart/form-data" accept-charset="UTF-8">
+		<p>Key: <input type="text" name="key" pattern="[a-zA-Z0-9]+" required><br></p>
+		<input type="submit" value="Get cookie">
+	</form>
+</body>
+</html>

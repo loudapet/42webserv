@@ -1,0 +1,64 @@
+	
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" href="menu.css">
+    <script>
+        window.onload = function() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "../cgi/manageSession.py", true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                    console.log(xhr.responseText);
+                }
+            };
+            xhr.send();
+        };
+    </script>
+</head>
+<body>
+
+<div class="dropdown">
+	<button class="dropbtn">Basic pages</button>
+	<div class="dropdown-content">
+		<p><a href="upload/upload.html">Upload file test</a></p>
+		<p><a href="uploads/">Folder with uploaded files</a></p>
+		<p><a href="background/backgroound.html">Javascript</a></p>
+		<p><a href="error_pages/404.html">Error 404</a></p>
+		<p><a href="error_pages/405.html">Error 405</a></p>
+		<p>Item 4</p>
+	</div>
+</div>
+<div class="dropdown">
+	<button class="dropbtn">Config 2 - other_location</button>
+	<div class="dropdown-content">
+		<p><a href="/other/index.html">Index</a></p>
+		<p><a href="/other/calc/calc.html">Calc</a></p>
+		<p><a href="/other/todo/index.html">ToDoList</a></p>
+		<p><a href="/other/rush/index.html">Rush</a></p>
+
+		<p>Item e</p>
+	</div>
+</div>
+<div class="dropdown">
+	<button class="dropbtn">Cookie</button>
+	<div class="dropdown-content">
+		<p><a href="/cookie/cookie.html">Cookie page</a></p>
+	</div>
+</div>
+<div class="dropdown">
+	<button class="dropbtn">Config 3 - other_location/nested_location</button>
+	<div class="dropdown-content">
+		<p><a href="/nested/index.html/index.html">Index</a></p>
+		<p><a href="/nested/index.html/baloon/balloon.html">Balloon</a></p>
+	</div>
+</div>
+<div class="dropdown">
+    <button class="dropbtn">Account</button>
+    <div class="dropdown-content">
+        <p><a href="../cgi/manageSession.py?action=account">Account</a></p>
+        <p><a href="../cgi/manageSession.py?action=dashboard">Dashboard</a></p>
+    </div>
+</div>
+</body>
+</html>
